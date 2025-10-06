@@ -3745,8 +3745,14 @@
 		if (taskInfoArea) {
 		    let clickTimer = null;
 		    const delay = 250; // ダブルタップの待機時間 (ミリ秒)
-
+		
 		    taskInfoArea.addEventListener('click', (e) => {
+		        // リンクがクリックされた場合は、デフォルトの動作（ページ遷移）を許可
+		        if (e.target.tagName === 'A' || e.target.closest('a')) {
+		            // リンクの場合は何もしない（デフォルト動作を許可）
+		            return;
+		        }
+		        
 		        e.preventDefault();
 		        // ダブルタップでないことを確認するため、タイマーを設定
 		        if (clickTimer === null) {
@@ -3760,8 +3766,13 @@
 		            }, delay);
 		        }
 		    });
-
+		
 		    taskInfoArea.addEventListener('dblclick', (e) => {
+		        // リンクがダブルクリックされた場合も、デフォルトの動作を許可
+		        if (e.target.tagName === 'A' || e.target.closest('a')) {
+		            return;
+		        }
+		        
 		        e.preventDefault();
 		        // シングルタップ用のタイマーが設定されていれば、それを解除
 		        if (clickTimer) {
