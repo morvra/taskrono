@@ -2159,6 +2159,11 @@
         
         const viewDateObj = new Date(state.viewDate);
         const todayStr = getFormattedDate(new Date());
+
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + 2);
+        const limitDateStr = getFormattedDate(limitDate);
+
         let dateLabel = viewDateObj.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
 
         document.getElementById('view-date-display').textContent = dateLabel;
@@ -2168,6 +2173,13 @@
             prevBtn.style.visibility = 'hidden';
         } else {
             prevBtn.style.visibility = 'visible';
+        }
+
+        const nextBtn = document.getElementById('next-day-btn');
+        if (state.viewDate >= limitDateStr) {
+            nextBtn.style.visibility = 'hidden';
+        } else {
+            nextBtn.style.visibility = 'visible';
         }
 
         const tasks = getTasksForViewDate();
@@ -4253,6 +4265,13 @@
     
     function moveViewDate(direction) {
         const todayStr = getFormattedDate(new Date());
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + 2);
+        const limitDateStr = getFormattedDate(limitDate);
+
+        if (direction === 1 && state.viewDate >= limitDateStr) {
+            return; // 2日後より先には進めない
+        }
         if (direction === -1 && state.viewDate <= todayStr) {
             return;
         }
