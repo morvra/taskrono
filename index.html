@@ -123,7 +123,7 @@
             border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: center;f
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.2s ease-in-out;
         }
@@ -715,7 +715,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
 	    const GCAL_CLIENT_ID = '134193775188-svab18grq6f1g3vt3fk0oaqdvknha5ru.apps.googleusercontent.com';
-	    const GCAL_SCOPES = 'openid profile email';
+	    const GCAL_SCOPES = 'https.googleapis.com/auth/calendar.readonly';
 
         // --- フローティング要素のキーボード追従と滑らかスクロール対策 ---
 		function setupFloatingElementsStick() {
