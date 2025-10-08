@@ -1444,7 +1444,21 @@
                         });
 
                     if (newTasks.length > 0) {
-                        state.dailyTasks[dateStr].unshift(...newTasks);
+                        const tasks = state.dailyTasks[dateStr];
+                        // 「未着手(pending)」の最初のタスクを探して、その手前に挿入する
+                        let insertIndex = tasks.findIndex(t => t.status === 'pending');
+                        
+                        // 未着手タスクがない場合は、完了タスクの先頭（＝未完了タスクの末尾）を探す
+                        if (insertIndex === -1) {
+                            insertIndex = tasks.findIndex(t => t.status === 'completed');
+                        }
+
+                        // それでも挿入場所が見つからない場合（リストが空か、すべて実行中の場合）は末尾に追加
+                        if (insertIndex === -1) {
+                            insertIndex = tasks.length;
+                        }
+
+                        tasks.splice(insertIndex, 0, ...newTasks);
                         saveAndRender();
                     }
                     showToast(`${addedCount}件の予定を読み込みました。`);
@@ -2120,7 +2134,9 @@
             }
 
             if (shouldAdd) {
-                const isAlreadyAdded = state.dailyTasks[dateStr].some(task => task.originRepeatId === rt.id);
+                const isAlreadyAdded = state.dailyTasks[dateStr].some(
+                    task => task.originRepeatId === rt.id && task.createdDate === dateStr
+                );
                 if (!isAlreadyAdded) {
 					const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
 					
