@@ -2103,8 +2103,6 @@
     }
 
 	function archiveCompletedTasks(dateKey) {
-
-	function archiveCompletedTasks(dateKey) {
         if (!state.dailyTasks[dateKey]) return;
         // isDeletedでない完了タスクのみをアーカイブ対象とする
         const completedTasks = state.dailyTasks[dateKey].filter(t => t.status === 'completed' && !t.isDeleted);
