@@ -3972,7 +3972,11 @@
     }
 
 	function deleteTask(id) {
-	    if (!confirm('このタスクを削除しますか？')) return;
+	    const tasks = getTasksForViewDate();
+	    const task = tasks.find(t => t.id === id);
+	    if (!task) return;
+
+	    if (!confirm(`タスク「${task.name}」を削除しますか？`)) return;
 	
 	    const allTasksForDate = state.dailyTasks[state.viewDate] || [];
 	    const index = allTasksForDate.findIndex(t => t.id === id);
@@ -4010,7 +4014,11 @@
 	}
 
     function deleteArchivedTask(dateKey, taskId) {
-        if (!confirm('このアーカイブ済みタスクを削除しますか？この操作は元に戻せません。')) return;
+        if (!state.archivedTasks[dateKey]) return;
+        const task = state.archivedTasks[dateKey].find(t => t.id === taskId);
+        if (!task) return;
+
+        if (!confirm(`アーカイブ済みタスク「${task.name}」を削除しますか？この操作は元に戻せません。`)) return;
         if (state.archivedTasks[dateKey]) {
             state.archivedTasks[dateKey] = state.archivedTasks[dateKey].filter(t => t.id !== taskId);
             if (state.archivedTasks[dateKey].length === 0) {
@@ -4217,7 +4225,9 @@
     }
 
     function deleteRepeatTask(id) {
-        if (!confirm('このリピートタスクを削除しますか？')) return;
+        const repeatTask = state.repeatTasks.find(rt => rt.id === id);
+        if (!repeatTask) return;
+        if (!confirm(`リピートタスク「${repeatTask.name}」を削除しますか？`)) return;
         state.repeatTasks = state.repeatTasks.filter(rt => rt.id !== id);
         saveAndRender();
     }
@@ -4246,7 +4256,9 @@
     }
 
     function deleteProject(id) {
-        if (!confirm('このプロジェクトを削除しますか？')) return;
+        const project = state.projects.find(p => p.id === id);
+        if (!project) return;
+        if (!confirm(`プロジェクト「${project.name}」を削除しますか？関連するタスクからプロジェクト設定が解除されます。`)) return;
         state.projects = state.projects.filter(p => p.id !== id);
         Object.values(state.dailyTasks).flat().forEach(t => { if(t.projectId === id) t.projectId = null; });
         state.repeatTasks.forEach(rt => { if(rt.projectId === id) rt.projectId = null; });
