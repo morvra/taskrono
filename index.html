@@ -2067,7 +2067,6 @@
         const today = getFormattedDate(new Date());
         if (state.lastDate !== today) {
             console.log(`Date changed: ${state.lastDate} -> ${today}`);
-
 			const yesterdaysTasks = state.dailyTasks[state.lastDate];
             if (yesterdaysTasks && yesterdaysTasks.length > 0) {
                 // isDeletedでない未完了タスクのみを抽出
@@ -2081,26 +2080,29 @@
                     state.dailyTasks[state.lastDate] = yesterdaysTasks.filter(t => t.status === 'completed' || t.isDeleted);
                 }
             }
-            
             archiveCompletedTasks(state.lastDate);
-			// Googleカレンダーの予定を先に読み込む
-	        await dailyTaskListApp.importGoogleCalendarEvents(today);
-	        // その後にリピートタスクを生成
-	        generateTasksFromRepeatAuto(today);
+            // 先にリピートタスクを生成
+            generateTasksFromRepeatAuto(today);
             state.lastDate = today;
             state.viewDate = today; 
+            // 生成したリピートタスクをすぐに画面に反映させる
             const tasksToday = state.dailyTasks[today] || [];
-            const firstUncompletedTaskOnDayChange = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-            if (firstUncompletedTaskOnDayChange) {
-                state.focusedTaskId = firstUncompletedTaskOnDayChange.id;
+            const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
+            if (firstUncompletedTask) {
+                state.focusedTaskId = firstUncompletedTask.id;
             } else if (tasksToday.length > 0) {
                 state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
             } else {
                 state.focusedTaskId = null;
             }
 			saveAndRender();
+            // その後、時間のかかるGoogleカレンダーの予定を非同期で読み込む
+            // この関数内でタスク追加後に再度 saveAndRender が呼ばれる
+            await dailyTaskListApp.importGoogleCalendarEvents(today);
         }
     }
+
+	function archiveCompletedTasks(dateKey) {
 
 	function archiveCompletedTasks(dateKey) {
         if (!state.dailyTasks[dateKey]) return;
