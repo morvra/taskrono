@@ -4580,7 +4580,17 @@
         currentDate.setDate(currentDate.getDate() + direction);
         state.viewDate = getFormattedDate(currentDate);
         const tasks = getTasksForViewDate();
-        state.focusedTaskId = tasks.length > 0 ? tasks[0].id : null;
+        const firstUncompletedTask = tasks.find(t => getTaskStatus(t) !== 'completed');
+        if (firstUncompletedTask) {
+            // 未完了タスクがあれば、その最初のタスクを選択
+            state.focusedTaskId = firstUncompletedTask.id;
+        } else if (tasks.length > 0) {
+            // 未完了タスクがなく、タスクが1件以上あれば、リストの最後のタスクを選択
+            state.focusedTaskId = tasks[tasks.length - 1].id;
+        } else {
+            // タスクがなければ選択しない
+            state.focusedTaskId = null;
+        }
         renderTodayTasks();
     }
     
