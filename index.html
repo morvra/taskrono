@@ -814,6 +814,7 @@
 			// --- Google Calendar Properties ---
 		    gcalApiClient: null,
 		    gcalTokenClient: null,
+			gcalTokenRefreshPromise: null,
 		    gcalAuthorizeButton: document.getElementById('gcal_authorize_button'),
 		    gcalSignoutButton: document.getElementById('gcal_signout_button'),
 		    gcalAuthContainer: document.getElementById('gcal-auth-container'),
@@ -1245,17 +1246,28 @@
             dailyTaskListApp.gcalTokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GCAL_CLIENT_ID,
                 scope: GCAL_SCOPES,
-                callback: async (tokenResponse) => {
+                callback: (tokenResponse) => {
                     if (tokenResponse && tokenResponse.access_token) {
                         localStorage.setItem('gcal_access_token', tokenResponse.access_token);
-                        // リフレッシュトークンは初回認証時にしか返されない
-                        if (tokenResponse.refresh_token) {
-                            localStorage.setItem('gcal_refresh_token', tokenResponse.refresh_token);
+                        gapi.client.setToken({ access_token: tokenResponse.access_token });
+                        
+                        // リフレッシュ処理中の場合、Promiseを解決して処理を続行させる
+                        if (dailyTaskListApp.gcalTokenRefreshPromise) {
+                            dailyTaskListApp.gcalTokenRefreshPromise.resolve();
+                        } else {
+                            // 通常のログインフロー
+                            dailyTaskListApp.gcalStatusEl.textContent = 'Googleにログインしました。';
+                            dailyTaskListApp.updateGCalAuthUi(true);
+                            dailyTaskListApp.loadAndRenderGCalCalendars();
                         }
-                        gapi.client.setToken(tokenResponse);
-                        dailyTaskListApp.gcalStatusEl.textContent = 'Googleにログインしました。';
-                        dailyTaskListApp.updateGCalAuthUi(true);
-                        await dailyTaskListApp.loadAndRenderGCalCalendars();
+                    } else if (dailyTaskListApp.gcalTokenRefreshPromise) {
+                        // リフレッシュ処理中にエラーが発生した場合
+                        console.error("Failed to refresh Google token silently.", tokenResponse);
+                        dailyTaskListApp.gcalTokenRefreshPromise.reject(new Error("Silent token refresh failed."));
+                        // 認証が完全に切れているので、UIを更新してユーザーに再ログインを促す
+                        dailyTaskListApp.updateGCalAuthUi(false);
+                        dailyTaskListApp.gcalStatusEl.textContent = '再ログインが必要です。';
+                        showToast('Googleの認証が切れました。再度ログインしてください。', 5000);
                     }
                 },
             });
@@ -1271,7 +1283,7 @@
                     gapi.client.setToken({ access_token: accessToken });
                     // トークンの有効性を確認するためにAPIを試行
                     try {
-                        await gapi.client.calendar.calendarList.list({maxResults: 1});
+                        await dailyTaskListApp.gcalApiHelper(() => gapi.client.calendar.calendarList.list({maxResults: 1}));
                         dailyTaskListApp.updateGCalAuthUi(true);
                         await dailyTaskListApp.loadAndRenderGCalCalendars();
                     } catch (e) {
@@ -1329,12 +1341,58 @@
                 this.updateGCalAuthUi(false);
                 this.gcalCalendarsListEl.innerHTML = '';
             },
+			
+			// Google Calendar API呼び出しのラッパー関数（自動トークンリフレッシュ付き）
+            gcalApiHelper: async function(apiCall) {
+                try {
+                    // 最初のAPI呼び出しを試行
+                    return await apiCall();
+                } catch (error) {
+                    // 401エラー（認証切れ）かチェック
+                    const isAuthError = (error.status === 401) || (error.result && error.result.error && error.result.error.code === 401);
+                    
+                    if (isAuthError) {
+                        // 既に他の処理でリフレッシュが進行中であれば、その完了を待つ
+                        if (this.gcalTokenRefreshPromise) {
+                            await this.gcalTokenRefreshPromise.promise;
+                            return await apiCall(); // 再試行
+                        }
+
+                        console.log('Google API authentication error, attempting to refresh token silently.');
+                        
+                        // 新しいリフレッシュ処理を開始するためのPromiseを準備
+                        this.gcalTokenRefreshPromise = {};
+                        const promise = new Promise((resolve, reject) => {
+                            this.gcalTokenRefreshPromise.resolve = resolve;
+                            this.gcalTokenRefreshPromise.reject = reject;
+                        });
+                        this.gcalTokenRefreshPromise.promise = promise;
+                        
+                        // UIを表示せずに新しいアクセストークンを要求
+                        this.gcalTokenClient.requestAccessToken({ prompt: 'none' });
+                        
+                        try {
+                            // 上記で設定したコールバックが呼ばれて promise が解決/拒否されるのを待つ
+                            await promise; 
+                            console.log('Token refreshed, retrying API call.');
+                            return await apiCall(); // 再試行
+                        } finally {
+                            // 処理が完了したらPromiseをクリア
+                            this.gcalTokenRefreshPromise = null;
+                        }
+
+                    } else {
+                        // 認証エラー以外はそのままエラーを投げる
+                        throw error;
+                    }
+                }
+            },
             
             // ユーザーのカレンダー一覧を取得して表示
             loadAndRenderGCalCalendars: async function() {
                 this.gcalStatusEl.textContent = 'カレンダー一覧を読み込み中...';
                 try {
-                    const response = await gapi.client.calendar.calendarList.list();
+                    const response = await this.gcalApiHelper(() => gapi.client.calendar.calendarList.list());
                     const calendars = response.result.items;
                     this.gcalCalendarsListEl.innerHTML = '';
 
@@ -1397,7 +1455,7 @@
                         }));
                     });
 
-                    const response = await batch;
+                    const response = await this.gcalApiHelper(() => batch);
                     let allEvents = [];
                     Object.values(response.result).forEach(res => {
                         if (res.result.items) {
