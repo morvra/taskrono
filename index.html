@@ -1313,12 +1313,11 @@
                     gapi.client.setToken({ access_token: accessToken });
                     try {
                         await dailyTaskListApp.gcalApiHelper(() => gapi.client.calendar.calendarList.list({maxResults: 1}));
+                        // gcalApiHelper が成功した場合のみUIをログイン済みにし、カレンダーを読み込む
                         dailyTaskListApp.updateGCalAuthUi(true);
                         await dailyTaskListApp.loadAndRenderGCalCalendars();
                     } catch (e) {
-                         console.error("Google Calendar API access failed, token might be expired.", e);
-                         localStorage.removeItem('gcal_access_token');
-                         dailyTaskListApp.updateGCalAuthUi(false);
+                         console.error("Could not initialize Google Calendar on load:", e.message);
                     }
                 } else {
                     dailyTaskListApp.updateGCalAuthUi(false);
@@ -1375,47 +1374,19 @@
                 this.gcalCalendarsListEl.innerHTML = '';
             },
 			
-			// Google Calendar API呼び出しのラッパー関数（自動トークンリフレッシュ付き）
+			// Google Calendar API呼び出しのラッパー関数（認証エラーハンドリング付き）
             gcalApiHelper: async function(apiCall) {
                 try {
-                    // 最初のAPI呼び出しを試行
                     return await apiCall();
                 } catch (error) {
-                    // 401エラー（認証切れ）かチェック
                     const isAuthError = (error.status === 401) || (error.result && error.result.error && error.result.error.code === 401);
-                    
                     if (isAuthError) {
-                        // 既に他の処理でリフレッシュが進行中であれば、その完了を待つ
-                        if (this.gcalTokenRefreshPromise) {
-                            await this.gcalTokenRefreshPromise.promise;
-                            return await apiCall(); // 再試行
-                        }
-
-                        console.log('Google API authentication error, attempting to refresh token silently.');
-                        
-                        // 新しいリフレッシュ処理を開始するためのPromiseを準備
-                        this.gcalTokenRefreshPromise = {};
-                        const promise = new Promise((resolve, reject) => {
-                            this.gcalTokenRefreshPromise.resolve = resolve;
-                            this.gcalTokenRefreshPromise.reject = reject;
-                        });
-                        this.gcalTokenRefreshPromise.promise = promise;
-                        
-                        // UIを表示せずに新しいアクセストークンを要求
-                        this.gcalTokenClient.requestAccessToken({ prompt: 'none' });
-                        
-                        try {
-                            // 上記で設定したコールバックが呼ばれて promise が解決/拒否されるのを待つ
-                            await promise; 
-                            console.log('Token refreshed, retrying API call.');
-                            return await apiCall(); // 再試行
-                        } finally {
-                            // 処理が完了したらPromiseをクリア
-                            this.gcalTokenRefreshPromise = null;
-                        }
-
+                        console.log('Google API authentication error. User re-authentication required.');
+                        this.updateGCalReauthUi(true);
+                        this.updateGCalAuthUi(false);
+                        localStorage.removeItem('gcal_access_token');
+                        throw new Error("Google authentication required. Please log in again.");
                     } else {
-                        // 認証エラー以外はそのままエラーを投げる
                         throw error;
                     }
                 }
