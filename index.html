@@ -709,6 +709,11 @@
     <button id="reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
 </div>
 
+<div id="gcal-reauth-notification" class="fixed top-5 right-1 bg-yellow-500 text-white mx-2 py-2 px-4 rounded-lg shadow-md transition-all duration-500 ease-in-out transform -translate-y-20 opacity-0 z-[2000] items-center gap-3 hidden">
+    <span>Googleの再ログインが必要です。</span>
+    <button id="gcal-reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
+</div>
+
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 
 <script>
@@ -822,6 +827,8 @@
 		    gcalAuthStatusEl: document.getElementById('gcal-auth-status'),
 		    gcalStatusEl: document.getElementById('gcal-status'),
 		    gcalCalendarsListEl: document.getElementById('gcal-calendars-list'),
+            gcalReauthNotification: document.getElementById('gcal-reauth-notification'),
+            gcalReauthButton: document.getElementById('gcal-reauth-button'),
             // DOM Elements
             authorizeButton: document.getElementById('authorize_button'),
             signoutButton: document.getElementById('signout_button'),
@@ -846,6 +853,22 @@
                     setTimeout(() => {
                         this.reauthNotification.classList.add('hidden');
                         this.reauthNotification.style.display = 'none';
+                    }, 500);
+                }
+            },
+
+            updateGCalReauthUi: function(show) {
+                if (show) {
+                    this.gcalReauthNotification.classList.remove('hidden');
+                    setTimeout(() => {
+                        this.gcalReauthNotification.classList.remove('-translate-y-20', 'opacity-0');
+                        this.gcalReauthNotification.style.display = 'flex';
+                    }, 50);
+                } else {
+                    this.gcalReauthNotification.classList.add('-translate-y-20', 'opacity-0');
+                    setTimeout(() => {
+                        this.gcalReauthNotification.classList.add('hidden');
+                        this.gcalReauthNotification.style.display = 'none';
                     }, 500);
                 }
             },
@@ -1247,21 +1270,24 @@
                 client_id: GCAL_CLIENT_ID,
                 scope: GCAL_SCOPES,
                 callback: (tokenResponse) => {
-                    // エラーハンドリングを強化
                     if (tokenResponse.error) {
                         console.error("Google Token Error:", tokenResponse.error, tokenResponse.error_description || "No description.");
                         if (dailyTaskListApp.gcalTokenRefreshPromise) {
+                            // サイレント更新が失敗した場合の処理
                             dailyTaskListApp.gcalTokenRefreshPromise.reject(new Error(tokenResponse.error));
+                            dailyTaskListApp.updateGCalReauthUi(true); // 新しいUIを表示
+                        } else {
+                            // 手動ログインが失敗した場合の処理
+                            showToast('Googleの認証に失敗しました。', 5000);
                         }
-                         // 認証が完全に切れているので、UIを更新してユーザーに再ログインを促す
                         dailyTaskListApp.updateGCalAuthUi(false);
                         dailyTaskListApp.gcalStatusEl.textContent = '再ログインが必要です。';
-                        showToast('Googleの認証が切れました。再度ログインしてください。', 5000);
                         return;
                     }
 
                     // 正常なトークン取得処理
                     if (tokenResponse.access_token) {
+                        dailyTaskListApp.updateGCalReauthUi(false); // 再認証UIを隠す
                         localStorage.setItem('gcal_access_token', tokenResponse.access_token);
                         gapi.client.setToken({ access_token: tokenResponse.access_token });
                         
@@ -1285,7 +1311,6 @@
                 const accessToken = localStorage.getItem('gcal_access_token');
                 if (accessToken) {
                     gapi.client.setToken({ access_token: accessToken });
-                    // トークンの有効性を確認するためにAPIを試行
                     try {
                         await dailyTaskListApp.gcalApiHelper(() => gapi.client.calendar.calendarList.list({maxResults: 1}));
                         dailyTaskListApp.updateGCalAuthUi(true);
@@ -1302,6 +1327,11 @@
 
             dailyTaskListApp.gcalAuthorizeButton.addEventListener('click', () => dailyTaskListApp.gcalHandleAuthClick());
             dailyTaskListApp.gcalSignoutButton.addEventListener('click', () => dailyTaskListApp.gcalHandleSignoutClick());
+            // 新しい再認証ボタンのイベントリスナー
+            dailyTaskListApp.gcalReauthButton.addEventListener('click', () => {
+                dailyTaskListApp.updateGCalReauthUi(false);
+                dailyTaskListApp.gcalHandleAuthClick();
+            });
         }
 
         // dailyTaskListAppオブジェクトにGoogleカレンダー関連のメソッドを追加
