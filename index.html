@@ -1247,27 +1247,31 @@
                 client_id: GCAL_CLIENT_ID,
                 scope: GCAL_SCOPES,
                 callback: (tokenResponse) => {
-                    if (tokenResponse && tokenResponse.access_token) {
+                    // エラーハンドリングを強化
+                    if (tokenResponse.error) {
+                        console.error("Google Token Error:", tokenResponse.error, tokenResponse.error_description || "No description.");
+                        if (dailyTaskListApp.gcalTokenRefreshPromise) {
+                            dailyTaskListApp.gcalTokenRefreshPromise.reject(new Error(tokenResponse.error));
+                        }
+                         // 認証が完全に切れているので、UIを更新してユーザーに再ログインを促す
+                        dailyTaskListApp.updateGCalAuthUi(false);
+                        dailyTaskListApp.gcalStatusEl.textContent = '再ログインが必要です。';
+                        showToast('Googleの認証が切れました。再度ログインしてください。', 5000);
+                        return;
+                    }
+
+                    // 正常なトークン取得処理
+                    if (tokenResponse.access_token) {
                         localStorage.setItem('gcal_access_token', tokenResponse.access_token);
                         gapi.client.setToken({ access_token: tokenResponse.access_token });
                         
-                        // リフレッシュ処理中の場合、Promiseを解決して処理を続行させる
                         if (dailyTaskListApp.gcalTokenRefreshPromise) {
                             dailyTaskListApp.gcalTokenRefreshPromise.resolve();
                         } else {
-                            // 通常のログインフロー
                             dailyTaskListApp.gcalStatusEl.textContent = 'Googleにログインしました。';
                             dailyTaskListApp.updateGCalAuthUi(true);
                             dailyTaskListApp.loadAndRenderGCalCalendars();
                         }
-                    } else if (dailyTaskListApp.gcalTokenRefreshPromise) {
-                        // リフレッシュ処理中にエラーが発生した場合
-                        console.error("Failed to refresh Google token silently.", tokenResponse);
-                        dailyTaskListApp.gcalTokenRefreshPromise.reject(new Error("Silent token refresh failed."));
-                        // 認証が完全に切れているので、UIを更新してユーザーに再ログインを促す
-                        dailyTaskListApp.updateGCalAuthUi(false);
-                        dailyTaskListApp.gcalStatusEl.textContent = '再ログインが必要です。';
-                        showToast('Googleの認証が切れました。再度ログインしてください。', 5000);
                     }
                 },
             });
@@ -1322,8 +1326,7 @@
             // Google認証ボタンクリック時の処理
             gcalHandleAuthClick: function() {
                 if (this.gcalTokenClient) {
-                    // リフレッシュトークンを取得するためにオフラインアクセスを要求
-                    this.gcalTokenClient.requestAccessToken({ prompt: 'consent', grant_type: 'authorization_code' });
+                    this.gcalTokenClient.requestAccessToken({ prompt: 'consent' });
                 }
             },
 
