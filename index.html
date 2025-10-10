@@ -1813,6 +1813,16 @@
             render();
             updateTimeDisplays();
             setInterval(updateTimeDisplays, 1000*30);
+			// 分析ページなどからブラウザバックで戻ってきた際に「当日のタスク」を表示する
+			window.addEventListener('pageshow', function(event) {
+                // event.persistedがtrueの場合、ページはキャッシュ(bfcache)から読み込まれている
+                if (event.persisted) {
+                    const todayTab = document.querySelector('.tab-link[data-tab="today"]');
+                    if (todayTab && !todayTab.classList.contains('active')) {
+                        todayTab.click();
+                    }
+                }
+            });
             
             window.addEventListener('resize', () => {
                 const activeTab = document.querySelector('.tab-link.active').dataset.tab;
