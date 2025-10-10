@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Analysis" />
+    <title>Analysis - DailyTaskList</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<link href='./dtlfavicon.ico' rel='icon' type='image/x-icon'/>
+    <link href='./dtlicon.png' rel='shortcut icon'/>
+    <link href='./dtlicon.png' rel='apple-touch-icon'/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .tab-link.active { border-color: #3b82f6; background-color:#3b82f6; color:white; }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+        .task-table th, .task-table td {
+             padding-top: 0.5rem;
+             padding-bottom: 0.5rem;
+             padding-left: 0.75rem;
+             padding-right: 0.75rem;
+        }
+        /* Style for the sticky chart container on desktop */
+        @media (min-width: 1024px) {
+            .chart-container-sticky {
+                align-self: flex-start;
+                position: -webkit-sticky; /* For Safari */
+                position: sticky;
+                top: 1.5rem;
+            }
+        }
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        summary {
+            list-style: none;
+        }
+        details[open] summary .chevron-icon {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+
+<div class="container mx-auto p-4 md:p-6 max-w-7xl">
+    <header class="mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Analysis</h1>
+                <p class="text-gray-500">DailyTaskList</p>
+            </div>
+            <a href="./" class="mt-2 md:mt-0 text-blue-600 hover:underline">&larr; メインアプリに戻る</a>
+        </div>
+    </header>
+
+    <nav class="flex space-x-0 border-b border-gray-200">
+        <button class="tab-link text-sm md:text-base py-2 px-4 text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex-shrink-0" data-tab="time-analysis">時間分析</button>
+        <button class="tab-link text-sm md:text-base py-2 px-4 text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex-shrink-0" data-tab="repeat-analysis">リピートタスク</button>
+    </nav>
+
+    <main class="mt-6">
+        <!-- Time-based Analysis Tab -->
+        <div id="time-analysis" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Controls and Chart -->
+                <div class="lg:col-span-1 bg-white p-4 rounded-lg shadow-md space-y-4 chart-container-sticky">
+                    <div>
+                        <label for="time-view-mode" class="block text-sm font-medium text-gray-700">表示単位</label>
+                        <select id="time-view-mode" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="date">日別</option>
+                            <option value="week">週別</option>
+                            <option value="month">月別</option>
+                            <option value="year">年別</option>
+                            <option value="total">合計</option>
+                        </select>
+                    </div>
+                    <div id="time-period-nav" class="flex items-center justify-between gap-2">
+                        <button id="prev-period-btn" class="px-2 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200">&lt;</button>
+                        <h2 id="view-period-display" class="font-bold text-lg text-center flex-grow"></h2>
+                        <button id="next-period-btn" class="px-2 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200">&gt;</button>
+                        <button id="today-period-btn" title="今日に戻る" class="p-2 rounded-md bg-gray-100 hover:bg-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="relative pt-4">
+                        <canvas id="project-pie-chart"></canvas>
+                        <div id="chart-no-data" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">この期間のデータはありません</div>
+                    </div>
+                </div>
+                <!-- Task List -->
+                <div class="lg:col-span-2 bg-white p-4 rounded-lg shadow-md">
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <div class="flex-grow">
+                            <label for="time-filter-project" class="block text-sm font-medium text-gray-700">プロジェクトで絞り込み</label>
+                            <select id="time-filter-project" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="all">すべてのプロジェクト</option>
+                            </select>
+                        </div>
+                        <div class="flex-grow">
+                            <label for="time-filter-search" class="block text-sm font-medium text-gray-700">タスクを検索</label>
+                            <input type="text" id="time-filter-search" placeholder="タスク名やメモで検索..." class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                    <div id="time-tasks-list-container" class="overflow-x-auto"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Repeat Task Analysis Tab -->
+        <div id="repeat-analysis" class="tab-content bg-white p-4 md:p-6 rounded-lg shadow-md">
+             <h2 class="text-xl font-bold mb-4">リピートタスクの実績</h2>
+             <div id="repeat-tasks-container" class="space-y-4"></div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- STATE & DATA ---
+    const state = {
+        // Raw data from localStorage
+        projects: [],
+        repeatTasks: [],
+        archivedTasks: {},
+        dailyTasks: {},
+        // UI state for Time Analysis
+        timeViewMode: 'month', // 'date', 'week', 'month', 'year', 'total'
+        timeViewDate: new Date(),
+        timeProjectFilter: 'all',
+        timeSearchFilter: '',
+        timeAnalysisVisibleItems: 50,
+        isLoadingMore: false,
+        // Chart.js instance
+        pieChartInstance: null,
+    };
+
+    // --- UTILITY FUNCTIONS ---
+    const getFormattedDate = (date) => new Date(date.getTime() - (4 * 60 * 60 * 1000)).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+    const formatTime = (seconds) => {
+        const s = parseInt(seconds, 10) || 0;
+        if (s === 0) return '0分00秒';
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        let parts = [];
+        if (h > 0) parts.push(`${h}時間`);
+        if (m > 0 || h > 0) parts.push(`${m.toString().padStart(h > 0 ? '2' : '1', '0')}分`);
+        if (h === 0) parts.push(`${sec.toString().padStart(2, '0')}秒`);
+        return parts.join('');
+    };
+    const formatTimeForTable = (seconds) => {
+        const s = parseInt(seconds, 10) || 0;
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+    const formatDateForTable = (dateString, forceYear = false) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const options = { month: '2-digit', day: '2-digit' };
+        if (forceYear || state.timeViewMode === 'year' || state.timeViewMode === 'total') {
+            options.year = '2-digit';
+        }
+        return new Intl.DateTimeFormat('ja-JP', options).format(date).replace(/\//g, '-');
+    };
+    const formatClockTime = (date) => date ? new Date(date).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+    const escapeHtml = (s) => s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;') : '';
+    const formatTaskName = (text) => {
+        if (!text) return '';
+        // Escape HTML first, then replace markdown links.
+        // The href attribute's content will be handled correctly by browsers.
+        return escapeHtml(text).replace(
+            /\[(.*?)\]\((.*?)\)/g,
+            '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
+        );
+    };
+    const calculateActualTime = (task) => {
+        if (task.startTime && task.endTime) {
+            const duration = new Date(task.endTime).getTime() - new Date(task.startTime).getTime();
+            return Math.round(Math.max(0, duration) / 1000);
+        }
+        return task.actualTime || 0;
+    };
+
+    // --- INITIALIZATION ---
+    function init() {
+        loadDataFromLocalStorage();
+        setupEventListeners();
+        document.getElementById('time-view-mode').value = state.timeViewMode;
+        document.querySelector('.tab-link[data-tab="time-analysis"]').click();
+    }
+
+    function loadDataFromLocalStorage() {
+        state.projects = JSON.parse(localStorage.getItem('dtl_projects') || '[]');
+        state.repeatTasks = JSON.parse(localStorage.getItem('dtl_repeatTasks') || '[]');
+        state.archivedTasks = JSON.parse(localStorage.getItem('dtl_archivedTasks') || '{}');
+        state.dailyTasks = JSON.parse(localStorage.getItem('dtl_dailyTasks') || '{}');
+    }
+
+    function setupEventListeners() {
+        // Main Tab Navigation
+        document.querySelectorAll('.tab-link').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+                renderActiveTab();
+            });
+        });
+
+        // Time Analysis Controls
+        document.getElementById('time-view-mode').addEventListener('change', (e) => {
+            state.timeViewMode = e.target.value;
+            state.timeAnalysisVisibleItems = 50; // Reset scroll limit
+            renderTimeAnalysisView();
+        });
+        document.getElementById('prev-period-btn').addEventListener('click', () => movePeriod(-1));
+        document.getElementById('next-period-btn').addEventListener('click', () => movePeriod(1));
+        document.getElementById('today-period-btn').addEventListener('click', () => {
+            state.timeViewDate = new Date();
+            state.timeAnalysisVisibleItems = 50; // Reset scroll
+            renderTimeAnalysisView();
+        });
+        document.getElementById('time-filter-project').addEventListener('change', (e) => {
+            state.timeProjectFilter = e.target.value;
+            state.timeAnalysisVisibleItems = 50; // Reset scroll limit
+            renderTimeAnalysisView();
+        });
+        document.getElementById('time-filter-search').addEventListener('input', (e) => {
+            state.timeSearchFilter = e.target.value;
+            state.timeAnalysisVisibleItems = 50; // Reset scroll limit
+            renderTimeAnalysisView();
+        });
+
+        // Infinite scroll for time analysis table
+        window.addEventListener('scroll', () => {
+            if (state.isLoadingMore) return;
+
+            const activeTab = document.querySelector('.tab-link.active')?.dataset.tab;
+            if (activeTab !== 'time-analysis') return;
+
+            const fullTaskList = getTasksForPeriod();
+            if (state.timeAnalysisVisibleItems >= fullTaskList.length) return;
+
+            // Check if user is near the bottom of the document
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                state.isLoadingMore = true;
+                state.timeAnalysisVisibleItems += 50;
+                renderTimeAnalysisTable(fullTaskList);
+                
+                setTimeout(() => { 
+                    state.isLoadingMore = false;
+                }, 100);
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+            const activeTab = document.querySelector('.tab-link.active')?.dataset.tab;
+            if (activeTab === 'time-analysis' && state.timeViewMode !== 'total') {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    movePeriod(-1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    movePeriod(1);
+                }
+            }
+        });
+    }
+
+    // --- RENDER DISPATCHER ---
+    function renderActiveTab() {
+        const activeTab = document.querySelector('.tab-link.active').dataset.tab;
+        switch (activeTab) {
+            case 'time-analysis':
+                populateProjectFilter('time-filter-project', 'すべてのプロジェクト');
+                renderTimeAnalysisView();
+                break;
+            case 'repeat-analysis':
+                renderRepeatAnalysisView();
+                break;
+        }
+    }
+
+    // --- DATA GATHERING & FILTERING ---
+    function getAllCompletedTasks() {
+        let allTasks = [];
+        for (const date in state.archivedTasks) {
+            state.archivedTasks[date].forEach(task => {
+                allTasks.push({ ...task, completedDate: date });
+            });
+        }
+        for (const date in state.dailyTasks) {
+            state.dailyTasks[date].forEach(task => {
+                if (task.startTime && task.endTime) {
+                    if (!allTasks.some(at => at.id === task.id)) {
+                        allTasks.push({ ...task, completedDate: date });
+                    }
+                }
+            });
+        }
+        return allTasks;
+    }
+
+    function getTasksForPeriod() {
+        let startDate, endDate;
+        const viewDate = new Date(state.timeViewDate);
+        viewDate.setHours(0, 0, 0, 0);
+
+        if (state.timeViewMode !== 'total') {
+            switch (state.timeViewMode) {
+                case 'week':
+                    const dayOfWeek = viewDate.getDay();
+                    startDate = new Date(viewDate);
+                    startDate.setDate(viewDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Monday as start of week
+                    endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case 'month':
+                    startDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+                    endDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+                    break;
+                case 'year':
+                    startDate = new Date(viewDate.getFullYear(), 0, 1);
+                    endDate = new Date(viewDate.getFullYear(), 11, 31);
+                    break;
+                case 'date':
+                default:
+                    startDate = viewDate;
+                    endDate = viewDate;
+                    break;
+            }
+        }
+        
+        const allTasks = getAllCompletedTasks();
+        const normalizedSearch = state.timeSearchFilter.toLowerCase();
+        
+        return allTasks.filter(task => {
+            // Date filter (skip for 'total' mode)
+            if (state.timeViewMode !== 'total') {
+                const taskDate = new Date(task.completedDate);
+                taskDate.setHours(0, 0, 0, 0);
+                if (!(taskDate >= startDate && taskDate <= endDate)) return false;
+            }
+
+            // Project filter
+            if (state.timeProjectFilter !== 'all' && task.projectId !== state.timeProjectFilter) return false;
+            
+            // Search filter
+            if (normalizedSearch) {
+                const nameMatch = (task.name || '').toLowerCase().includes(normalizedSearch);
+                const memoMatch = (task.memo || '').toLowerCase().includes(normalizedSearch);
+                if (!nameMatch && !memoMatch) return false;
+            }
+
+            return true;
+        });
+    }
+
+    // --- TIME ANALYSIS VIEW ---
+    function renderTimeAnalysisView() {
+        updatePeriodDisplay();
+        const tasks = getTasksForPeriod();
+        renderPieChart(tasks);
+        renderTimeAnalysisTable(tasks);
+    }
+
+    function movePeriod(direction) {
+        if (state.timeViewMode === 'total') return;
+        state.timeAnalysisVisibleItems = 50; // Reset scroll limit
+        const newDate = new Date(state.timeViewDate);
+        switch (state.timeViewMode) {
+            case 'date': newDate.setDate(newDate.getDate() + direction); break;
+            case 'week': newDate.setDate(newDate.getDate() + 7 * direction); break;
+            case 'month': newDate.setMonth(newDate.getMonth() + direction); break;
+            case 'year': newDate.setFullYear(newDate.getFullYear() + direction); break;
+        }
+        state.timeViewDate = newDate;
+        renderTimeAnalysisView();
+    }
+    
+    function updatePeriodDisplay() {
+        const displayEl = document.getElementById('view-period-display');
+        const navEl = document.getElementById('time-period-nav');
+        const todayBtn = document.getElementById('today-period-btn');
+
+        if (state.timeViewMode === 'total') {
+            displayEl.textContent = '全期間 合計';
+            navEl.classList.add('hidden');
+            return;
+        }
+        navEl.classList.remove('hidden');
+
+        const d = state.timeViewDate;
+        switch (state.timeViewMode) {
+            case 'date':
+                displayEl.textContent = d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+                todayBtn.title = "今日に戻る";
+                break;
+            case 'week':
+                const startOfWeek = new Date(d);
+                const dayOfWeek = d.getDay();
+                startOfWeek.setDate(d.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                displayEl.textContent = `${startOfWeek.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}`;
+                todayBtn.title = "今週に戻る";
+                break;
+            case 'month':
+                displayEl.textContent = d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+                todayBtn.title = "今月に戻る";
+                break;
+            case 'year':
+                displayEl.textContent = d.toLocaleDateString('ja-JP', { year: 'numeric' });
+                todayBtn.title = "今年に戻る";
+                break;
+        }
+    }
+
+    function renderPieChart(tasks) {
+        const chartCanvas = document.getElementById('project-pie-chart');
+        const noDataEl = document.getElementById('chart-no-data');
+
+        if (state.pieChartInstance) {
+            state.pieChartInstance.destroy();
+        }
+
+        if (tasks.length === 0) {
+            noDataEl.classList.remove('hidden');
+            chartCanvas.classList.add('hidden');
+            return;
+        }
+        noDataEl.classList.add('hidden');
+        chartCanvas.classList.remove('hidden');
+
+        const projectTimes = {};
+        tasks.forEach(task => {
+            const projectId = task.projectId || 'none';
+            const time = calculateActualTime(task);
+            projectTimes[projectId] = (projectTimes[projectId] || 0) + time;
+        });
+
+        const projectMap = new Map(state.projects.map(p => [p.id, p]));
+        projectMap.set('none', { name: 'プロジェクトなし', color: '#9ca3af' });
+
+        const labels = Object.keys(projectTimes).map(id => projectMap.get(id)?.name || '不明なプロジェクト');
+        const data = Object.values(projectTimes);
+        const backgroundColors = Object.keys(projectTimes).map(id => projectMap.get(id)?.color || '#cccccc');
+
+        state.pieChartInstance = new Chart(chartCanvas, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed !== null) label += formatTime(context.parsed);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            },
+        });
+    }
+    
+    function renderTimeAnalysisTable(tasks) {
+        const container = document.getElementById('time-tasks-list-container');
+        if (tasks.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-500 py-8">条件に一致する完了済みタスクはありません。</p>`;
+            return;
+        }
+
+        const projectMap = new Map(state.projects.map(p => [p.id, p]));
+        tasks.sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate) || new Date(b.startTime) - new Date(a.startTime));
+
+        const visibleTasks = tasks.slice(0, state.timeAnalysisVisibleItems);
+
+        const showDateColumn = state.timeViewMode !== 'date';
+        const dateColumnWidth = (state.timeViewMode === 'year' || state.timeViewMode === 'total') ? 'w-28' : 'w-22';
+
+
+        let tableHtml = `<table class="min-w-full bg-white task-table table-fixed">
+            <thead class="bg-gray-50">
+                <tr>
+                    ${showDateColumn ? `<th class="${dateColumnWidth} text-center text-xs font-medium text-gray-500 uppercase tracking-wider">日付</th>` : ''}
+                    <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">タスク</th>
+                    <th class="w-20 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">見積</th>
+                    <th class="w-20 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">実績</th>
+                    <th class="w-28 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">時間帯</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        visibleTasks.forEach(task => {
+            const project = projectMap.get(task.projectId) || { name: 'プロジェクトなし', color: '#cccccc' };
+            const memoHtml = task.memo ? `<p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap pl-4">${escapeHtml(task.memo)}</p>` : '';
+            tableHtml += `
+                <tr class="border-b">
+                    ${showDateColumn ? `<td class="text-center whitespace-nowrap font-mono">${formatDateForTable(task.completedDate)}</td>` : ''}
+                    <td>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2 min-w-0">
+                               <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${project.color};"></span>
+                               <span class="font-semibold truncate" title="${escapeHtml(task.name)}">${formatTaskName(task.name)}</span>
+                            </div>
+                             <span class="text-xs text-gray-400 ml-2 flex-shrink-0">${escapeHtml(project.name)}</span>
+                        </div>
+                        ${memoHtml}
+                    </td>
+                    <td class="text-sm text-center font-mono whitespace-nowrap">${task.estimatedTime || 0} 分</td>
+                    <td class="text-sm text-center font-mono whitespace-nowrap">${formatTimeForTable(calculateActualTime(task))}</td>
+                    <td class="text-sm text-center font-mono whitespace-nowrap">${formatClockTime(task.startTime)} - ${formatClockTime(task.endTime)}</td>
+                </tr>
+            `;
+        });
+        
+        tableHtml += `</tbody></table>`;
+        
+        if (tasks.length > state.timeAnalysisVisibleItems) {
+            tableHtml += `<p class="text-center text-gray-500 py-4">さらに読み込み中...</p>`;
+        } else if (tasks.length > 0) {
+            tableHtml += `<p class="text-center text-gray-400 text-sm py-4">全${tasks.length}件表示</p>`;
+        }
+
+        container.innerHTML = tableHtml;
+    }
+
+    // --- REPEAT TASK ANALYSIS VIEW ---
+    function renderRepeatAnalysisView() {
+        const container = document.getElementById('repeat-tasks-container');
+        container.innerHTML = '';
+        
+        const allTasks = getAllCompletedTasks();
+        const repeatTaskRecords = {};
+
+        allTasks.forEach(task => {
+            if (task.originRepeatId) {
+                if (!repeatTaskRecords[task.originRepeatId]) {
+                    repeatTaskRecords[task.originRepeatId] = [];
+                }
+                repeatTaskRecords[task.originRepeatId].push(task);
+            }
+        });
+        
+        if (Object.keys(repeatTaskRecords).length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-500 py-8">完了したリピートタスクはありません。</p>`;
+            return;
+        }
+
+        const repeatTaskMap = new Map(state.repeatTasks.map(rt => [rt.id, rt]));
+
+        for (const repeatId in repeatTaskRecords) {
+            const records = repeatTaskRecords[repeatId];
+            const repeatTaskInfo = repeatTaskMap.get(repeatId);
+            if (!repeatTaskInfo) continue;
+
+            const totalTime = records.reduce((sum, task) => sum + calculateActualTime(task), 0);
+            const averageTime = totalTime / records.length;
+
+            records.sort((a,b) => new Date(b.completedDate) - new Date(a.completedDate));
+
+            let detailsTable = `<div class="overflow-x-auto mt-2">
+                <table class="min-w-full text-sm table-fixed">
+                    <thead class="bg-gray-50"><tr>
+                        <th class="w-28 px-2 py-1 text-left">日付</th>
+                        <th class="w-20 px-2 py-1 text-left">見積</th>
+                        <th class="w-20 px-2 py-1 text-left">実績</th>
+                        <th class="w-28 px-2 py-1 text-left">時間帯</th>
+                    </tr></thead>
+                    <tbody>`;
+            records.forEach(rec => {
+                detailsTable += `<tr class="border-b">
+                    <td class="px-2 py-1 font-mono">${formatDateForTable(rec.completedDate, true)}</td>
+                    <td class="px-2 py-1 font-mono">${rec.estimatedTime || 0} 分</td>
+                    <td class="px-2 py-1 font-mono">${formatTimeForTable(calculateActualTime(rec))}</td>
+                    <td class="px-2 py-1 font-mono">${formatClockTime(rec.startTime)} - ${formatClockTime(rec.endTime)}</td>
+                </tr>`;
+            });
+            detailsTable += `</tbody></table></div>`;
+            
+            const element = document.createElement('details');
+            element.className = 'bg-gray-50 p-3 rounded-lg';
+            element.innerHTML = `
+                <summary class="font-semibold cursor-pointer flex justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <svg class="chevron-icon h-5 w-5 text-gray-500 transition-transform duration-200 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                           <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="truncate">${formatTaskName(repeatTaskInfo.name)}</span>
+                    </div>
+                    <div class="text-right flex-shrink-0 whitespace-nowrap">
+                       <span class="text-sm font-medium">平均: <span class="font-bold text-blue-600 font-mono">${formatTime(averageTime)}</span></span>
+                       <span class="text-xs text-gray-500 ml-2">(${records.length}件)</span>
+                    </div>
+                </summary>
+                ${detailsTable}
+            `;
+            container.appendChild(element);
+        }
+    }
+    
+    // --- HELPERS ---
+    function populateProjectFilter(selectId, defaultOptionText, defaultOptionValue = 'all') {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="${defaultOptionValue}">${defaultOptionText}</option>`;
+        state.projects.forEach(project => {
+            select.innerHTML += `<option value="${project.id}">${escapeHtml(project.name)}</option>`;
+        });
+    }
+
+    // --- START THE APP ---
+    init();
+});
+</script>
+
+</body>
+</html>
+
