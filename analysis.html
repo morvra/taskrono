@@ -559,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const allTasks = getAllCompletedTasks();
         const repeatTaskRecords = {};
 
+        // 先に、IDをキーとして完了実績をすべて集計しておく
         allTasks.forEach(task => {
             if (task.originRepeatId) {
                 if (!repeatTaskRecords[task.originRepeatId]) {
@@ -568,17 +569,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        if (Object.keys(repeatTaskRecords).length === 0) {
+        // メイン画面の並び順を保持している state.repeatTasks をループの基準にする
+        const repeatTasksWithRecords = state.repeatTasks.filter(rt => repeatTaskRecords[rt.id]);
+
+        if (repeatTasksWithRecords.length === 0) {
             container.innerHTML = `<p class="text-center text-gray-500 py-8">完了したリピートタスクはありません。</p>`;
             return;
         }
 
-        const repeatTaskMap = new Map(state.repeatTasks.map(rt => [rt.id, rt]));
-
-        for (const repeatId in repeatTaskRecords) {
-            const records = repeatTaskRecords[repeatId];
-            const repeatTaskInfo = repeatTaskMap.get(repeatId);
-            if (!repeatTaskInfo) continue;
+        repeatTasksWithRecords.forEach(repeatTaskInfo => {
+            const records = repeatTaskRecords[repeatTaskInfo.id];
+            if (!records || records.length === 0) return;
 
             const totalTime = records.reduce((sum, task) => sum + calculateActualTime(task), 0);
             const averageTime = totalTime / records.length;
@@ -622,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${detailsTable}
             `;
             container.appendChild(element);
-        }
+        });
     }
     
     // --- HELPERS ---
