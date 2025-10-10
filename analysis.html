@@ -88,9 +88,12 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="relative pt-4">
-                        <canvas id="project-pie-chart"></canvas>
-                        <div id="chart-no-data" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">この期間のデータはありません</div>
+                    <div class="relative h-80 flex flex-col">
+                        <div id="chart-summary" class="text-center mb-2 flex-shrink-0"></div>
+                        <div class="relative flex-grow">
+                            <canvas id="project-pie-chart"></canvas>
+                            <div id="chart-no-data" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">この期間のデータはありません</div>
+                        </div>
                     </div>
                 </div>
                 <!-- Task List -->
@@ -433,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPieChart(tasks) {
         const chartCanvas = document.getElementById('project-pie-chart');
         const noDataEl = document.getElementById('chart-no-data');
+        const chartSummaryEl = document.getElementById('chart-summary');
 
         if (state.pieChartInstance) {
             state.pieChartInstance.destroy();
@@ -441,24 +445,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tasks.length === 0) {
             noDataEl.classList.remove('hidden');
             chartCanvas.classList.add('hidden');
+            chartSummaryEl.innerHTML = '';
             return;
         }
         noDataEl.classList.add('hidden');
         chartCanvas.classList.remove('hidden');
 
         const projectTimes = {};
+        let totalRecordedTime = 0;
         tasks.forEach(task => {
             const projectId = task.projectId || 'none';
             const time = calculateActualTime(task);
             projectTimes[projectId] = (projectTimes[projectId] || 0) + time;
+            totalRecordedTime += time;
         });
+
+        chartSummaryEl.innerHTML = `
+            <p class="text-xs text-gray-500">総記録時間</p>
+            <p class="font-semibold text-gray-800">${formatTime(totalRecordedTime)}</p>
+        `;
 
         const projectMap = new Map(state.projects.map(p => [p.id, p]));
         projectMap.set('none', { name: 'プロジェクトなし', color: '#9ca3af' });
 
-        const labels = Object.keys(projectTimes).map(id => projectMap.get(id)?.name || '不明なプロジェクト');
-        const data = Object.values(projectTimes);
-        const backgroundColors = Object.keys(projectTimes).map(id => projectMap.get(id)?.color || '#cccccc');
+        const sortedProjectData = Object.entries(projectTimes)
+            .sort(([, timeA], [, timeB]) => timeB - timeA);
+        
+        const labels = sortedProjectData.map(([id]) => projectMap.get(id)?.name || '不明なプロジェクト');
+        const data = sortedProjectData.map(([, time]) => time);
+        const backgroundColors = sortedProjectData.map(([id]) => projectMap.get(id)?.color || '#cccccc');
 
         state.pieChartInstance = new Chart(chartCanvas, {
             type: 'pie',
@@ -478,8 +493,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         callbacks: {
                             label: function(context) {
                                 let label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                
                                 if (label) label += ': ';
-                                if (context.parsed !== null) label += formatTime(context.parsed);
+                                if (value !== null) {
+                                    label += `${formatTime(value)} (${percentage}%)`;
+                                }
                                 return label;
                             }
                         }
@@ -497,7 +518,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const projectMap = new Map(state.projects.map(p => [p.id, p]));
-        tasks.sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate) || new Date(b.startTime) - new Date(a.startTime));
+        
+        // 表示モードが 'year' または 'total' の場合、ソート順を降順（新しい順）にする
+        if (state.timeViewMode === 'year' || state.timeViewMode === 'total') {
+            tasks.sort((a, b) => {
+                // completedDateの降順
+                const dateComparison = new Date(b.completedDate) - new Date(a.completedDate);
+                if (dateComparison !== 0) return dateComparison;
+                // completedDateが同じ場合はstartTimeの降順
+                return new Date(b.startTime) - new Date(a.startTime);
+            });
+        } else {
+            // 'date', 'week', 'month' の場合は従来の昇順（古い順）
+            tasks.sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate) || new Date(a.startTime) - new Date(b.startTime));
+        }
 
         const visibleTasks = tasks.slice(0, state.timeAnalysisVisibleItems);
 
@@ -559,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const allTasks = getAllCompletedTasks();
         const repeatTaskRecords = {};
 
-        // 先に、IDをキーとして完了実績をすべて集計しておく
+        // First, aggregate all completion records keyed by ID
         allTasks.forEach(task => {
             if (task.originRepeatId) {
                 if (!repeatTaskRecords[task.originRepeatId]) {
@@ -569,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // メイン画面の並び順を保持している state.repeatTasks をループの基準にする
+        // Use state.repeatTasks, which holds the user-defined order, as the basis for the loop
         const repeatTasksWithRecords = state.repeatTasks.filter(rt => repeatTaskRecords[rt.id]);
 
         if (repeatTasksWithRecords.length === 0) {
