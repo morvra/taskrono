@@ -963,166 +963,189 @@
 		    },
 
 			loadStateFromDropbox: async function() {
-                if (!this.dbx) {
-                    alert('Dropboxにログインしてください。');
-                    return;
-                }
-                this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
-                try {
-                    const response = await this.dbx.filesDownload({ path: this.dropboxFilePath });
-                    const fileContent = await response.result.fileBlob.text();
-                    const importedData = JSON.parse(fileContent);
-
-					// --- Custom Merge Logic for dailyTasks ---
-					const driveDailyTasks = importedData.dailyTasks || {};
-					const localDailyTasks = state.dailyTasks;
-					const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
-					
-					allDailyDates.forEach(date => {
-					    const localTasksForDate = localDailyTasks[date] || [];
-					    const driveTasksForDate = driveDailyTasks[date] || [];
-					    const combinedTasks = [...localTasksForDate, ...driveTasksForDate];
-					    const taskMap = new Map();
-					
-					    for (const task of combinedTasks) {
-					        const key = task.originRepeatId
-					            ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
-					            : `task-${task.id}`;
-					
-					        if (!taskMap.has(key)) {
-					            taskMap.set(key, task);
-					        } else {
-					            const existingTask = taskMap.get(key);
-					            const newTask = task;
-					
-					            const existingIsCompleted = getTaskStatus(existingTask) === 'completed';
-					            const newIsCompleted = getTaskStatus(newTask) === 'completed';
-					
-					            let taskToKeep = existingTask;
-					
-					            if (newIsCompleted && !existingIsCompleted) {
-					                taskToKeep = newTask;
-					            } else if (!newIsCompleted && existingIsCompleted) {
-					                // Do nothing, keep existing
-					            } else {
-					                const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
-					                const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
-					                if (newTimestamp >= existingTimestamp) {
-					                    taskToKeep = newTask;
-					                }
-					            }
-					            taskMap.set(key, taskToKeep);
-					        }
-					    }
-					    
-					    let mergedTasks = Array.from(taskMap.values());
-					    mergedTasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-					    state.dailyTasks[date] = mergedTasks;
-					});
-					// --- End of dailyTasks Merge Logic ---
-					
-					// --- Custom Merge Logic for archivedTasks ---
-                    const driveArchivedTasks = importedData.archivedTasks || {};
-                    const localArchivedTasks = state.archivedTasks;
-                    const allArchiveDates = new Set([...Object.keys(localArchivedTasks), ...Object.keys(driveArchivedTasks)]);
-                    allArchiveDates.forEach(date => {
-                        const localTasks = localArchivedTasks[date] || [];
-                        const driveTasks = driveArchivedTasks[date] || [];
-                        const taskMap = new Map();
-                        for (const task of [...localTasks, ...driveTasks]) {
-                            taskMap.set(task.id, task);
-                        }
-                        state.archivedTasks[date] = Array.from(taskMap.values());
-                    });
-                    // --- End of archivedTasks Merge Logic ---
-					
-					// ---  不要なリピートタスクの削除処理（ここに一本化） ---
-					const sortedDates = Array.from(new Set([
-					    ...Object.keys(state.dailyTasks), 
-					    ...Object.keys(state.archivedTasks)
-					])).sort();
-					const repeatTaskCompletionMap = new Map();
-
-					// 最初にすべての完了情報を集める (dailyTasks と archivedTasks の両方から)
-					sortedDates.forEach(date => {
-					    const allTasksForDate = [
-							...(state.dailyTasks[date] || []),
-							...(state.archivedTasks[date] || [])
-						];
-					    allTasksForDate.forEach(task => {
-					        if (task.originRepeatId && getTaskStatus(task) === 'completed') {
-					            const existing = repeatTaskCompletionMap.get(task.originRepeatId);
-					            if (!existing || date > existing) {
-					                repeatTaskCompletionMap.set(task.originRepeatId, date);
-					            }
-					        }
-					    });
-					});
-					
-					// 集めた完了情報をもとに、不要な未完了タスクを一度だけ削除する
-					sortedDates.forEach(date => {
-					    const tasks = state.dailyTasks[date] || [];
-					    state.dailyTasks[date] = tasks.filter(task => {
-					        if (!task.originRepeatId) return true; // リピート由来でなければ保持
-					        
-					        const completedDate = repeatTaskCompletionMap.get(task.originRepeatId);
-					        if (!completedDate) return true; // 完了記録がなければ保持
-					        
-					        const taskCreatedDate = task.createdDate || date;
-					        if (taskCreatedDate > completedDate) {
-					            // 完了日より後に正規に作られたタスクは保持
-					            return true;
-					        }
-					        
-					        if (getTaskStatus(task) === 'completed') {
-					            // 完了済みのタスクは保持
-					            return true;
-					        }
-					        
-					        // 完了日以前に作られた未完了タスク(=不要な先送りタスク)は削除
-					        return false;
-					    });
-					});
-					// --- End of リピートタスク重複削除処理 ---
-
-                    if (importedData.projects) state.projects = importedData.projects;
-                    if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
-                    state.lastDate = importedData.lastDate || state.lastDate;
-                    
-                    stopActiveTimer();
-                    state.viewDate = getFormattedDate(new Date());
-                    const tasksToday = getTasksForViewDate();
-	                const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-	                if (firstUncompletedTask) {
-	                    state.focusedTaskId = firstUncompletedTask.id;
-	                } else if (tasksToday.length > 0) {
-	                    state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
-	                } else {
-	                    state.focusedTaskId = null;
-	                }
-                    Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
-                    
-                    restoreRunningTaskState();
-					saveState(); 
-                    render();
-                    this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-                    showToast('Dropboxからデータを読み込みました。');
-
-                } catch (error) {
-                    if (error.status === 409) { // 409: path not found
-                         this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
-                         await this.saveStateToDropbox(); // 初回保存
-                    } else {
-                        console.error('Error loading state from Dropbox:', error);
-                        this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
-						const errorSummary = error.error?.error_summary || '';
-                        if (error.status === 401 || errorSummary.includes('expired_access_token')) {
-                            this.updateReauthUi(true);
-                            this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
-                        }
-                    }
-                }
-            },
+			    if (!this.dbx) {
+			        alert('Dropboxにログインしてください。');
+			        return;
+			    }
+			    this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
+			    try {
+			        const response = await this.dbx.filesDownload({ path: this.dropboxFilePath });
+			        const fileContent = await response.result.fileBlob.text();
+			        const importedData = JSON.parse(fileContent);
+			
+			        // --- セクション情報の復元（タスク復元より前に実行） ---
+			        if (importedData.sections && Array.isArray(importedData.sections)) {
+			            state.sections = importedData.sections;
+			            state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
+			        }
+			
+			        // --- Custom Merge Logic for dailyTasks ---
+			        const driveDailyTasks = importedData.dailyTasks || {};
+			        const localDailyTasks = state.dailyTasks;
+			        const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
+			        
+			        allDailyDates.forEach(date => {
+			            const localTasksForDate = localDailyTasks[date] || [];
+			            const driveTasksForDate = driveDailyTasks[date] || [];
+			            const combinedTasks = [...localTasksForDate, ...driveTasksForDate];
+			            const taskMap = new Map();
+			        
+			            for (const task of combinedTasks) {
+			                const key = task.originRepeatId
+			                    ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
+			                    : `task-${task.id}`;
+			        
+			                if (!taskMap.has(key)) {
+			                    taskMap.set(key, task);
+			                } else {
+			                    const existingTask = taskMap.get(key);
+			                    const newTask = task;
+			        
+			                    const existingIsCompleted = getTaskStatus(existingTask) === 'completed';
+			                    const newIsCompleted = getTaskStatus(newTask) === 'completed';
+			        
+			                    let taskToKeep = existingTask;
+			        
+			                    if (newIsCompleted && !existingIsCompleted) {
+			                        taskToKeep = newTask;
+			                    } else if (!newIsCompleted && existingIsCompleted) {
+			                        // Do nothing, keep existing
+			                    } else {
+			                        const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
+			                        const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
+			                        if (newTimestamp >= existingTimestamp) {
+			                            taskToKeep = newTask;
+			                        }
+			                    }
+			                    taskMap.set(key, taskToKeep);
+			                }
+			            }
+			            
+			            let mergedTasks = Array.from(taskMap.values());
+			            
+			            // --- タスクをセクション順にソート ---
+			            const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+			            const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+			            
+			            mergedTasks.sort((a, b) => {
+			                const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
+			                const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
+			                
+			                // セクションが異なる場合はセクション順
+			                if (sectionIndexA !== sectionIndexB) {
+			                    return sectionIndexA - sectionIndexB;
+			                }
+			                
+			                // 同じセクション内ではsortOrder順
+			                return (a.sortOrder || 0) - (b.sortOrder || 0);
+			            });
+			            
+			            state.dailyTasks[date] = mergedTasks;
+			        });
+			        // --- End of dailyTasks Merge Logic ---
+			        
+			        // --- Custom Merge Logic for archivedTasks ---
+			        const driveArchivedTasks = importedData.archivedTasks || {};
+			        const localArchivedTasks = state.archivedTasks;
+			        const allArchiveDates = new Set([...Object.keys(localArchivedTasks), ...Object.keys(driveArchivedTasks)]);
+			        allArchiveDates.forEach(date => {
+			            const localTasks = localArchivedTasks[date] || [];
+			            const driveTasks = driveArchivedTasks[date] || [];
+			            const taskMap = new Map();
+			            for (const task of [...localTasks, ...driveTasks]) {
+			                taskMap.set(task.id, task);
+			            }
+			            state.archivedTasks[date] = Array.from(taskMap.values());
+			        });
+			        // --- End of archivedTasks Merge Logic ---
+			        
+			        // ---  不要なリピートタスクの削除処理(ここに一本化) ---
+			        const sortedDates = Array.from(new Set([
+			            ...Object.keys(state.dailyTasks), 
+			            ...Object.keys(state.archivedTasks)
+			        ])).sort();
+			        const repeatTaskCompletionMap = new Map();
+			
+			        // 最初にすべての完了情報を集める (dailyTasks と archivedTasks の両方から)
+			        sortedDates.forEach(date => {
+			            const allTasksForDate = [
+			                ...(state.dailyTasks[date] || []),
+			                ...(state.archivedTasks[date] || [])
+			            ];
+			            allTasksForDate.forEach(task => {
+			                if (task.originRepeatId && getTaskStatus(task) === 'completed') {
+			                    const existing = repeatTaskCompletionMap.get(task.originRepeatId);
+			                    if (!existing || date > existing) {
+			                        repeatTaskCompletionMap.set(task.originRepeatId, date);
+			                    }
+			                }
+			            });
+			        });
+			        
+			        // 集めた完了情報をもとに、不要な未完了タスクを一度だけ削除する
+			        sortedDates.forEach(date => {
+			            const tasks = state.dailyTasks[date] || [];
+			            state.dailyTasks[date] = tasks.filter(task => {
+			                if (!task.originRepeatId) return true; // リピート由来でなければ保持
+			                
+			                const completedDate = repeatTaskCompletionMap.get(task.originRepeatId);
+			                if (!completedDate) return true; // 完了記録がなければ保持
+			                
+			                const taskCreatedDate = task.createdDate || date;
+			                if (taskCreatedDate > completedDate) {
+			                    // 完了日より後に正規に作られたタスクは保持
+			                    return true;
+			                }
+			                
+			                if (getTaskStatus(task) === 'completed') {
+			                    // 完了済みのタスクは保持
+			                    return true;
+			                }
+			                
+			                // 完了日以前に作られた未完了タスク(=不要な先送りタスク)は削除
+			                return false;
+			            });
+			        });
+			        // --- End of リピートタスク重複削除処理 ---
+			
+			        if (importedData.projects) state.projects = importedData.projects;
+			        if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
+			        state.lastDate = importedData.lastDate || state.lastDate;
+			        
+			        stopActiveTimer();
+			        state.viewDate = getFormattedDate(new Date());
+			        const tasksToday = getTasksForViewDate();
+			        const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
+			        if (firstUncompletedTask) {
+			            state.focusedTaskId = firstUncompletedTask.id;
+			        } else if (tasksToday.length > 0) {
+			            state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
+			        } else {
+			            state.focusedTaskId = null;
+			        }
+			        Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
+			        
+			        restoreRunningTaskState();
+			        saveState(); 
+			        render();
+			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
+			        showToast('Dropboxからデータを読み込みました。');
+			
+			    } catch (error) {
+			        if (error.status === 409) { // 409: path not found
+			             this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
+			             await this.saveStateToDropbox(); // 初回保存
+			        } else {
+			            console.error('Error loading state from Dropbox:', error);
+			            this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
+			            const errorSummary = error.error?.error_summary || '';
+			            if (error.status === 401 || errorSummary.includes('expired_access_token')) {
+			                this.updateReauthUi(true);
+			                this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
+			            }
+			        }
+			    }
+			},
             
 			saveStateToDropbox: async function() {
 			    const accessToken = localStorage.getItem('dropbox_access_token');
@@ -1140,7 +1163,7 @@
 			            // isDeletedフラグがないか、あっても30日以内のものだけを残す
 			            return !task.isDeleted || (task.updatedAt && task.updatedAt > thirtyDaysAgo);
 			        });
-			        // フィルタリングした結果、タスクが1件以上残っている場合のみ、その日付のデータを保存する
+			        // フィルタリングした結果、タスクが1件以上残っている場合のみその日付のデータを保存する
 			        if (filteredTasks.length > 0) {
 			            cleanedDailyTasks[dateKey] = filteredTasks;
 			        }
@@ -1150,6 +1173,7 @@
 			        dailyTasks: cleanedDailyTasks,
 			        projects: state.projects,
 			        repeatTasks: state.repeatTasks,
+			        sections: state.sections,
 			        archivedTasks: state.archivedTasks,
 			        lastDate: state.lastDate,
 			        updatedAt: new Date().toISOString()
@@ -4947,84 +4971,94 @@
         saveAndRender();
     }
 
-    function exportData() {
-        const exportData = {
-            dailyTasks: state.dailyTasks,
-            projects: state.projects,
-            repeatTasks: state.repeatTasks,
-            archivedTasks: state.archivedTasks,
-            lastDate: state.lastDate,
-            exportDate: new Date().toISOString()
-        };
+	function exportData() {
+	    const exportData = {
+	        dailyTasks: state.dailyTasks,
+	        projects: state.projects,
+	        repeatTasks: state.repeatTasks,
+	        sections: state.sections,
+	        archivedTasks: state.archivedTasks,
+	        lastDate: state.lastDate,
+	        exportDate: new Date().toISOString()
+	    };
+	
+	    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+	    const url = URL.createObjectURL(blob);
+	    const a = document.createElement('a');
+	    a.href = url;
+	    a.download = `dtl_export_${new Date().toISOString().slice(0, 10)}.json`;
+	    a.click();
+	    URL.revokeObjectURL(url);
+	    
+	    alert('データをエクスポートしました。');
+	}
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dtl_export_${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        alert('データをエクスポートしました。');
-    }
-
-    function importData() {
-        const fileInput = document.getElementById('import-file');
-        const file = fileInput.files[0];
-        if (!file) return alert('インポートするファイルを選択してください。');
-        
-        if (!confirm('データをインポートします。IDが重複するデータは上書きされます。よろしいですか？')) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                
-                Object.assign(state.dailyTasks, importedData.dailyTasks || {});
-                Object.assign(state.archivedTasks, importedData.archivedTasks || {});
-
-                if (importedData.projects && Array.isArray(importedData.projects)) {
-                    const projectMap = new Map(state.projects.map(p => [p.id, p]));
-                    importedData.projects.forEach(p => projectMap.set(p.id, p));
-                    state.projects = Array.from(projectMap.values());
-                }
-                
-                if (importedData.repeatTasks && Array.isArray(importedData.repeatTasks)) {
-                    const repeatTaskMap = new Map(state.repeatTasks.map(rt => [rt.id, rt]));
-                    importedData.repeatTasks.forEach(rt => repeatTaskMap.set(rt.id, rt));
-                    state.repeatTasks = Array.from(repeatTaskMap.values());
-                }
-
-                state.lastDate = importedData.lastDate || state.lastDate;
-                
-                stopActiveTimer();
-                state.viewDate = getFormattedDate(new Date());
-                const tasksToday = getTasksForViewDate();
- 
-				const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-				if (firstUncompletedTask) {
-					// 未完了タスクがあれば、その最初のタスクを選択
-					state.focusedTaskId = firstUncompletedTask.id;
-				} else if (tasksToday.length > 0) {
-					// 未完了タスクがなく、タスクが1件以上あれば、リストの最後のタスクを選択
-					state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
-				} else {
-					// タスクがなければ選択しない
-					state.focusedTaskId = null;
-				}
-			
-                Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
-                
-                saveAndRender();
-                alert('データをインポートしました。');
-                fileInput.value = '';
-            } catch (error) {
-                alert('無効なファイル形式です。正しいJSONファイルを選択してください。');
-                console.error('Import error:', error);
-            }
-        };
-        reader.readAsText(file);
-    }
+	function importData() {
+	    const fileInput = document.getElementById('import-file');
+	    const file = fileInput.files[0];
+	    if (!file) return alert('インポートするファイルを選択してください。');
+	    
+	    if (!confirm('データをインポートします。IDが重複するデータは上書きされます。よろしいですか?')) return;
+	
+	    const reader = new FileReader();
+	    reader.onload = (e) => {
+	        try {
+	            const importedData = JSON.parse(e.target.result);
+	            
+	            // --- セクション情報の復元 ---
+	            if (importedData.sections && Array.isArray(importedData.sections)) {
+	                const sectionMap = new Map(state.sections.map(s => [s.id, s]));
+	                importedData.sections.forEach(s => sectionMap.set(s.id, s));
+	                state.sections = Array.from(sectionMap.values());
+	                // セクションを開始時刻でソート
+	                state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
+	            }
+	            
+	            Object.assign(state.dailyTasks, importedData.dailyTasks || {});
+	            Object.assign(state.archivedTasks, importedData.archivedTasks || {});
+	
+	            if (importedData.projects && Array.isArray(importedData.projects)) {
+	                const projectMap = new Map(state.projects.map(p => [p.id, p]));
+	                importedData.projects.forEach(p => projectMap.set(p.id, p));
+	                state.projects = Array.from(projectMap.values());
+	            }
+	            
+	            if (importedData.repeatTasks && Array.isArray(importedData.repeatTasks)) {
+	                const repeatTaskMap = new Map(state.repeatTasks.map(rt => [rt.id, rt]));
+	                importedData.repeatTasks.forEach(rt => repeatTaskMap.set(rt.id, rt));
+	                state.repeatTasks = Array.from(repeatTaskMap.values());
+	            }
+	
+	            state.lastDate = importedData.lastDate || state.lastDate;
+	            
+	            stopActiveTimer();
+	            state.viewDate = getFormattedDate(new Date());
+	            const tasksToday = getTasksForViewDate();
+	
+	            const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
+	            if (firstUncompletedTask) {
+	                // 未完了タスクがあれば、その最初のタスクを選択
+	                state.focusedTaskId = firstUncompletedTask.id;
+	            } else if (tasksToday.length > 0) {
+	                // 未完了タスクがなく、タスクが1件以上あれば、リストの最後のタスクを選択
+	                state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
+	            } else {
+	                // タスクがなければ選択しない
+	                state.focusedTaskId = null;
+	            }
+	        
+	            Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
+	            
+	            saveAndRender();
+	            alert('データをインポートしました。');
+	            fileInput.value = '';
+	        } catch (error) {
+	            alert('無効なファイル形式です。正しいJSONファイルを選択してください。');
+	            console.error('Import error:', error);
+	        }
+	    };
+	    reader.readAsText(file);
+	}
 
     function clearAllData() {
         if (!confirm('本当に全てのデータを削除しますか？この操作は元に戻せません。')) return;
