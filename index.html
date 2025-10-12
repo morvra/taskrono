@@ -84,7 +84,7 @@
              padding-right: 0.5rem;
         }
 
-		/* フローティングバーの基本スタイル */
+		/* 新しいフローティングバーの基本スタイル */
 		#floating-task-bar {
 		    display: none;
 		    align-items: center;
@@ -98,7 +98,7 @@
 		}
 
 		#floating-task-bar.active {
-		    display: flex;
+		    display: flex; /* 表示 */
 		}
 
         /* フローティングバー内の左右のボタン共通スタイル */
@@ -2855,7 +2855,7 @@
             
                     const { name, range } = getSectionDisplayInfo(sectionId);
                     const sectionHeader = document.createElement('div');
-                    sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 sticky top-0 bg-gray-500 z-10';
+                    sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500';
                     sectionHeader.textContent = name + ' ' + range;
                     wrapper.appendChild(sectionHeader);
             
@@ -2878,7 +2878,7 @@
                 const table = document.createElement('table');
                 table.className = 'min-w-full task-table';
                 table.innerHTML = `
-                    <thead class="bg-gray-50 sticky top-0 z-10">
+                    <thead class="bg-gray-50">
                         <tr>
                             <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                             <th class="text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
