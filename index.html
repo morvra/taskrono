@@ -4839,6 +4839,7 @@
         const time = parseInt(document.getElementById('repeat-task-time').value, 10);
         const projectId = document.getElementById('repeat-task-project').value || null;
 		const sectionId = document.getElementById('repeat-task-section').value || null;
+		const memo = '';
         const type = document.getElementById('repeat-task-type').value;
 
         if (!name || isNaN(time) || time < 0) return alert('タスク名と見積時間を正しく入力してください。');
