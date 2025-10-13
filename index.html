@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="DTL" />
-    <title>DailyTaskList</title>
+    <meta name="apple-mobile-web-app-title" content="Taskrono" />
+    <title>Taskrono</title>
     <script src="https://cdn.tailwindcss.com"></script>
 	<link href='./dtlfavicon.ico' rel='icon' type='image/x-icon'/>
     <link href='./dtlicon.png' rel='shortcut icon'/>
@@ -356,7 +356,7 @@
     <div class="container mx-auto">
 		<header class="mobile-compact-header bg-white p-4 pb-1 flex flex-col md:flex-row justify-between items-center header-content">
             <div class="flex-1">
-                <h1 class="text-xl font-bold text-gray-700">DailyTaskList</h1>
+                <h1 class="text-xl font-bold text-gray-700">Taskrono</h1>
                 <p id="current-date" class="text-sm text-gray-500"></p>
             </div>
             <div class="flex items-center">
@@ -1200,7 +1200,7 @@
 		    // ここにDropboxアプリのクライアントIDを設定してください
 		    const DROPBOX_CLIENT_ID = '0fno7q10xgfdyki';
 		    const REDIRECT_URI = window.location.origin + window.location.pathname; 
-		    // 例: https://morvra.github.io/dtl または https://morvra.github.io/dtl/
+		    // 例: https://morvra.github.io/taskrono または https://morvra.github.io/taskrono/
 		
 		    if (DROPBOX_CLIENT_ID === 'YOUR_CLIENT_ID') {
 		        console.warn("DropboxのクライアントIDが設定されていません。");
@@ -1985,7 +1985,7 @@
 	function updateTitle() {
         const activeTask = getTasksForViewDate().find(t => t.id === state.activeTaskId);
         if (activeTask) {
-            document.title = `⏱ ${activeTask.name} - DTL`;
+            document.title = `⏱ ${activeTask.name} - Taskrono`;
         } else {
             document.title = 'DailyTaskList';
         }
