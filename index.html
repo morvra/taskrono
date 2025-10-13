@@ -24,7 +24,7 @@
             }
 			.sections-wrapper { padding-bottom: 88px; }
 			main { max-width: 980px; margin: 0 auto; }
-			.task-row { height: 42px; }
+			.task-row { height: 37px; }
         }
         
         /* Compact header for mobile */
@@ -68,10 +68,6 @@
         ::-webkit-scrollbar-thumb:hover { background:#555; }
 
         .timer-btn {
-            height: 31px;
-            width: 31px;
-            min-height: 31px;
-            min-width: 31px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -2999,11 +2995,11 @@
 	        let timerButtonHtml = '';
 	        if(isCompleted) {
 	            timerButtonHtml = `
-	            <button class="timer-btn checkmark-btn rounded-full bg-gray-200 hover:bg-gray-300 cursor-pointer items-center justify-center">
-	                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+	            <button class="timer-btn checkmark-btn cursor-pointer items-center justify-center">
+	                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 19 19" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
 	            </button>`;
 	        } else {
-	             timerButtonHtml = `<button class="timer-btn rounded-full transition-colors duration-200 ${isRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}">
+	             timerButtonHtml = `<button class="timer-btn transition-colors duration-200 ${isRunning ? 'text-red-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}">
 	                ${isRunning ? '■' : '▶'}
 	            </button>`;
 	        }
@@ -3137,7 +3133,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 </button>`;
             } else {
-                timerButtonHtml = `<button class="timer-btn rounded-full transition-colors duration-200 flex-shrink-0 ${isRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}">
+                timerButtonHtml = `<button class="timer-btn transition-colors duration-200 flex-shrink-0 ${isRunning ? 'text-red-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}">
                     ${isRunning ? '■' : '▶'}
                 </button>`;
             }
