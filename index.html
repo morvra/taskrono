@@ -407,62 +407,65 @@
         <div id="repeat" class="tab-content">
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-bold mb-4">リピートタスク管理</h2>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-end">
-                    <input type="text" id="repeat-task-name" placeholder="タスク名" class="md:col-span-2 p-2 border rounded-lg"  autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="number" id="repeat-task-time" placeholder="見積時間(分)" class="w-full p-2 border rounded-lg">
-                        <select id="repeat-task-project" class="w-full p-2 border rounded-lg bg-white"></select>
-                    </div>
-					<div>
-	                     <select id="repeat-task-section" class="w-full p-2 border rounded-lg bg-white"></select>
-	                </div>
-                    <select id="repeat-task-type" class="p-2 border rounded-lg bg-white md:col-span-2">
-                        <option value="daily">毎日</option>
-                        <option value="weekly">毎週</option>
-                        <option value="monthly">毎月</option>
-                        <option value="yearly">毎年</option>
-                        <option value="interval">○日ごと</option>
-                    </select>
-                </div>
 
-                <div class="mb-4">
-                    <textarea id="repeat-task-memo" placeholder="メモ (任意)" class="w-full p-2 border rounded-lg h-11"></textarea>
-                </div>
+                <div class="p-4 border rounded-lg bg-gray-50 space-y-4 mb-6">
+                    <div class="space-y-3">
+						<h3 class="text-md font-semibold text-gray-700">新規リピートタスク</h3>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                            <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-full sm:w-28 p-2 border rounded-lg bg-white">
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <select id="repeat-task-project" class="flex-grow p-2 border rounded-lg bg-white"></select>
+                            <select id="repeat-task-section" class="flex-grow p-2 border rounded-lg bg-white"></select>
+                        </div>
+                    </div>
 
-                <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 mb-4 p-3 bg-gray-50 rounded-lg">
-                    <div id="repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
-                    <div class="w-full border-t my-2"></div>
-                    <div class="flex items-center gap-x-4">
-                         <label class="text-sm">間隔: <input type="number" id="repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
-                         <label class="text-sm">基準日: <input type="date" id="repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
-                    </div>
-                </div>
-                <div id="repeat-monthly-options" class="hidden mb-4 p-3 bg-gray-50 rounded-lg space-y-3">
-                    <div class="flex items-center gap-4">
-                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
-                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
-                    </div>
-                    <div id="repeat-monthly-day-options">
-                        <label class="text-sm">日付: <input type="number" id="repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
-                    </div>
-                    <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
-                        <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
-                            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+                    <div class="space-y-3">
+                        <select id="repeat-task-type" class="w-full p-2 border rounded-lg bg-white">
+                            <option value="daily">毎日</option>
+                            <option value="weekly">毎週</option>
+                            <option value="monthly">毎月</option>
+                            <option value="yearly">毎年</option>
+                            <option value="interval">○日ごと</option>
                         </select>
-                        <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
-                            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
-                        </select>
+                        
+                        <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
+                            <div id="repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
+                            <div class="w-full border-t my-2"></div>
+                            <div class="flex items-center gap-x-4">
+                                 <label class="text-sm">間隔: <input type="number" id="repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
+                                 <label class="text-sm">基準日: <input type="date" id="repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
+                            </div>
+                        </div>
+                        <div id="repeat-monthly-options" class="hidden p-3 bg-white rounded-lg border space-y-3">
+                            <div class="flex items-center gap-4">
+                                <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+                                <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+                            </div>
+                            <div id="repeat-monthly-day-options">
+                                <label class="text-sm">日付: <input type="number" id="repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
+                            </div>
+                            <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
+                                <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
+                                    <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+                                </select>
+                                <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
+                                    <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="repeat-yearly-options" class="hidden p-3 bg-white rounded-lg border">
+                            <label class="text-sm">日付:
+                                <input type="number" id="repeat-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
+                                <input type="number" id="repeat-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
+                            </label>
+                        </div>
+                        <div id="repeat-interval-options" class="hidden p-3 bg-white rounded-lg border space-y-2 md:space-y-0 md:items-center md:space-x-4">
+                            <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
+                            <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
+                        </div>
                     </div>
-                </div>
-                <div id="repeat-yearly-options" class="hidden mb-4 p-3 bg-gray-50 rounded-lg">
-                    <label class="text-sm">日付:
-                        <input type="number" id="repeat-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
-                        <input type="number" id="repeat-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
-                    </label>
-                </div>
-                <div id="repeat-interval-options" class="hidden mb-4 p-3 bg-gray-50 rounded-lg space-y-2 md:space-y-0 md:items-center md:space-x-4">
-                    <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
-                    <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
                 </div>
 
                 <div class="flex gap-3">
@@ -506,26 +509,23 @@
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <div class="archive-tabs flex mb-4">
                     <div class="archive-tab active" data-view="date">日付</div>
-                    <div class="archive-tab" data-view="project">プロジェクト</div>
 					<div class="archive-tab" data-view="search">検索</div>
                 </div>
                 
                 <div id="archive-date-view">
                     <div class="flex justify-between items-center mb-4">
                         <button id="prev-archive-day" class="p-2 rounded-md bg-gray-200 hover:bg-gray-300">&lt;</button>
-                        <h2 id="archive-date" class="font-bold"></h2>
+                        <div class="flex items-center gap-2">
+                            <h2 id="archive-date" class="font-bold"></h2>
+                            <button id="return-to-today-archive" class="p-2 rounded-md bg-white hover:bg-gray-100 shadow-sm border hidden" title="昨日に戻る">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
                         <button id="next-archive-day" class="p-2 rounded-md bg-gray-200 hover:bg-gray-300">&gt;</button>
                     </div>
                     <div id="archive-tasks-list"></div>
-                </div>
-
-                <div id="archive-project-view" class="hidden">
-                    <div class="mb-4">
-                        <select id="archive-project-select" class="p-2 border rounded-lg bg-white">
-                            <option value="">プロジェクトを選択</option>
-                        </select>
-                    </div>
-                    <div id="archive-project-tasks"></div>
                 </div>
 
 				<div id="archive-search-view" class="hidden">
@@ -539,7 +539,7 @@
 				
             </div>
         </div>
-
+		
         <div id="data" class="tab-content">
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-bold mb-4">データ管理</h2>
@@ -1648,7 +1648,6 @@
             lastDate: null,
             archiveViewDate: null,
             archiveView: 'date',
-            selectedArchiveProject: '',
             settings: {
                 dayChangeHour: 4, 
             },
@@ -2678,9 +2677,11 @@
             });
         });
 
-        document.getElementById('archive-project-select').addEventListener('change', (e) => {
-            state.selectedArchiveProject = e.target.value;
-            renderArchiveProjectView();
+        document.getElementById('return-to-today-archive').addEventListener('click', () => {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            state.archiveViewDate = getFormattedDate(yesterday);
+            renderArchive();
         });
 
 		document.getElementById('load-gcal-events-btn').addEventListener('click', () => {
@@ -3225,18 +3226,13 @@
 
     function renderArchive() {
         const dateView = document.getElementById('archive-date-view');
-        const projectView = document.getElementById('archive-project-view');
-		const searchView = document.getElementById('archive-search-view');
+        const searchView = document.getElementById('archive-search-view');
         
         dateView.classList.toggle('hidden', state.archiveView !== 'date');
-        projectView.classList.toggle('hidden', state.archiveView !== 'project');
         searchView.classList.toggle('hidden', state.archiveView !== 'search');
 
         if (state.archiveView === 'date') {
             renderArchiveDateView();
-        } else if (state.archiveView === 'project')  {
-            updateArchiveProjectSelect();
-            renderArchiveProjectView();
         } else if (state.archiveView === 'search') {
 			const q = document.getElementById('archive-search-input').value.trim();
 			renderArchiveSearchView(q);
@@ -3247,15 +3243,25 @@
         const dateEl = document.getElementById('archive-date');
         const listEl = document.getElementById('archive-tasks-list');
         const nextBtn = document.getElementById('next-archive-day');
+        const returnBtn = document.getElementById('return-to-today-archive');
 
         const dateObj = new Date(state.archiveViewDate);
-        dateEl.textContent = dateObj.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-
+        const year = dateObj.getFullYear();
+        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const day = dateObj.getDate().toString().padStart(2, '0');
+        const weekday = dateObj.toLocaleDateString('ja-JP', { weekday: 'short' });
+        dateEl.textContent = `${year}年${month}月${day}日(${weekday})`;
+        
         const tasksForDay = state.archivedTasks[state.archiveViewDate] || [];
 
         const tomorrow = new Date();
         nextBtn.disabled = state.archiveViewDate === getFormattedDate(tomorrow);
         nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = getFormattedDate(yesterday);
+        returnBtn.classList.toggle('hidden', state.archiveViewDate === yesterdayStr);
 
         if (tasksForDay.length === 0) {
             listEl.innerHTML = '<p class="text-center text-gray-500 py-8">この日に完了したタスクはありません。</p>';
@@ -3308,78 +3314,6 @@
         tableHtml += '</tbody></table>';
         listEl.innerHTML = `<div class="archive-table-wrapper">${tableHtml}</div>`;
         attachArchiveEventListeners();
-    }
-
-    function updateArchiveProjectSelect() {
-        const select = document.getElementById('archive-project-select');
-        select.innerHTML = '<option value="">プロジェクトを選択</option>';
-        state.projects.forEach(project => {
-            select.innerHTML += `<option value="${project.id}">${escapeHtml(project.name)}</option>`;
-        });
-        if (state.selectedArchiveProject) {
-            select.value = state.selectedArchiveProject;
-        }
-    }
-
-    function renderArchiveProjectView() {
-        const container = document.getElementById('archive-project-tasks');
-        
-        if (!state.selectedArchiveProject) {
-            container.innerHTML = '<p class="text-center text-gray-500 py-8">プロジェクトを選択してください。</p>';
-            return;
-        }
-
-        const selectedProject = state.projects.find(p => p.id === state.selectedArchiveProject);
-        if (!selectedProject) {
-            container.innerHTML = '<p class="text-center text-gray-500 py-8">選択されたプロジェクトが見つかりません。</p>';
-            return;
-        }
-
-        const projectTasks = {};
-        Object.keys(state.archivedTasks).forEach(date => {
-            const tasksForDate = state.archivedTasks[date].filter(task => task.projectId === state.selectedArchiveProject);
-            if (tasksForDate.length > 0) {
-                projectTasks[date] = tasksForDate;
-            }
-        });
-
-        const sortedDates = Object.keys(projectTasks).sort().reverse();
-
-        if (sortedDates.length === 0) {
-            container.innerHTML = `<p class="text-center text-gray-500 py-8">「${escapeHtml(selectedProject.name)}」で完了したタスクはありません。</p>`;
-            return;
-        }
-
-        let html = '';
-        sortedDates.forEach(date => {
-            const dateObj = new Date(date);
-            const dateLabel = dateObj.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-            
-            html += `<div class="mb-6">
-                        <h3 class="font-bold text-lg mb-3 pb-2 border-b" style="color: ${selectedProject.color}">${dateLabel}</h3>
-                        <div class="space-y-2">`;
-            
-            projectTasks[date].forEach(task => {
-                const memoHtml = task.memo ? `<p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap">${escapeHtml(task.memo)}</p>` : '';
-                html += `
-                    <div class="bg-gray-50 p-3 rounded">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="font-semibold">${formatTaskName(task.name)}</span>
-                                ${memoHtml}
-                            </div>
-                            <span class="text-sm font-mono text-gray-600">
-                                ${formatTime(calculateActualTime(task))}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `</div></div>`;
-        });
-
-        container.innerHTML = html;
     }
 
     function renderArchiveSearchView(query) {
@@ -4875,7 +4809,6 @@
         const time = parseInt(document.getElementById('repeat-task-time').value, 10);
         const projectId = document.getElementById('repeat-task-project').value || null;
 		const sectionId = document.getElementById('repeat-task-section').value || null;
-        const memo = document.getElementById('repeat-task-memo').value.trim();
         const type = document.getElementById('repeat-task-type').value;
 
         if (!name || isNaN(time) || time < 0) return alert('タスク名と見積時間を正しく入力してください。');
@@ -4918,7 +4851,6 @@
         // --- 入力フォームのリセット ---
         document.getElementById('repeat-task-name').value = '';
         document.getElementById('repeat-task-time').value = '';
-        document.getElementById('repeat-task-memo').value = '';
         document.querySelectorAll('#repeat-weekly-days input').forEach(cb => cb.checked = false);
         document.getElementById('repeat-weekly-interval').value = '1';
         document.getElementById('repeat-monthly-day').value = '';
