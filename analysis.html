@@ -470,7 +470,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortedProjectData = Object.entries(projectTimes)
             .sort(([, timeA], [, timeB]) => timeB - timeA);
         
-        const labels = sortedProjectData.map(([id]) => projectMap.get(id)?.name || '不明なプロジェクト');
+        const labels = sortedProjectData.map(([id]) => {
+	        const project = projectMap.get(id);
+	        if (!project) return '不明なプロジェクト';
+	        return project.isArchived ? `${project.name} [済]` : project.name;
+	    });
         const data = sortedProjectData.map(([, time]) => time);
         const backgroundColors = sortedProjectData.map(([id]) => projectMap.get(id)?.color || '#cccccc');
 
@@ -551,7 +555,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <tbody>`;
         
         visibleTasks.forEach(task => {
-            const project = projectMap.get(task.projectId) || { name: 'プロジェクトなし', color: '#cccccc' };
+            const project = projectMap.get(task.projectId) || { name: 'プロジェクトなし', color: '#cccccc', isArchived: false };
+            const projectNameHtml = escapeHtml(project.isArchived ? `${project.name} [済]` : project.name);
             const memoHtml = task.memo ? `<p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap pl-4">${escapeHtml(task.memo)}</p>` : '';
             tableHtml += `
                 <tr class="border-b">
@@ -562,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${project.color};"></span>
                                <span class="font-semibold truncate" title="${escapeHtml(task.name)}">${formatTaskName(task.name)}</span>
                             </div>
-                             <span class="text-xs text-gray-400 ml-2 flex-shrink-0">${escapeHtml(project.name)}</span>
+                             <span class="text-xs text-gray-400 ml-2 flex-shrink-0">${projectNameHtml}</span>
                         </div>
                         ${memoHtml}
                     </td>
@@ -664,7 +669,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById(selectId);
         select.innerHTML = `<option value="${defaultOptionValue}">${defaultOptionText}</option>`;
         state.projects.forEach(project => {
-            select.innerHTML += `<option value="${project.id}">${escapeHtml(project.name)}</option>`;
+            const displayName = project.isArchived ? `${escapeHtml(project.name)} [済]` : escapeHtml(project.name);
+			select.innerHTML += `<option value="${project.id}">${displayName}</option>`;
         });
     }
 
