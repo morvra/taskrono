@@ -411,13 +411,13 @@
                 <div class="p-4 border rounded-lg bg-gray-50 space-y-4 mb-6">
                     <div class="space-y-3">
 						<h3 class="text-md font-semibold text-gray-700">新規リピートタスク</h3>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
-                            <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-full sm:w-28 p-2 border rounded-lg bg-white">
+                        <div class="flex gap-3">
+                            <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                            <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-28 p-2 border rounded-lg bg-white">
                         </div>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <select id="repeat-task-project" class="flex-grow p-2 border rounded-lg bg-white"></select>
-                            <select id="repeat-task-section" class="flex-grow p-2 border rounded-lg bg-white"></select>
+                        <div class="flex gap-3">
+                            <select id="repeat-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                            <select id="repeat-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
                         </div>
                     </div>
 
@@ -2879,9 +2879,16 @@
                     if (sectionId === 'null' && sectionTasks.length === 0) return;
             
                     const { name, range } = getSectionDisplayInfo(sectionId);
+                    
+                    // セクション毎の残り時間を計算
+                    const remainingTimeInSection = sectionTasks
+                        .filter(task => getTaskStatus(task) !== 'completed')
+                        .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
+                    const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
+
                     const sectionHeader = document.createElement('div');
-                    sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500';
-                    sectionHeader.textContent = name + ' ' + range;
+                    sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500 flex justify-between items-center';
+                    sectionHeader.innerHTML = `<span>${name} ${range}</span> ${remainingTimeHtml}`;
                     wrapper.appendChild(sectionHeader);
             
                     renderTaskCards(wrapper, sectionTasks);
@@ -2926,10 +2933,23 @@
                     const sectionTasks = tasksBySection[sectionId];
                     
                     const { name, range } = getSectionDisplayInfo(sectionId);
+
+                    // セクション毎の残り時間を計算
+                    const remainingTimeInSection = sectionTasks
+                        .filter(task => getTaskStatus(task) !== 'completed')
+                        .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
+                    const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
+
                     const headerRow = document.createElement('tr');
                     headerRow.className = 'bg-gray-100';
                     headerRow.dataset.sectionId = sectionId;
-                    headerRow.innerHTML = `<td colspan="8" class="py-1 px-4 text-xs font-bold text-white bg-gray-400">${name} ${range}</td>`;
+                    headerRow.innerHTML = `
+                        <td colspan="8" class="py-1 px-4 text-xs font-bold text-white bg-gray-400">
+                            <div class="justify-between items-center">
+                                <span>${name} ${range}</span>
+                                ${remainingTimeHtml}
+                            </div>
+                        </td>`;
                     tbody.appendChild(headerRow);
                     
                     renderTaskTable(tbody, sectionTasks, { isLast: sectionId === lastVisibleSectionId });
