@@ -1710,16 +1710,15 @@
 				if (subtask) {
 					subtask.completed = isCompleted;
 					task.updatedAt = new Date().toISOString();
-
-                    Array.from(document.querySelectorAll(`.subtask-item [data-subtask-id="${subtaskId}"]`)).forEach(checkbox => {
-                        const item = checkbox.closest('.subtask-item');
-                        if (item) {
-                            item.classList.toggle('completed', isCompleted);
-                            checkbox.checked = isCompleted;
+                    if (isCompleted) {
+                        const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
+                        if (subtaskIndex !== -1 && subtaskIndex < task.subtasks.length - 1) {
+                            state.focusedSubtaskId = task.subtasks[subtaskIndex + 1].id;
+                        } else {
+                            state.focusedSubtaskId = null;
                         }
-                    });
-
-					saveState();
+                    }
+					saveAndRender();
 				}
 			}
 		}
@@ -5194,7 +5193,7 @@
         const currentTaskIndex = tasks.findIndex(t => t.id === state.focusedTaskId);
         const currentTask = (currentTaskIndex !== -1) ? tasks[currentTaskIndex] : null;
 
-        // --- サブタスクがフォーカスされている場合の処理 ---
+        // --- 1. サブタスクがフォーカスされている場合の処理を最優先 ---
         if (currentTask && state.focusedSubtaskId) {
             const subtasks = currentTask.subtasks || [];
             const currentSubtaskIndex = subtasks.findIndex(st => st.id === state.focusedSubtaskId);
@@ -5202,32 +5201,37 @@
             if (currentSubtaskIndex !== -1) {
                 switch (e.key.toLowerCase()) {
                     case 'arrowup':
+                        e.preventDefault();
+                        // Ctrl/Cmdキーが押されている場合は、親タスクの移動処理を行うため、ここでは何もしない
+                        if (e.ctrlKey || e.metaKey) {
+                            break; 
+                        }
+                        if (currentSubtaskIndex > 0) {
+                            // 1つ上のサブタスクへ
+                            state.focusedSubtaskId = subtasks[currentSubtaskIndex - 1].id;
+                        } else {
+                            // 最初のサブタスクから親タスクへ
+                            state.focusedSubtaskId = null;
+                        }
+                        render();
+                        return;
                     case 'arrowdown':
                         e.preventDefault();
                         if (e.ctrlKey || e.metaKey) {
-                            // 変更点: サブタスク選択中の親タスク移動は、新しいロジックに任せる
-                            // そのため、ここでは何もしないで下の処理に流す
-                        } else { // 選択移動
-                             if (e.key === 'arrowup') {
-                                if (currentSubtaskIndex > 0) {
-                                    state.focusedSubtaskId = subtasks[currentSubtaskIndex - 1].id;
-                                } else {
-                                    state.focusedSubtaskId = null; // 親タスクに戻る
-                                }
-                            } else { // arrowdown
-                                if (currentSubtaskIndex < subtasks.length - 1) {
-                                    state.focusedSubtaskId = subtasks[currentSubtaskIndex + 1].id;
-                                } else { // 最後のサブタスクから次のタスクへ
-                                    state.focusedSubtaskId = null;
-                                    if (currentTaskIndex < tasks.length - 1) {
-                                        state.focusedTaskId = tasks[currentTaskIndex + 1].id;
-                                    }
-                                }
-                            }
-                            render();
-                            return; // ここで処理を終了
+                            break;
                         }
-                        break; // breakを追加
+                        if (currentSubtaskIndex < subtasks.length - 1) {
+                            // 1つ下のサブタスクへ
+                            state.focusedSubtaskId = subtasks[currentSubtaskIndex + 1].id;
+                        } else {
+                            // 最後のサブタスクから次の親タスクへ
+                            state.focusedSubtaskId = null;
+                            if (currentTaskIndex < tasks.length - 1) {
+                                state.focusedTaskId = tasks[currentTaskIndex + 1].id;
+                            }
+                        }
+                        render();
+                        return; 
                     case ' ':
                         e.preventDefault();
                         const subtask = subtasks[currentSubtaskIndex];
@@ -5237,7 +5241,7 @@
             }
         }
         
-        // --- 親タスクがフォーカスされている場合の処理、またはCtrlキー押下時のサブタスクからの処理 ---
+        // --- 2. 親タスクがフォーカスされている場合の処理 ---
         switch (e.key.toLowerCase()) {
             case 'n': e.preventDefault(); openAddTaskModal(); break;
             case 'e': e.preventDefault(); if (state.focusedTaskId) openTaskEditModal(state.focusedTaskId); break;
@@ -5261,7 +5265,7 @@
                 }
 
                 if (e.ctrlKey || e.metaKey) {
-                    // --- 変更点: 新しいタスク移動ロジック ---
+                    // --- タスクの順番移動ロジック ---
                     const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
                     const movedTask = tasks.splice(currentTaskIndex, 1)[0];
                     let newIndex = currentTaskIndex;
@@ -5270,32 +5274,23 @@
                     const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
                     const currentSectionId = movedTask.sectionId || 'null';
                     
-                    // 同じセクション内のタスクを取得
-                    const tasksInCurrentSection = tasks.filter(t => (t.sectionId || 'null') === currentSectionId);
-                    const taskIndexWithinSection = tasksInCurrentSection.findIndex(t => t.id === movedTask.id); // splice前なので見つからないが、これは元の位置を把握するため
-                    const originalTaskIndexWithinSection = getTasksForViewDate().filter(t => (t.id !== movedTask.id) && ((t.sectionId || 'null') === currentSectionId)).findIndex(t=>t.id === state.focusedTaskId)
-
                     const isAtBoundary = (direction === 1 && (currentTaskIndex === tasks.length || (tasks[currentTaskIndex].sectionId || 'null') !== currentSectionId)) ||
                                          (direction === -1 && (currentTaskIndex === 0 || (tasks[currentTaskIndex-1].sectionId || 'null') !== currentSectionId));
 
                     if (!isAtBoundary) {
-                        // セクション内での移動
                         newIndex = currentTaskIndex + direction;
                     } else {
-                        // セクション境界を越える移動
                         const currentSectionOrderIndex = sectionOrder.indexOf(currentSectionId);
                         let nextSectionOrderIndex = currentSectionOrderIndex + direction;
                         if (nextSectionOrderIndex >= 0 && nextSectionOrderIndex < sectionOrder.length) {
                             const nextSectionId = sectionOrder[nextSectionOrderIndex];
                             movedTask.sectionId = nextSectionId === 'null' ? null : nextSectionId;
                             
-                            if (direction === 1) { // 下へ移動
-                                // 次のセクションの最初のタスクを探す
+                            if (direction === 1) { // 下へ
                                 const firstTaskOfNextSectionIndex = tasks.findIndex(t => (t.sectionId || 'null') === nextSectionId);
                                 if (firstTaskOfNextSectionIndex !== -1) {
                                     newIndex = firstTaskOfNextSectionIndex;
                                 } else {
-                                    // 次のセクションが空の場合、さらにその次のセクションの開始位置を探す
                                     let followingSectionFound = false;
                                     for(let i = nextSectionOrderIndex + 1; i < sectionOrder.length; i++) {
                                         const followingSectionId = sectionOrder[i];
@@ -5308,8 +5303,7 @@
                                     }
                                     if (!followingSectionFound) newIndex = tasks.length;
                                 }
-                            } else { // 上へ移動
-                                // 前のセクションの最後のタスクを探す
+                            } else { // 上へ
                                 let lastTaskOfPrevSectionIndex = -1;
                                 for(let i = tasks.length - 1; i >= 0; i--) {
                                     if ((tasks[i].sectionId || 'null') === nextSectionId) {
@@ -5320,7 +5314,6 @@
                                 if (lastTaskOfPrevSectionIndex !== -1) {
                                     newIndex = lastTaskOfPrevSectionIndex + 1;
                                 } else {
-                                     // 前のセクションが空の場合、そのセクションの開始位置を探す
                                      let precedingSectionFound = false;
                                      for(let i = nextSectionOrderIndex + 1; i < sectionOrder.length; i++) {
                                         const followingSectionId = sectionOrder[i];
@@ -5335,7 +5328,6 @@
                                 }
                             }
                         } else {
-                            // リストの端に到達した場合
                              newIndex = (direction === 1) ? tasks.length : 0;
                         }
                     }
@@ -5346,21 +5338,25 @@
 
                 } else { // --- 通常の選択移動 ---
                      const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
-                    if (direction === 1) {
+                    if (direction === 1) { // ↓キー
                         const hasOpenSubtasks = state.openTaskIds.has(currentTask.id) && currentTask.subtasks && currentTask.subtasks.length > 0;
                         if (hasOpenSubtasks) {
+                            // 開いているサブタスクがあれば、最初のサブタスクへ
                             state.focusedSubtaskId = currentTask.subtasks[0].id;
                         } else if (currentTaskIndex < tasks.length - 1) {
+                            // サブタスクがなければ、次の親タスクへ
                             state.focusedTaskId = tasks[currentTaskIndex + 1].id;
                         }
-                    } else { // direction === -1 (up)
+                    } else { // ↑キー
                         if (currentTaskIndex > 0) {
                             const prevTask = tasks[currentTaskIndex - 1];
                             const prevHasOpenSubtasks = state.openTaskIds.has(prevTask.id) && prevTask.subtasks && prevTask.subtasks.length > 0;
                             if (prevHasOpenSubtasks) {
+                                // 1つ前のタスクに開いているサブタスクがあれば、その最後のサブタスクへ
                                 state.focusedTaskId = prevTask.id;
                                 state.focusedSubtaskId = prevTask.subtasks[prevTask.subtasks.length - 1].id;
                             } else {
+                                // なければ、1つ前の親タスクへ
                                 state.focusedTaskId = prevTask.id;
                             }
                         }
