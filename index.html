@@ -402,10 +402,11 @@
         </div>
 
         <div id="repeat" class="tab-content">
-            <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="py-6">
                 <h2 class="text-xl font-bold mb-4">リピートタスク管理</h2>
 
-                <div class="p-4 border rounded-lg bg-gray-50 space-y-4 mb-6">
+				<div class="p-4 border rounded-lg bg-white space-y-4 mb-6">
+                <div class="space-y-4 mb-6">
                     <div class="space-y-3">
 						<h3 class="text-md font-semibold text-gray-700">新規リピートタスク</h3>
                         <div class="flex gap-3">
@@ -469,6 +470,7 @@
                     <button id="add-repeat-task-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ リピートタスクを追加</button>
                     <button id="generate-from-repeat-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">▶ 今日のタスクを生成</button>
                 </div>
+				</div>
 
                 <div id="repeat-tasks-container" class="mt-6"></div>
             </div>
@@ -606,12 +608,15 @@
 <div id="add-task-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-md">
         <h3 class="text-lg font-bold mb-4">タスクを追加</h3>
-        <div class="space-y-4">
-            <input type="text" id="new-task-name" placeholder="タスク名" class="w-full p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true" >
-            <input type="number" id="new-task-time" placeholder="見積時間(分)" class="w-full p-2 border rounded-lg" value="5">
-            <select id="new-task-project" class="w-full p-2 border rounded-lg bg-white"></select>
-			<select id="new-task-section" class="w-full p-2 border rounded-lg bg-white"></select>
-        </div>
+		<div class="flex gap-3">
+		            <input type="text" id="new-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+		            <input type="number" id="new-task-time" placeholder="見積時間(分)" class="w-28 p-2 border rounded-lg" value="5">
+		</div>
+		
+		<div class="flex gap-3 mt-4">
+		            <select id="new-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+					<select id="new-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+		</div>
         <div class="flex gap-3 mt-6">
             <button id="save-new-task-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">追加</button>
             <button id="cancel-add-task-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
@@ -4250,7 +4255,7 @@
 	    } else {
 	        container.innerHTML = `<div class="overflow-x-auto">
 	            <table class="min-w-full bg-white">
-	                <thead class="bg-gray-100">
+	                <thead class="bg-gray-400 text-white">
 	                    <tr>
 	                        <th class="py-2 px-4 border-b w-8"></th>
 	                        <th class="py-2 px-4 border-b text-left">タスク名</th>
@@ -4272,9 +4277,8 @@
 	
 	            const { name, range } = getSectionDisplayInfo(sectionId);
 	            const headerRow = document.createElement('tr');
-	            headerRow.className = 'bg-gray-100';
 	            headerRow.dataset.sectionId = sectionId;
-	            headerRow.innerHTML = `<td colspan="6" class="py-1 px-3 text-sm font-bold text-gray-600">${name} ${range}</td>`;
+	            headerRow.innerHTML = `<td colspan="6" class="py-1 px-3 text-sm font-bold bg-gray-400 text-white">${name} ${range}</td>`;
 	            list.appendChild(headerRow);
 	            
 	            renderRepeatTaskTable(list, sectionTasks);
