@@ -2393,15 +2393,6 @@
 	    // isDeletedでないタスクのみをチェック対象にする
 	    const tasksForToday = state.dailyTasks[today].filter(t => !t.isDeleted);
 	    
-	    const existingTask = tasksForToday.find(t => 
-	        t.originRepeatId === repeatTaskId && 
-	        t.createdDate === today
-	    );
-	    
-	    if (existingTask) {
-	        alert('このリピートタスクは既に今日のタスクとして存在します。');
-	        return;
-	    }
 	    const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
 	
 	    const newTask = {
