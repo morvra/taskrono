@@ -2035,35 +2035,68 @@
         const taskIndex = tasks.findIndex(t => t.id === taskId);
         if (taskIndex === -1) return;
 
-        const [task] = tasks.splice(taskIndex, 1);
-        
-        const lastCompletedIndex = tasks.map(t => t.status === 'completed').lastIndexOf(true);
-        
-        const insertIndex = lastCompletedIndex === -1 ? 0 : lastCompletedIndex + 1;
-
-        tasks.splice(insertIndex, 0, task);
+        const task = tasks[taskIndex];
+        const sectionId = task.sectionId || 'null';
+        const firstUncompletedIndexInSection = tasks.findIndex(
+            t => (t.sectionId || 'null') === sectionId && getTaskStatus(t) !== 'completed' && t.id !== taskId
+        );
+        let insertIndex;
+        if (firstUncompletedIndexInSection !== -1) {
+            insertIndex = firstUncompletedIndexInSection;
+        } else {
+            let lastTaskIndexInSection = -1;
+            for (let i = tasks.length - 1; i >= 0; i--) {
+                if ((tasks[i].sectionId || 'null') === sectionId && tasks[i].id !== taskId) {
+                    lastTaskIndexInSection = i;
+                    break;
+                }
+            }
+            insertIndex = lastTaskIndexInSection + 1;
+        }
+        if (taskIndex === insertIndex || taskIndex === insertIndex - 1) {
+            return;
+        }
+        const [movedTask] = tasks.splice(taskIndex, 1);
+        if (insertIndex > taskIndex) {
+            insertIndex--;
+        }
+        tasks.splice(insertIndex, 0, movedTask);        
         setTasksForViewDate(tasks);
     }
 
 	function moveTaskToTop(taskId) {
 	    const tasks = getTasksForViewDate();
 	    const taskIndex = tasks.findIndex(t => t.id === taskId);
-	    if (taskIndex !== -1) {
-	        const task = tasks[taskIndex];
-	        const uncompletedTasks = tasks.filter(t => t.status !== 'completed' && t.id !== taskId);
+	    if (taskIndex === -1) return;
 	
-	        if (uncompletedTasks.length === 0) {
-	            return;
+	    const task = tasks[taskIndex];
+	    const sectionId = task.sectionId || 'null';
+	    let lastCompletedIndexInSection = -1;
+	    for (let i = tasks.length - 1; i >= 0; i--) {
+	        const currentTask = tasks[i];
+	        if ((currentTask.sectionId || 'null') === sectionId && getTaskStatus(currentTask) === 'completed') {
+	            lastCompletedIndexInSection = i;
+	            break;
 	        }
-	
-	        const [movedTask] = tasks.splice(taskIndex, 1);
-	        const firstUncompletedIndex = tasks.findIndex(t => t.status !== 'completed');
-	        
-	        const insertIndex = firstUncompletedIndex !== -1 ? firstUncompletedIndex : 0;
-	        
-	        tasks.splice(insertIndex, 0, movedTask);
-	        setTasksForViewDate(tasks);
 	    }
+	    let insertIndex;
+	    if (lastCompletedIndexInSection !== -1) {
+	        insertIndex = lastCompletedIndexInSection + 1;
+	    } else {
+	        insertIndex = tasks.findIndex(t => (t.sectionId || 'null') === sectionId);
+	        if (insertIndex === -1) { insertIndex = 0; }
+	    }
+	    if (taskIndex === insertIndex || taskIndex === insertIndex - 1) {
+	        return;
+	    }
+	    const [movedTask] = tasks.splice(taskIndex, 1);
+	    if (insertIndex > taskIndex) {
+	        insertIndex--;
+	    }
+	
+	    tasks.splice(insertIndex, 0, movedTask);
+	
+	    setTasksForViewDate(tasks);
 	}
 
     function positionTooltip(tooltipContainer) {
@@ -4732,7 +4765,7 @@
             const nextTask = tasks.find(t => t.status !== 'completed');
             state.focusedTaskId = nextTask ? nextTask.id : null;
             task.updatedAt = new Date().toISOString();
-        } 
+        }
         else {
             if (state.activeTaskId) {
                 const runningTask = tasks.find(t => t.id === state.activeTaskId);
@@ -4768,40 +4801,9 @@
                 
                 task.startTime = task.startTime || new Date().toISOString();
                 task.endTime = null;
-
-				// --- ここから自動移動ロジック ---
 	            const currentSection = getCurrentSection();
 	            const targetSectionId = currentSection ? currentSection.id : null;
-	
-	            // セクションが変更される場合のみ移動処理を行う
-	            if (task.sectionId !== targetSectionId) {
-	                task.sectionId = targetSectionId;
-	
-	                // タスクを一度リストから取り出す
-	                const taskIndex = tasks.findIndex(t => t.id === id);
-	                if (taskIndex > -1) tasks.splice(taskIndex, 1);
-	
-	                // 移動先のセクションで、未完了タスクの最初の位置を探す
-	                let insertIndex = tasks.length;
-	                const firstUncompletedIndexInSection = tasks.findIndex(t => 
-	                    (t.sectionId === targetSectionId) && (getTaskStatus(t) !== 'completed')
-	                );
-	
-	                if (firstUncompletedIndexInSection > -1) {
-	                    insertIndex = firstUncompletedIndexInSection;
-	                } else {
-	                    // 未完了タスクがない場合、セクションの末尾を探す
-	                    let lastIndexOfSection = -1;
-	                    for(let i = tasks.length - 1; i >= 0; i--) {
-	                        if (tasks[i].sectionId === targetSectionId) {
-	                            lastIndexOfSection = i;
-	                            break;
-	                        }
-	                    }
-	                    insertIndex = lastIndexOfSection > -1 ? lastIndexOfSection + 1 : tasks.length;
-	                }
-	                tasks.splice(insertIndex, 0, task);
-	            }
+	            task.sectionId = targetSectionId;
 			
                 updateTaskStatus(task);
                 state.activeTaskId = id;
@@ -4815,7 +4817,7 @@
                     }
 					const floatingTimeEl = document.getElementById('floating-elapsed-time');
 				    if (floatingTimeEl) {
-				        floatingTimeEl.textContent = formatTime(currentActualTime);
+				        floatingTimeEl.textContent = formatTime(calculateActualTime(task));
 				    }
                 }, 1000);
             }
