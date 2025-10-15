@@ -757,11 +757,11 @@
 
 <div id="inbox-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-2xl">
-        <h3 class="text-lg font-bold mb-4">Dropbox Inboxの編集</h3>
+        <h3 class="text-lg font-bold mb-4">Dropbox Inbox</h3>
         <p class="text-sm text-gray-600 mb-3">
-            `[ ] タスク名` の形式で記述してください。未来の日付 (`YYYY-MM-DD`) を指定したタスクは、その日になるまでここ に残ります。
+            `[ ] タスク名 YYYY-MM-DD :10`の形式で記述してください。未来の日付を指定したタスクはその日になるまで残ります。日付と見積は省略可（デフォルトは今日・5分）。
         </p>
-        <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-64 font-mono text-sm"></textarea>
+        <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-48 font-mono text-sm"></textarea>
         <div class="flex gap-3 mt-6">
             <button id="save-inbox-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存して閉じる</button>
             <button id="cancel-inbox-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
