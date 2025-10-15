@@ -348,8 +348,6 @@
 		    border-radius: 6px;
 		}
     </style>
-	<script async defer src="https://apis.google.com/js/api.js"></script>
-	<script async defer src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body class="antialiased text-gray-800">
 
@@ -390,11 +388,6 @@
 				    <button id="prev-day-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm">&lt;</button>
 				    <h2 id="view-date-display" class="font-bold text-lg"></h2>
 				    <button id="next-day-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm">&gt;</button>
-				    <button id="load-gcal-events-btn" class="p-2 rounded-md bg-white hover:bg-gray-100 shadow-sm hidden" title="Googleカレンダーから予定を読み込む">
-					    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-					    </svg>
-					</button>
 				</div>
                 <p class="text-sm text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
             </div>
@@ -555,27 +548,7 @@
                         </div>
                         <p id="drive-status" class="text-sm text-gray-500 mt-2"></p>
                     </div>
-                    <div class="border p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold mb-3">Googleカレンダー連携</h3>
-							<div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 p-3 rounded-md mb-3 text-sm" role="alert">
-							    <p class="font-bold">【開発者向け機能】</p>
-							    <p>この連携機能は開発者向けのものです。第三者の方はご利用になれませんのでご了承ください。</p>
-							</div>
-							<p class="text-sm text-gray-600 mb-3">Googleカレンダーから予定を読み込み、タスクとして自動追加します。</p>
-                        <div id="gcal-auth-container">
-                            <button id="gcal_authorize_button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Google ログイン</button>
-                        </div>
-                        <div id="gcal-signout-container" class="hidden">
-                            <p id="gcal-auth-status" class="text-sm text-green-600 mb-2"></p>
-                            <div class="mb-3">
-                                <h4 class="text-md font-semibold mb-2">読み込むカレンダー</h4>
-                                <div id="gcal-calendars-list" class="max-h-40 overflow-y-auto space-y-1 p-2 border rounded-md bg-gray-50">
-                                    </div>
-                            </div>
-                            <button id="gcal_signout_button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">ログアウト</button>
-                        </div>
-                        <p id="gcal-status" class="text-sm text-gray-500 mt-2"></p>
-                    </div>
+ 
                     <div class="border p-4 rounded-lg">
                         <h3 class="text-lg font-semibold mb-3">データエクスポート</h3>
                         <p class="text-sm text-gray-600 mb-3">現在のデータをJSONファイルとしてダウンロードします。</p>
@@ -777,19 +750,11 @@
     <button id="reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
 </div>
 
-<div id="gcal-reauth-notification" class="fixed top-5 right-1 bg-yellow-500 text-white mx-2 py-2 px-4 rounded-lg shadow-md transition-all duration-500 ease-in-out transform -translate-y-20 opacity-0 z-[2000] items-center gap-3 hidden">
-    <span>Gcalに再ログインが必要です</span>
-    <button id="gcal-reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
-</div>
-
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 
 <script>
 
     document.addEventListener('DOMContentLoaded', () => {
-	    const GCAL_CLIENT_ID = '586393061673-oq4dns80ldipqksu7tm5ut0nd6cipdb0.apps.googleusercontent.com';
-	    const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
-
         // --- フローティング要素のキーボード追従と滑らかスクロール対策 ---
 		function setupFloatingElementsStick() {
 		    const bar = document.getElementById('floating-task-bar');
@@ -884,19 +849,6 @@
             dropboxFilePath: '/DailyTaskListData.json', // Dropbox App Folder内のパス
             dbx: null,
             saveTimeout: null,
-			// --- Google Calendar Properties ---
-		    gcalApiClient: null,
-		    gcalTokenClient: null,
-			gcalTokenRefreshPromise: null,
-		    gcalAuthorizeButton: document.getElementById('gcal_authorize_button'),
-		    gcalSignoutButton: document.getElementById('gcal_signout_button'),
-		    gcalAuthContainer: document.getElementById('gcal-auth-container'),
-		    gcalSignoutContainer: document.getElementById('gcal-signout-container'),
-		    gcalAuthStatusEl: document.getElementById('gcal-auth-status'),
-		    gcalStatusEl: document.getElementById('gcal-status'),
-		    gcalCalendarsListEl: document.getElementById('gcal-calendars-list'),
-            gcalReauthNotification: document.getElementById('gcal-reauth-notification'),
-            gcalReauthButton: document.getElementById('gcal-reauth-button'),
             // DOM Elements
             authorizeButton: document.getElementById('authorize_button'),
             signoutButton: document.getElementById('signout_button'),
@@ -921,22 +873,6 @@
                     setTimeout(() => {
                         this.reauthNotification.classList.add('hidden');
                         this.reauthNotification.style.display = 'none';
-                    }, 500);
-                }
-            },
-
-            updateGCalReauthUi: function(show) {
-                if (show) {
-                    this.gcalReauthNotification.classList.remove('hidden');
-                    setTimeout(() => {
-                        this.gcalReauthNotification.classList.remove('-translate-y-20', 'opacity-0');
-                        this.gcalReauthNotification.style.display = 'flex';
-                    }, 50);
-                } else {
-                    this.gcalReauthNotification.classList.add('-translate-y-20', 'opacity-0');
-                    setTimeout(() => {
-                        this.gcalReauthNotification.classList.add('hidden');
-                        this.gcalReauthNotification.style.display = 'none';
                     }, 500);
                 }
             },
@@ -1346,285 +1282,7 @@
 		    });
 		}
 		// --- DROPBOX SYNC END ---
-
-		// --- GOOGLE CALENDAR SYNC START ---
-        // Google Calendar連携機能の初期化
-        function initializeGCalSync() {
-            if (GCAL_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
-                console.warn("GoogleカレンダーのクライアントIDが設定されていません。");
-                dailyTaskListApp.gcalAuthorizeButton.textContent = '設定が必要です';
-                dailyTaskListApp.gcalAuthorizeButton.disabled = true;
-                return;
-            }
-
-            // GSI Clientの初期化
-            dailyTaskListApp.gcalTokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GCAL_CLIENT_ID,
-                scope: GCAL_SCOPES,
-                callback: (tokenResponse) => {
-                    if (tokenResponse.error) {
-                        console.error("Google Token Error:", tokenResponse.error, tokenResponse.error_description || "No description.");
-                        if (dailyTaskListApp.gcalTokenRefreshPromise) {
-                            // サイレント更新が失敗した場合の処理
-                            dailyTaskListApp.gcalTokenRefreshPromise.reject(new Error(tokenResponse.error));
-                            dailyTaskListApp.updateGCalReauthUi(true); // 新しいUIを表示
-                        } else {
-                            // 手動ログインが失敗した場合の処理
-                            showToast('Googleの認証に失敗しました。', 5000);
-                        }
-                        dailyTaskListApp.updateGCalAuthUi(false);
-                        dailyTaskListApp.gcalStatusEl.textContent = '再ログインが必要です。';
-                        return;
-                    }
-
-                    // 正常なトークン取得処理
-                    if (tokenResponse.access_token) {
-                        dailyTaskListApp.updateGCalReauthUi(false); // 再認証UIを隠す
-                        localStorage.setItem('gcal_access_token', tokenResponse.access_token);
-                        gapi.client.setToken({ access_token: tokenResponse.access_token });
-                        
-                        if (dailyTaskListApp.gcalTokenRefreshPromise) {
-                            dailyTaskListApp.gcalTokenRefreshPromise.resolve();
-                        } else {
-                            dailyTaskListApp.gcalStatusEl.textContent = 'Googleにログインしました。';
-                            dailyTaskListApp.updateGCalAuthUi(true);
-                            dailyTaskListApp.loadAndRenderGCalCalendars();
-                        }
-                    }
-                },
-            });
-
-            // API Clientの初期化
-            gapi.load('client', async () => {
-                await gapi.client.init({
-                    discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
-                });
-
-                const accessToken = localStorage.getItem('gcal_access_token');
-                if (accessToken) {
-                    gapi.client.setToken({ access_token: accessToken });
-                    try {
-                        await dailyTaskListApp.gcalApiHelper(() => gapi.client.calendar.calendarList.list({maxResults: 1}));
-                        // gcalApiHelper が成功した場合のみUIをログイン済みにし、カレンダーを読み込む
-                        dailyTaskListApp.updateGCalAuthUi(true);
-                        await dailyTaskListApp.loadAndRenderGCalCalendars();
-                    } catch (e) {
-                         console.error("Could not initialize Google Calendar on load:", e.message);
-                    }
-                } else {
-                    dailyTaskListApp.updateGCalAuthUi(false);
-                }
-            });
-
-            dailyTaskListApp.gcalAuthorizeButton.addEventListener('click', () => dailyTaskListApp.gcalHandleAuthClick());
-            dailyTaskListApp.gcalSignoutButton.addEventListener('click', () => dailyTaskListApp.gcalHandleSignoutClick());
-            // 新しい再認証ボタンのイベントリスナー
-            dailyTaskListApp.gcalReauthButton.addEventListener('click', () => {
-                dailyTaskListApp.updateGCalReauthUi(false);
-                dailyTaskListApp.gcalHandleAuthClick();
-            });
-        }
-
-        // dailyTaskListAppオブジェクトにGoogleカレンダー関連のメソッドを追加
-        Object.assign(dailyTaskListApp, {
-            // Google認証UIの状態を更新
-            updateGCalAuthUi: function(isLoggedIn) {
-                this.gcalAuthContainer.classList.toggle('hidden', isLoggedIn);
-                this.gcalSignoutContainer.classList.toggle('hidden', !isLoggedIn);
-				const loadGCalEventsBtn = document.getElementById('load-gcal-events-btn');
-                if (loadGCalEventsBtn) {
-                    // ログインしている場合(isLoggedIn=true)はhiddenクラスを削除し、
-                    // ログインしていない場合はhiddenクラスを追加する
-                    loadGCalEventsBtn.classList.toggle('hidden', !isLoggedIn);
-                }
-                if (isLoggedIn) {
-                    this.gcalAuthStatusEl.textContent = 'Googleにログイン済みです。';
-                } else {
-                    this.gcalStatusEl.textContent = 'ログインするとカレンダーを連携できます。';
-                }
-            },
-            
-            // Google認証ボタンクリック時の処理
-            gcalHandleAuthClick: function() {
-                if (this.gcalTokenClient) {
-                    this.gcalTokenClient.requestAccessToken({ prompt: 'consent' });
-                }
-            },
-
-            // Googleログアウトボタンクリック時の処理
-            gcalHandleSignoutClick: function() {
-                const accessToken = localStorage.getItem('gcal_access_token');
-                if (accessToken) {
-                    google.accounts.oauth2.revoke(accessToken, () => {
-                        console.log('Google access token revoked.');
-                    });
-                }
-                localStorage.removeItem('gcal_access_token');
-                localStorage.removeItem('gcal_refresh_token');
-                gapi.client.setToken(null);
-                this.updateGCalAuthUi(false);
-                this.gcalCalendarsListEl.innerHTML = '';
-            },
-			
-			// Google Calendar API呼び出しのラッパー関数（認証エラーハンドリング付き）
-            gcalApiHelper: async function(apiCall) {
-                try {
-                    return await apiCall();
-                } catch (error) {
-                    const isAuthError = (error.status === 401) || (error.result && error.result.error && error.result.error.code === 401);
-                    if (isAuthError) {
-                        console.log('Google API authentication error. User re-authentication required.');
-                        this.updateGCalReauthUi(true);
-                        this.updateGCalAuthUi(false);
-                        localStorage.removeItem('gcal_access_token');
-                        throw new Error("Google authentication required. Please log in again.");
-                    } else {
-                        throw error;
-                    }
-                }
-            },
-            
-            // ユーザーのカレンダー一覧を取得して表示
-            loadAndRenderGCalCalendars: async function() {
-                this.gcalStatusEl.textContent = 'カレンダー一覧を読み込み中...';
-                try {
-                    const response = await this.gcalApiHelper(() => gapi.client.calendar.calendarList.list());
-                    const calendars = response.result.items;
-                    this.gcalCalendarsListEl.innerHTML = '';
-
-                    const selectedCalendars = JSON.parse(localStorage.getItem('gcal_selected_calendars') || '[]');
-
-                    calendars.forEach(calendar => {
-                        const isChecked = selectedCalendars.includes(calendar.id);
-                        const div = document.createElement('div');
-                        div.className = 'flex items-center';
-                        div.innerHTML = `
-                            <input type="checkbox" id="cal-${calendar.id}" value="${calendar.id}" class="form-checkbox h-4 w-4 text-blue-600" ${isChecked ? 'checked' : ''}>
-                            <label for="cal-${calendar.id}" class="ml-2 text-sm">${escapeHtml(calendar.summary)}</label>
-                        `;
-                        this.gcalCalendarsListEl.appendChild(div);
-                    });
-                    
-                    this.gcalCalendarsListEl.addEventListener('change', () => this.saveSelectedCalendars());
-                    this.gcalStatusEl.textContent = '読み込むカレンダーを選択してください。';
-
-                } catch (error) {
-                    console.error('Error fetching calendars:', error);
-                    this.gcalStatusEl.textContent = 'カレンダーの読み込みに失敗しました。';
-                }
-            },
-
-            // 選択されたカレンダーのIDをlocalStorageに保存
-            saveSelectedCalendars: function() {
-                const selectedIds = Array.from(this.gcalCalendarsListEl.querySelectorAll('input:checked')).map(input => input.value);
-                localStorage.setItem('gcal_selected_calendars', JSON.stringify(selectedIds));
-                showToast('カレンダーの設定を保存しました。');
-            },
-
-            // Googleカレンダーから指定日の予定を取得してタスクとして追加
-            importGoogleCalendarEvents: async function(dateStr) {
-                const selectedCalendarIds = JSON.parse(localStorage.getItem('gcal_selected_calendars') || '[]');
-                if (!gapi.client.getToken() || selectedCalendarIds.length === 0) {
-                    if(document.activeElement.id === 'load-gcal-events-btn') {
-                         alert('読み込むカレンダーが選択されていません。データ管理タブで設定してください。');
-                    }
-                    return;
-                }
-
-                showToast('Googleカレンダーから予定を読み込み中...');
-                
-                try {
-                    const timeMin = new Date(dateStr);
-                    timeMin.setHours(0, 0, 0, 0);
-                    const timeMax = new Date(dateStr);
-                    timeMax.setHours(23, 59, 59, 999);
-
-                    const batch = gapi.client.newBatch();
-                    selectedCalendarIds.forEach(calendarId => {
-                        batch.add(gapi.client.calendar.events.list({
-                            'calendarId': calendarId,
-                            'timeMin': timeMin.toISOString(),
-                            'timeMax': timeMax.toISOString(),
-                            'showDeleted': false,
-                            'singleEvents': true,
-                            'orderBy': 'startTime'
-                        }));
-                    });
-
-                    const response = await this.gcalApiHelper(() => batch);
-                    let allEvents = [];
-                    Object.values(response.result).forEach(res => {
-                        if (res.result.items) {
-                            allEvents.push(...res.result.items);
-                        }
-                    });
-
-                    allEvents.sort((a, b) => {
-                        const aStart = new Date(a.start.dateTime || a.start.date);
-                        const bStart = new Date(b.start.dateTime || b.start.date);
-                        return aStart - bStart;
-                    });
-                    
-                    if (!state.dailyTasks[dateStr]) {
-                        state.dailyTasks[dateStr] = [];
-                    }
-                    const existingEventIds = new Set(state.dailyTasks[dateStr].map(t => t.googleEventId));
-                    let addedCount = 0;
-
-                    const newTasks = allEvents
-                        .filter(event => !existingEventIds.has(event.id))
-                        .map(event => {
-                            let estimatedTime = 0;
-                            if (event.start.dateTime && event.end.dateTime) {
-                                const start = new Date(event.start.dateTime);
-                                const end = new Date(event.end.dateTime);
-                                estimatedTime = Math.round((end - start) / (1000 * 60));
-                            }
-                            
-                            addedCount++;
-                            return {
-                                id: 't' + Date.now() + Math.random(),
-                                name: `🗓 ${event.summary}`,
-                                estimatedTime: estimatedTime,
-                                memo: event.description || '',
-                                origin: 'google_calendar',
-                                googleEventId: event.id,
-								sectionId: null,
-                                status: 'pending',
-                                startTime: null,
-                                endTime: null,
-                                createdDate: dateStr,
-                                updatedAt: new Date().toISOString(),
-                            };
-                        });
-
-                    if (newTasks.length > 0) {
-                        const tasks = state.dailyTasks[dateStr];
-                        // 「未着手(pending)」の最初のタスクを探して、その手前に挿入する
-                        let insertIndex = tasks.findIndex(t => t.status === 'pending');
-                        
-                        // 未着手タスクがない場合は、完了タスクの先頭（＝未完了タスクの末尾）を探す
-                        if (insertIndex === -1) {
-                            insertIndex = tasks.findIndex(t => t.status === 'completed');
-                        }
-
-                        // それでも挿入場所が見つからない場合（リストが空か、すべて実行中の場合）は末尾に追加
-                        if (insertIndex === -1) {
-                            insertIndex = tasks.length;
-                        }
-
-                        tasks.splice(insertIndex, 0, ...newTasks);
-                        saveAndRender();
-                    }
-                    showToast(`${addedCount}件の予定を読み込みました。`);
-
-                } catch (error) {
-                    console.error('Error fetching Google Calendar events:', error);
-                    showToast('予定の読み込みに失敗しました。', 5000);
-                }
-            }
-        });
-        // --- GOOGLE CALENDAR SYNC END ---
+		
 
         function showToast(message, duration = 3000) {
             const toast = document.getElementById('toast-notification');
@@ -1877,16 +1535,6 @@
             return null; // 該当なし
         }
 
-		function waitForGoogleLibsAndInitialize() {
-            // gapi と google の両方が使えるようになるまで待つ
-            if (typeof gapi !== 'undefined' && typeof google !== 'undefined') {
-                initializeGCalSync();
-            } else {
-                // 準備ができていなければ、100ミリ秒後にもう一度確認する
-                setTimeout(waitForGoogleLibsAndInitialize, 100);
-            }
-        }
-
         // Init
         function init() {
             state.viewDate = getFormattedDate(new Date());
@@ -1895,7 +1543,6 @@
             restoreRunningTaskState();
             setupEventListeners();
             initializeDropboxSync();
-			waitForGoogleLibsAndInitialize();
 			renderPcAddTaskButton();
             checkDayChange();
             setInterval(checkDayChange, 1000 * 60); 
@@ -2268,8 +1915,6 @@
                     state.focusedTaskId = null;
                 }
                 saveAndRender();
-                // Googleカレンダーの予定を非同期で読み込む
-                await dailyTaskListApp.importGoogleCalendarEvents(today);
             }
         }
 
@@ -2717,10 +2362,6 @@
             state.archiveViewDate = getFormattedDate(yesterday);
             renderArchive();
         });
-
-		document.getElementById('load-gcal-events-btn').addEventListener('click', () => {
-        	dailyTaskListApp.importGoogleCalendarEvents(state.viewDate);
-    	});
 
 		const searchBtn = document.getElementById('archive-search-btn');
 		const searchInput = document.getElementById('archive-search-input');
