@@ -388,6 +388,11 @@
 				    <button id="prev-day-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm">&lt;</button>
 				    <h2 id="view-date-display" class="font-bold text-lg"></h2>
 				    <button id="next-day-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm">&gt;</button>
+					<button id="inbox-btn" class="hidden px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm" title="Inboxを開く (I)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                    </button>
 				</div>
                 <p class="text-sm text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
             </div>
@@ -750,6 +755,20 @@
     <button id="reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
 </div>
 
+<div id="inbox-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-2xl">
+        <h3 class="text-lg font-bold mb-4">Dropbox Inboxの編集</h3>
+        <p class="text-sm text-gray-600 mb-3">
+            `[ ] タスク名` の形式で記述してください。未来の日付 (`YYYY-MM-DD`) を指定したタスクは、その日になるまでここ に残ります。
+        </p>
+        <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-64 font-mono text-sm"></textarea>
+        <div class="flex gap-3 mt-6">
+            <button id="save-inbox-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存して閉じる</button>
+            <button id="cancel-inbox-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+        </div>
+    </div>
+</div>
+	
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 
 <script>
@@ -877,10 +896,45 @@
                     }, 500);
                 }
             },
+
+            fetchInboxContent: async function() {
+                if (!this.dbx) return '';
+                try {
+                    const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
+                    return await response.result.fileBlob.text();
+                } catch (error) {
+                    if (error.status === 409) { // Not found
+                        return ''; // ファイルが存在しない場合は空文字を返す
+                    }
+                    console.error('Error fetching inbox content:', error);
+                    alert('Inboxの読み込みに失敗しました。');
+                    return null; // エラーを示すためにnullを返す
+                }
+            },
+
+            saveInboxContent: async function(content) {
+                if (!this.dbx) return false;
+                try {
+                    await this.dbx.filesUpload({
+                        path: this.inboxFilePath,
+                        contents: content,
+                        mode: 'overwrite'
+                    });
+                    return true;
+                } catch (error) {
+                    console.error('Error saving inbox content:', error);
+                    alert('Inboxの保存に失敗しました。');
+                    return false;
+                }
+            },
 			
             updateAuthUi: function(isLoggedIn) {
 		        this.authContainer.classList.toggle('hidden', isLoggedIn);
 		        this.signoutContainer.classList.toggle('hidden', !isLoggedIn);
+				const inboxBtn = document.getElementById('inbox-btn');
+                if (inboxBtn) {
+                    inboxBtn.classList.toggle('hidden', !isLoggedIn);
+                }
 		        
 		        if (isLoggedIn) {
 		            this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
@@ -2383,6 +2437,23 @@
         });
     }
 
+	async function openInboxModal() {
+        openModal('inbox-modal');
+        const textarea = document.getElementById('inbox-textarea');
+        textarea.value = '読み込み中...';
+        textarea.disabled = true;
+
+        const content = await dailyTaskListApp.fetchInboxContent();
+        
+        if (content !== null) {
+            textarea.value = content;
+        } else {
+            textarea.value = 'エラー: Inboxの読み込みに失敗しました。';
+        }
+        textarea.disabled = false;
+        textarea.focus();
+    }
+
     function setupEventListeners() {
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -2415,6 +2486,18 @@
 
         document.getElementById('add-project-btn').addEventListener('click', addProject);
 		document.getElementById('add-section-btn').addEventListener('click', addSection);
+		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
+        document.getElementById('save-inbox-btn').addEventListener('click', async () => {
+            const textarea = document.getElementById('inbox-textarea');
+            textarea.disabled = true; // 保存中は無効化
+            const success = await dailyTaskListApp.saveInboxContent(textarea.value);
+            if (success) {
+                showToast('Inboxを保存しました。');
+                closeModal('inbox-modal');
+            }
+            textarea.disabled = false;
+        });
+        document.getElementById('cancel-inbox-btn').addEventListener('click', () => closeModal('inbox-modal'));
         document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
         document.getElementById('generate-from-repeat-btn').addEventListener('click', generateTasksFromRepeatManual);
         
@@ -4918,6 +5001,14 @@
 
     function handleKeyboardShortcuts(e) {
         if (document.querySelector('input:focus, select:focus, textarea:focus, .modal.active')) return;
+        
+        if (e.key.toLowerCase() === 'i') {
+            e.preventDefault();
+            if (dailyTaskListApp.dbx) { // Dropboxにログインしている場合のみ
+                openInboxModal();
+            }
+            return;
+        }
         
         const activeTab = document.querySelector('.tab-link.active').dataset.tab;
 
