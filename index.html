@@ -847,6 +847,7 @@
         // --- DROPBOX SYNC START ---
         const dailyTaskListApp = window.dailyTaskListApp = {
             dropboxFilePath: '/DailyTaskListData.json', // Dropbox App Folder内のパス
+			inboxFilePath: '/inbox.txt', // Inboxファイルのパスを追加
             dbx: null,
             saveTimeout: null,
             // DOM Elements
@@ -899,6 +900,103 @@
 		            this.syncDataFab.innerHTML = '';
 		        }
 		    },
+
+			importTasksFromInbox: async function() {
+			    if (!this.dbx) return;
+			
+			    try {
+			        const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
+			        const fileContent = await response.result.fileBlob.text();
+			        const lines = fileContent.split('\n');
+			        const newTasks = [];
+			        const remainingLines = [];
+			        let processed = false; // inbox.txtを更新する必要があるかどうかのフラグ
+			
+			        const taskRegex = /^\s*\[\s*\]\s*(.+)/;
+			        const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
+			        const timeRegex = /:(\d+)/;
+			        const todayStr = getFormattedDate(new Date());
+			
+			        lines.forEach(line => {
+			            const match = line.match(taskRegex);
+			            if (match) {
+			                let taskName = match[1].trim();
+			                let estimatedTime = 5;
+			                let targetDate = todayStr;
+			                let hasDate = false;
+			
+			                // 日付の抽出
+			                const dateMatch = taskName.match(dateRegex);
+			                if (dateMatch) {
+			                    const parsedDate = new Date(dateMatch[1]);
+			                    if (!isNaN(parsedDate.getTime())) {
+			                        targetDate = getFormattedDate(parsedDate);
+			                        taskName = taskName.replace(dateRegex, '').trim();
+			                        hasDate = true;
+			                    }
+			                }
+			
+			                // 未来の日付かどうかを判定
+			                if (hasDate && targetDate > todayStr) {
+			                    remainingLines.push(line);
+			                    return; // この行の処理をスキップして次の行へ
+			                }
+			
+			                // 見積時間の抽出
+			                const timeMatch = taskName.match(timeRegex);
+			                if (timeMatch) {
+			                    estimatedTime = parseInt(timeMatch[1], 10);
+			                    taskName = taskName.replace(timeRegex, '').trim();
+			                }
+			
+			                const newTask = {
+			                    id: 't' + Date.now() + Math.random(),
+			                    name: taskName,
+			                    estimatedTime: estimatedTime,
+			                    projectId: null,
+			                    sectionId: null,
+			                    status: 'pending',
+			                    createdDate: targetDate,
+			                    startTime: null,
+			                    endTime: null,
+			                    memo: '',
+			                    subtasks: [],
+			                    updatedAt: new Date().toISOString()
+			                };
+			                
+			                if (!state.dailyTasks[targetDate]) {
+			                    state.dailyTasks[targetDate] = [];
+			                }
+			                state.dailyTasks[targetDate].push(newTask);
+			                newTasks.push(newTask);
+			                processed = true; // 1行でも処理したらフラグを立てる
+			
+			            } else {
+			                remainingLines.push(line);
+			            }
+			        });
+			
+			        // 処理されたタスクがある（＝inbox.txtの内容に変更があった）場合のみファイルを更新
+			        if (processed) {
+			            const newContent = remainingLines.join('\n').trim();
+			            await this.dbx.filesUpload({
+			                path: this.inboxFilePath,
+			                contents: newContent,
+			                mode: 'overwrite'
+			            });
+			            if (newTasks.length > 0) {
+			                showToast(`${newTasks.length}件のタスクをInboxからインポートしました。`);
+			            }
+			        }
+			    } catch (error) {
+			        if (error.status === 409) {
+			            console.log('inbox.txt not found, skipping import.');
+			        } else {
+			            console.error('Error importing from inbox.txt:', error);
+			            this.driveStatusEl.textContent += ' (Inboxの読込エラー)';
+			        }
+			    }
+			},
 
 			loadStateFromDropbox: async function() {
 			    if (!this.dbx) {
@@ -1050,6 +1148,9 @@
 			        if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
 			        state.lastDate = importedData.lastDate || state.lastDate;
 			        
+                    // --- Inboxからのインポート処理を呼び出す ---
+                    await this.importTasksFromInbox();
+
 			        stopActiveTimer();
 			        state.viewDate = getFormattedDate(new Date());
 			        const tasksToday = getTasksForViewDate();
