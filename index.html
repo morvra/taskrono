@@ -403,74 +403,81 @@
             <div class="py-6">
                 <h2 class="text-xl font-bold mb-4">リピートタスク管理</h2>
 
-				<div class="p-4 border rounded-lg bg-white space-y-4 mb-6">
-                <div class="space-y-4 mb-6">
-                    <div class="space-y-3">
-						<h3 class="text-md font-semibold text-gray-700">新規リピートタスク</h3>
-                        <div class="flex gap-3">
-                            <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
-                            <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-28 p-2 border rounded-lg bg-white">
+				<div class="border rounded-lg bg-white mb-6">
+                    <div id="repeat-form-toggle" class="flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-md font-semibold text-gray-700">＋ 新規リピートタスク</h3>
+                        <svg id="repeat-form-chevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    
+                    <div id="repeat-form-content" class="hidden p-4 border-t border-gray-200">
+                        <div class="space-y-4 mb-6">
+                            <div class="space-y-3">
+                                <div class="flex gap-3">
+                                    <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                                    <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-28 p-2 border rounded-lg bg-white">
+                                </div>
+                                <div class="flex gap-3">
+                                    <select id="repeat-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                                    <select id="repeat-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <select id="repeat-task-type" class="w-full p-2 border rounded-lg bg-white">
+                                    <option value="daily">毎日</option>
+                                    <option value="weekly">毎週</option>
+                                    <option value="monthly">毎月</option>
+                                    <option value="yearly">毎年</option>
+                                    <option value="interval">○日ごと</option>
+                                </select>
+                                
+                                <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
+                                    <div id="repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
+                                    <div class="w-full border-t my-2"></div>
+                                    <div class="flex items-center gap-x-4">
+                                        <label class="text-sm">間隔: <input type="number" id="repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
+                                        <label class="text-sm">基準日: <input type="date" id="repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
+                                    </div>
+                                </div>
+                                <div id="repeat-monthly-options" class="hidden p-3 bg-white rounded-lg border space-y-3">
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+                                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+                                    </div>
+                                    <div id="repeat-monthly-day-options">
+                                        <label class="text-sm">日付: <input type="number" id="repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
+
+                                    </div>
+                                    <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
+                                        <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
+                                            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+                                        </select>
+                                        <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
+                                            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="repeat-yearly-options" class="hidden p-3 bg-white rounded-lg border">
+                                    <label class="text-sm">日付:
+                                        <input type="number" id="repeat-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
+                                        <input type="number" id="repeat-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
+                                    </label>
+                                </div>
+                                <div id="repeat-interval-options" class="hidden p-3 bg-white rounded-lg border space-y-2 md:space-y-0 md:items-center md:space-x-4">
+                                    <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
+                                    <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
+                                </div>
+                            </div>
                         </div>
                         <div class="flex gap-3">
-                            <select id="repeat-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
-                            <select id="repeat-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                            <button id="add-repeat-task-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ リピートタスクを追加</button>
+                            <button id="generate-from-repeat-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">▶ 今日のタスクを生成</button>
                         </div>
                     </div>
-
-                    <div class="space-y-3">
-                        <select id="repeat-task-type" class="w-full p-2 border rounded-lg bg-white">
-                            <option value="daily">毎日</option>
-                            <option value="weekly">毎週</option>
-                            <option value="monthly">毎月</option>
-                            <option value="yearly">毎年</option>
-                            <option value="interval">○日ごと</option>
-                        </select>
-                        
-                        <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
-                            <div id="repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
-                            <div class="w-full border-t my-2"></div>
-                            <div class="flex items-center gap-x-4">
-                                 <label class="text-sm">間隔: <input type="number" id="repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
-                                 <label class="text-sm">基準日: <input type="date" id="repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
-                            </div>
-                        </div>
-                        <div id="repeat-monthly-options" class="hidden p-3 bg-white rounded-lg border space-y-3">
-                            <div class="flex items-center gap-4">
-                                <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
-                                <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
-                            </div>
-                            <div id="repeat-monthly-day-options">
-                                <label class="text-sm">日付: <input type="number" id="repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
-                            </div>
-                            <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
-                                <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
-                                    <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
-                                </select>
-                                <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
-                                    <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="repeat-yearly-options" class="hidden p-3 bg-white rounded-lg border">
-                            <label class="text-sm">日付:
-                                <input type="number" id="repeat-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
-                                <input type="number" id="repeat-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
-                            </label>
-                        </div>
-                        <div id="repeat-interval-options" class="hidden p-3 bg-white rounded-lg border space-y-2 md:space-y-0 md:items-center md:space-x-4">
-                            <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
-                            <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-3">
-                    <button id="add-repeat-task-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ リピートタスクを追加</button>
-                    <button id="generate-from-repeat-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">▶ 今日のタスクを生成</button>
-                </div>
 				</div>
-
-                <div id="repeat-tasks-container" class="mt-6"></div>
+				<div id="repeat-tasks-container" class="mt-6"></div>
             </div>
         </div>
 
@@ -2279,11 +2286,10 @@
 	
 	    allTasks.splice(insertIndex, 0, newTask);
 	    // setTasksForViewDateは使わず、直接state.dailyTasks[today]を更新する
-	
 	    state.focusedTaskId = newTask.id;
 	    state.viewDate = today;
 	    saveAndRender();
-	    alert('今日のタスクとして追加しました。');
+        showToast(`「${escapeHtml(rt.name)}」を今日のタスクに追加しました。`);
 	}
 
 	function renderSections() {
@@ -2483,6 +2489,17 @@
             });
         });
         document.querySelector('.tab-link[data-tab="today"]').click();
+
+	    const toggleBtn = document.getElementById('repeat-form-toggle');
+        const content = document.getElementById('repeat-form-content');
+        const chevron = document.getElementById('repeat-form-chevron');
+        if (toggleBtn && content && chevron) {
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = content.classList.toggle('hidden');
+                // アイコンの回転
+                chevron.classList.toggle('rotate-180', !isHidden);
+            });
+        }
 
         document.getElementById('add-project-btn').addEventListener('click', addProject);
 		document.getElementById('add-section-btn').addEventListener('click', addSection);
@@ -4103,14 +4120,14 @@
 	    } else {
 	        container.innerHTML = `<div class="overflow-x-auto">
 	            <table class="min-w-full bg-white">
-	                <thead class="bg-gray-400 text-white">
+	                <thead class="bg-gray-500 text-white text-xs">
 	                    <tr>
-	                        <th class="py-2 px-4 border-b w-8"></th>
-	                        <th class="py-2 px-4 border-b text-left">タスク名</th>
-	                        <th class="py-2 px-4 border-b text-left">プロジェクト</th>
-	                        <th class="py-2 px-4 border-b text-left">見積時間</th>
-	                        <th class="py-2 px-4 border-b text-left">繰り返し</th>
-	                        <th class="py-2 px-4 border-b">操作</th>
+	                        <th class="py-2 px-4 w-8"></th>
+	                        <th class="py-2 px-4 text-left">タスク名</th>
+	                        <th class="py-2 px-4 text-left">プロジェクト</th>
+	                        <th class="py-2 px-4 text-left">見積時間</th>
+	                        <th class="py-2 px-4 text-left">繰り返し</th>
+	                        <th class="py-2 px-4">操作</th>
 	                    </tr>
 	                </thead>
 	                <tbody id="repeat-tasks-list"></tbody>
@@ -4126,7 +4143,7 @@
 	            const { name, range } = getSectionDisplayInfo(sectionId);
 	            const headerRow = document.createElement('tr');
 	            headerRow.dataset.sectionId = sectionId;
-	            headerRow.innerHTML = `<td colspan="6" class="py-1 px-3 text-sm font-bold bg-gray-400 text-white">${name} ${range}</td>`;
+	            headerRow.innerHTML = `<td colspan="6" class="py-1 px-3 text-xs font-bold bg-gray-400 text-white">${name} ${range}</td>`;
 	            list.appendChild(headerRow);
 	            
 	            renderRepeatTaskTable(list, sectionTasks);
@@ -4137,6 +4154,19 @@
 	    container.querySelectorAll('.generate-single-repeat-btn').forEach(btn => btn.addEventListener('click', (e) => generateSingleRepeatTask(e.currentTarget.dataset.id)));
 	    container.querySelectorAll('.edit-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => openRepeatEditModal(e.currentTarget.dataset.id)));
 	    container.querySelectorAll('.delete-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => deleteRepeatTask(e.currentTarget.dataset.id)));
+		container.querySelectorAll('.repeat-task-row').forEach(row => {
+            row.addEventListener('dblclick', (e) => {
+                // ボタンやドラッグハンドルなど、特定の操作対象上でのダブルクリックは無視する
+                if (e.target.closest('button, a, .drag-handle, .tooltip-container')) {
+                    return;
+                }
+                e.preventDefault();
+                const taskId = e.currentTarget.dataset.id;
+                if (taskId) {
+                    generateSingleRepeatTask(taskId);
+                }
+            });
+        });
 	}
 
 	function renderRepeatTaskTable(list, tasksToRender) {
