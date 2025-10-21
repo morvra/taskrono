@@ -15,8 +15,8 @@
     <style>
 		html, body { overscroll-behavior-y: contain; }
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        
-        /* header for desktop */
+
+		/* header for desktop */
         @media (min-width: 769px) {
             .header {
                 background: white;
@@ -358,7 +358,10 @@
                 <h1 class="text-xl font-bold text-gray-700">Taskrono</h1>
                 <p id="current-date" class="text-sm text-gray-500"></p>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center gap-6"> <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
+                    <p class="text-gray-600">完了タスク</p>
+                    <p id="completed-tasks-stats" class="text-2xl font-semibold text-green-600">--/--</p>
+                </div>
                 <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
                     <p class="text-gray-600">全体の終了予測</p>
                     <p id="total-estimated-end-time" class="text-2xl font-semibold text-blue-600">--:--</p>
@@ -2845,7 +2848,7 @@
             }
         }
 
-	function renderTaskTable(tbody, tasksToRender, options = {}) {
+			function renderTaskTable(tbody, tasksToRender, options = {}) {
 	    if (tasksToRender.length === 0) {
 	        const parentHeader = tbody.lastElementChild;
 	        if (parentHeader && parentHeader.dataset.sectionId) {
@@ -4915,7 +4918,21 @@
 
     function calculateAllEstimates() {
         const now = new Date();
-        const unfinishedTasks = getTasksForViewDate().filter(t => t.status !== 'completed');
+        const allTasks = getTasksForViewDate();
+        const unfinishedTasks = allTasks.filter(t => t.status !== 'completed');
+        
+        const completedTasksCount = allTasks.length - unfinishedTasks.length;
+        const totalTasksCount = allTasks.length;
+        const completedStatsEl = document.getElementById('completed-tasks-stats');
+        
+        if (completedStatsEl) {
+            if (totalTasksCount > 0) {
+                completedStatsEl.textContent = `${completedTasksCount}/${totalTasksCount}`;
+            } else {
+                completedStatsEl.textContent = '0/0';
+            }
+        }
+		
         const totalRemainingMinutes = unfinishedTasks.reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
         totalEstimatedEndTimeEl.textContent = totalRemainingMinutes > 0 ? formatClockTime(new Date(now.getTime() + totalRemainingMinutes * 60 * 1000)) : '完了';
     }
