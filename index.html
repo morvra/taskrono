@@ -2929,7 +2929,14 @@
 	                        <span class="pl-1 font-semibold text-sm truncate" title="${escapeHtml(task.name || '')}">${formatTaskName(task.name)}</span>
 	                        ${subtaskIconHtml} ${memoIcon}
 	                    </div>
-	                    <span class="text-xs text-gray-400 ml-2 whitespace-nowrap flex-shrink-0 project-label">${escapeHtml(project.name)}</span>
+	                    <span class="flex items-center text-xs text-gray-400 ml-2 whitespace-nowrap flex-shrink-0 project-label">
+	                        ${task.originRepeatId ? `
+	                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400 hidden md:inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" title="リピートタスク">
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M5.222 9.222a8.974 8.974 0 0113.556 0M19 20v-5h-5M18.778 14.778a8.974 8.974 0 01-13.556 0" />
+	                            </svg>
+	                        ` : ''}
+	                        ${escapeHtml(project.name)}
+	                    </span>
 	                </div>
 	            </td>
 	            <td class="text-center text-sm whitespace-nowrap">${task.estimatedTime || 0} 分</td>
