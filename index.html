@@ -16,15 +16,64 @@
 		html, body { overscroll-behavior-y: contain; }
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
 
-		/* header for desktop */
+		/* header for desktop (TABLET / 769px - 1200px) */
         @media (min-width: 769px) {
             .header {
                 background: white;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
 			.sections-wrapper { padding-bottom: 88px; }
-			main { max-width: 980px; margin: 0 auto; }
+			main { max-width: 900px; margin: 0 auto; }
 			.task-row { height: 37px; }
+            #desktop-sidebar {
+                display: none;
+            }
+        }
+
+        /* WIDE PC 2-Column Layout (1200px+) */
+        @media (min-width: 1200px) {
+            /* グリッドコンテナ設定 */
+            #main-grid-container {
+                display: grid;
+                grid-template-columns: 160px minmax(0, 900px);
+                gap: 2rem;
+                justify-content: center;
+                max-width: none;
+                padding: 1rem 2rem;
+            }
+
+            /* 中央コンテンツ */
+            main {
+                max-width: 900px;
+                margin: 0;
+                grid-column: 2 / 3;
+            }
+
+            /* PC用サイドバーの表示と追従 */
+            #desktop-sidebar {
+                display: block;
+                position: sticky;
+                top: 24px;
+                align-self: start;
+                height: calc(100vh - 48px); 
+                overflow-y: auto;
+                grid-column: 1 / 2;
+            }
+
+            /* ヘッダー内のモバイル用要素を非表示 */
+            #header-nav-mobile, #header-stats-container-mobile {
+                display: none;
+            }
+            
+            /* ヘッダーのスタイル調整 */
+            .header {
+                box-shadow: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            .header > .container {
+                max-width: none;
+                padding: 0 2rem;
+            }
         }
         
         /* Compact header for mobile */
@@ -33,31 +82,27 @@
                 background: white;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
-            .mobile-compact-header .header-content {
-                padding: 8px 16px !important;
-                flex-direction: row !important;
-                align-items: center !important;
-            }
-            .mobile-compact-header h1 {
+            #desktop-sidebar {
                 display: none;
-            }
-			p#current-date { color: #333; font-size: 1rem; }
-            .mobile-compact-header .header-stats p:first-child {
-                font-size: 0.7rem;
-            }
-            .mobile-compact-header .header-stats p:last-child {
-                font-size: 1.1rem;
-            }
-            .mobile-nav {
-                padding: 0 !important;
-            }
-            .mobile-nav .tab-link {
-                padding: 6px 12px !important;
-                font-size: 0.8rem !important;
             }
         }
         
+        /* タブの .active スタイル (基本) */
         .tab-link.active { border-color: #3b82f6; background-color:#3b82f6; color:white; }
+        
+        @media (min-width: 1200px) {
+            #desktop-sidebar .tab-link {
+                border-bottom: none;
+            }
+            #desktop-sidebar .tab-link.active {
+                border-color: #3b82f6;
+                background: none;
+                color: #2563eb;
+                font-weight: 600;
+                border-left-width: 4px;
+                padding-left: 0.75rem; 
+            }
+        }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
         .task-row.focused, .subtask-item.focused { background-color: #fef9c3; }
@@ -365,7 +410,7 @@
                 <h1 class="text-xl font-bold text-gray-700">Taskrono</h1>
                 <p id="current-date" class="text-sm text-gray-500"></p>
             </div>
-            <div class="flex items-center gap-6"> <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
+            <div class="flex items-center gap-6" id="header-stats-container-mobile"> <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
                     <p class="text-gray-600">完了タスク</p>
                     <p id="completed-tasks-stats" class="text-2xl font-semibold text-green-600">--/--</p>
                 </div>
@@ -376,7 +421,7 @@
             </div>
         </header>
 
-        <nav class="mobile-nav flex space-x-0 overflow-x-auto">
+        <nav class="mobile-nav flex space-x-0 overflow-x-auto" id="header-nav-mobile">
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="today">当日のタスク</button>
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="repeat">リピートタスク</button>
 			<button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="sections">セクション</button>
@@ -388,7 +433,32 @@
     </div>
 </div>
 
-<div class="container mx-auto p-4 max-w-7xl">
+<div class="container mx-auto p-4 max-w-7xl" id="main-grid-container">
+
+    <aside id="desktop-sidebar" class="hidden">
+        <div class="space-y-6">
+            <div class="text-left header-stats-desktop text-sm">
+                <span class="text-gray-600">完了: </span>
+                <span id="completed-tasks-stats-desktop" class="font-semibold text-green-600">--/--</span>
+            </div>
+            <div class="text-left header-stats-desktop text-sm">
+                <span class="text-gray-600">終了予測:</span>
+                <span id="total-estimated-end-time-desktop" class="font-semibold text-blue-600">--:--</span>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <nav class="flex flex-col space-y-1">
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="today">当日のタスク</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="repeat">リピートタスク</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="sections">セクション</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="projects">プロジェクト</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="archive">アーカイブ</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 " onclick="location.href='./analysis'">分析</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="data">データ管理</button>
+        </nav>
+    </aside>
 
     <main>
         <div id="today" class="tab-content space-y-4">
@@ -404,7 +474,7 @@
                         </svg>
                     </button>
 				</div>
-                <p class="text-sm text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
+                <p class="text-xs text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
             </div>
             <div id="sections-container" class="sections-wrapper"></div>
         </div>
@@ -1496,8 +1566,8 @@
 
         // DOM refs
         const tabs = document.querySelectorAll('.tab-link');
-        const currentDateEl = document.getElementById('current-date');
-        const totalEstimatedEndTimeEl = document.getElementById('total-estimated-end-time');
+        const currentDateEls = document.querySelectorAll('#current-date');
+        const totalEstimatedEndTimeEls = document.querySelectorAll('#total-estimated-end-time, #total-estimated-end-time-desktop');
 
 		function updateSortOrderAndTimestamps(dateKey) {
 			const tasks = state.dailyTasks[dateKey] || [];
@@ -2473,12 +2543,17 @@
     function setupEventListeners() {
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                if (!tabName) return; 
+
                 tabs.forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(tab.dataset.tab).classList.add('active');
+                document.querySelectorAll(`.tab-link[data-tab="${tabName}"]`).forEach(matchingTab => {
+                    matchingTab.classList.add('active');
+                });
+                document.getElementById(tabName).classList.add('active');
                 
-                if (tab.dataset.tab === 'today') {
+                if (tabName === 'today') {
                     const tasks = getTasksForViewDate();
                     const firstUncompletedTask = tasks.find(t => getTaskStatus(t) !== 'completed');
                     if (firstUncompletedTask) {
@@ -2488,7 +2563,7 @@
                     } else {
                         state.focusedTaskId = null;
                     }
-                } else if (tab.dataset.tab === 'archive') {
+                } else if (tabName === 'archive') {
                     if (!state.archiveViewDate) {
                         const yesterday = new Date();
                         yesterday.setDate(yesterday.getDate() - 1);
@@ -4930,19 +5005,24 @@
         
         const completedTasksCount = allTasks.length - unfinishedTasks.length;
         const totalTasksCount = allTasks.length;
-        const completedStatsEl = document.getElementById('completed-tasks-stats');
+        const completedStatsEls = document.querySelectorAll('#completed-tasks-stats, #completed-tasks-stats-desktop');
         
-        if (completedStatsEl) {
-            if (totalTasksCount > 0) {
-                completedStatsEl.textContent = `${completedTasksCount}/${totalTasksCount}`;
-            } else {
-                completedStatsEl.textContent = '0/0';
+        completedStatsEls.forEach(el => {
+            if (el) {
+                if (totalTasksCount > 0) {
+                    el.textContent = `${completedTasksCount}/${totalTasksCount}`;
+                } else {
+                    el.textContent = '0/0';
+                }
             }
-        }
-		
+        });
         const totalRemainingMinutes = unfinishedTasks.reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
-        totalEstimatedEndTimeEl.textContent = totalRemainingMinutes > 0 ? formatClockTime(new Date(now.getTime() + totalRemainingMinutes * 60 * 1000)) : '完了';
-    }
+        
+        const endTimeText = totalRemainingMinutes > 0 ? formatClockTime(new Date(now.getTime() + totalRemainingMinutes * 60 * 1000)) : '完了';
+        totalEstimatedEndTimeEls.forEach(el => {
+            if(el) el.textContent = endTimeText;
+        });
+	}
 
 	function renderFloatingTaskBar() {
 	    const bar = document.getElementById('floating-task-bar');
@@ -5345,7 +5425,10 @@
 
     function saveAndRender(options = {}) { updateSortOrderAndTimestamps(state.viewDate); saveState(); render(options); updateTitle(); }
     function updateTimeDisplays() {
-        currentDateEl.textContent = new Date().toLocaleString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+        const dateText = new Date().toLocaleString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+        currentDateEls.forEach(el => {
+            if(el) el.textContent = dateText;
+        });
         calculateAllEstimates();
     }
 	function formatTime(seconds) {
