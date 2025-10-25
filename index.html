@@ -35,8 +35,8 @@
             /* グリッドコンテナ設定 */
             #main-grid-container {
                 display: grid;
-                grid-template-columns: 160px minmax(0, 900px);
-                gap: 2rem;
+                grid-template-columns: 160px minmax(0, 960px);
+                gap: 1rem;
                 justify-content: center;
                 max-width: none;
                 padding: 1rem 2rem;
@@ -44,7 +44,7 @@
 
             /* 中央コンテンツ */
             main {
-                max-width: 900px;
+                max-width: 960px;
                 margin: 0;
                 grid-column: 2 / 3;
             }
@@ -120,6 +120,7 @@
             font-size: 0.8rem;
         }
         .task-table th, .task-table td {
+			 max-width: 320px;
              padding-top: 0.25rem;
              padding-bottom: 0.1rem;
              padding-left: 0.5rem;
