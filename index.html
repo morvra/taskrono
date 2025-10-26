@@ -1880,7 +1880,10 @@
 	function updateTitle() {
         const activeTask = getTasksForViewDate().find(t => t.id === state.activeTaskId);
         if (activeTask) {
-            document.title = `⏱ ${activeTask.name} - Taskrono`;
+            const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
+            const plainTaskName = (activeTask.name || '').replace(markdownRegex, '$1');
+            
+            document.title = `⏱ ${plainTaskName} - Taskrono`;
         } else {
             document.title = 'Taskrono';
         }
