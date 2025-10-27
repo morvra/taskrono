@@ -2753,15 +2753,12 @@
 	let swipeDeltaX = 0;
 	let isSwiping = false;
 	let isSwipeScrollLock = false; // trueなら縦スクロール中とみなし横スワイプをロック
-	let lastTapEnd = 0; // ダブルタップ判定用の最終タップ時刻
 
 	const SWIPE_THRESHOLD_SHORT = 60; // 短いスワイプのしきい値 (px)
 	const SWIPE_THRESHOLD_LONG = 120; // 長いスワイプのしきい値 (px)
 	const SWIPE_ICON_VISIBLE_THRESHOLD = 60; // アイコン表示を開始するしきい値 (px)
 
-	/**
-	* タッチ開始イベント
-	*/
+	// タッチ開始イベント
 	function handleSwipeStart(e) {
 	// ドラッグ中の場合はスワイプを開始しない
 	if (document.body.classList.contains('dragging-active')) return;
@@ -2787,9 +2784,7 @@
 	swipeTargetCard.addEventListener('touchcancel', handleSwipeEnd);
 	}
 
-	/**
-	* タッチ移動イベント
-	*/
+	// タッチ移動イベント
 	function handleSwipeMove(e) {
 	if (!swipeTargetCard || !e.touches[0] || isSwipeScrollLock) {
 	return;
@@ -2828,61 +2823,69 @@
 	swipeTargetCard.style.transform = `translateX(${swipeDeltaX}px)`;
 
 	// 背景のアクション表示を更新
-	updateSwipeBackground(swipeDeltaX);
+	const taskId = swipeTargetCard.dataset.taskId;
+	updateSwipeBackground(swipeDeltaX, taskId);
 	}
 
 	/**
 	* スワイプ量に応じて背景のアイコン表示を切り替える
+	* @param {number} deltaX - スワイプ量
+	* @param {string} taskId - タスクID
 	*/
-	function updateSwipeBackground(deltaX) {
-            if (!swipeBackground) return;
-
-            // 背景パネルを取得
-            const bgRight = swipeBackground.querySelector('.swipe-bg-right');
-            const bgLeft = swipeBackground.querySelector('.swipe-bg-left');
-
-            // アイコンを取得
-            const actions = {
-                rightShort: swipeBackground.querySelector('#swipe-right-short'),
-                rightLong: swipeBackground.querySelector('#swipe-right-long'),
-                leftShort: swipeBackground.querySelector('#swipe-left-short'),
-                leftLong: swipeBackground.querySelector('#swipe-left-long'),
-            };
-
-            // 1. 全てのアイコンを非表示にし、背景色をデフォルト（短スワイプ用）に戻す
-            Object.values(actions).forEach(el => el.classList.remove('visible'));
-            bgRight.style.backgroundColor = '#22c55e'; // green-500
-            bgLeft.style.backgroundColor = '#f59e0b'; // yellow-500
-
-            // 2. スワイプ方向に応じて、操作対象の背景パネルのみ表示
-            bgRight.style.display = (deltaX > 1) ? 'flex' : 'none'; // わずかでも動いたら表示
-            bgLeft.style.display = (deltaX < -1) ? 'flex' : 'none';
-
-            // 3. スワイプ量に応じて表示するアイコンと背景色を決定
-            if (deltaX > 0) {
-                // 右スワイプ
-                if (deltaX > SWIPE_THRESHOLD_LONG) {
-                    actions.rightLong.classList.add('visible');
-                    bgRight.style.backgroundColor = '#3b82f6'; // 長（青）
-                } else if (deltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
-                    // 短（緑） - 10px超えたらアイコン表示
-                    actions.rightShort.classList.add('visible');
-                }
-            } else if (deltaX < 0) {
-                // 左スワイプ
-                const absDeltaX = Math.abs(deltaX);
-                if (absDeltaX > SWIPE_THRESHOLD_LONG) {
-                    actions.leftLong.classList.add('visible');
-                    bgLeft.style.backgroundColor = '#ef4444'; // 長（赤）
-                } else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
-                    // 短（黄） - 10px超えたらアイコン表示
-                    actions.leftShort.classList.add('visible');
-                }
-            }
-        }
-	/**
-	* タッチ終了イベント
-	*/
+	function updateSwipeBackground(deltaX, taskId) {
+	    if (!swipeBackground) return;
+	
+	    // 背景パネルを取得
+	    const bgRight = swipeBackground.querySelector('.swipe-bg-right');
+	    const bgLeft = swipeBackground.querySelector('.swipe-bg-left');
+	
+	    // アイコンを取得
+	    const actions = {
+	        rightShort: swipeBackground.querySelector('#swipe-right-short'),
+	        rightLong: swipeBackground.querySelector('#swipe-right-long'),
+	        leftShort: swipeBackground.querySelector('#swipe-left-short'),
+	        leftLong: swipeBackground.querySelector('#swipe-left-long'),
+	    };
+	
+	    // タスクの状態を確認
+	    const tasks = getTasksForViewDate();
+	    const task = tasks.find(t => t.id === taskId);
+	    const isRunning = task && task.status === 'running';
+	
+	    // 1. 全てのアイコンを非表示にし、背景色をデフォルト(短スワイプ用)に戻す
+	    Object.values(actions).forEach(el => el.classList.remove('visible'));
+	    // 右短スワイプの色をタスク状態に応じて変更
+	    bgRight.style.backgroundColor = isRunning ? '#ef4444' : '#22c55e'; // 実行中なら赤、そうでなければ緑
+	    bgLeft.style.backgroundColor = '#f59e0b'; // yellow-500
+	
+	    // 2. スワイプ方向に応じて、操作対象の背景パネルのみ表示
+	    bgRight.style.display = (deltaX > 1) ? 'flex' : 'none'; // わずかでも動いたら表示
+	    bgLeft.style.display = (deltaX < -1) ? 'flex' : 'none';
+	
+	    // 3. スワイプ量に応じて表示するアイコンと背景色を決定
+	    if (deltaX > 0) {
+	        // 右スワイプ
+	        if (deltaX > SWIPE_THRESHOLD_LONG) {
+	            actions.rightLong.classList.add('visible');
+	            bgRight.style.backgroundColor = '#3b82f6'; // 長(青) - メモ編集
+	        } else if (deltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+	            // 短 - タイマー操作 (10px超えたらアイコン表示)
+	            actions.rightShort.classList.add('visible');
+	            // 背景色は上で設定済み（実行中なら赤、そうでなければ緑）
+	        }
+	    } else if (deltaX < 0) {
+	        // 左スワイプ
+	        const absDeltaX = Math.abs(deltaX);
+	        if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+	            actions.leftLong.classList.add('visible');
+	            bgLeft.style.backgroundColor = '#ef4444'; // 長(赤) - 削除
+	        } else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+	            // 短(黄) - 先送り (10px超えたらアイコン表示)
+	            actions.leftShort.classList.add('visible');
+	        }
+	    }
+	}
+	// タッチ終了イベント
 	function handleSwipeEnd(e) {
             if (!swipeTargetCard) return;
 
@@ -2890,10 +2893,10 @@
                 const taskId = swipeTargetCard.dataset.taskId;
                 let actionTriggered = false;
 
-                // ↓ 判定ロジックをより厳密に変更
+                // ロジック
                 if (swipeDeltaX > SWIPE_THRESHOLD_LONG) {
-                    // 右スワイプ（長）: 編集 (150px以上)
-                    openTaskEditModal(taskId);
+                    // 右スワイプ（長）: メモ編集 (150px以上)
+                    openMemoEditModal(taskId);
                     actionTriggered = true;
                 } else if (swipeDeltaX > SWIPE_THRESHOLD_SHORT) {
                     // 右スワイプ（短）: タイマー (60px 〜 150px)
@@ -2908,60 +2911,47 @@
                     postponeTask(taskId);
                     actionTriggered = true;
                 }
-                // ↑ 判定ロジックの変更ここまで
 
                 // アクションが実行されたかどうかにかかわらず、カードを元の位置に戻す
                 swipeTargetCard.style.transform = 'translateX(0)';
 
             }
-			// --- ダブルタップ判定 ---
-	        // スワイプアクションが実行されず (isSwiping=false または 閾値未満)
-	        // かつ、ボタン等でない場所をタップした場合
-	        if (!actionTriggered && !e.target.closest('button, a')) {
-	            const currentTime = new Date().getTime();
-	            if (currentTime - lastTapEnd < 300) {
-	                // ダブルタップ検出
-	                const taskId = swipeTargetCard.dataset.taskId;
-	                if (taskId) {
-	                    openMemoEditModal(taskId);
-	                }
-	                lastTapEnd = 0; // リセット
-	            } else {
-	                lastTapEnd = currentTime;
-	            }
-	        } else {
-	            // スワイプアクションが実行されたらタップ履歴リセット
-	            lastTapEnd = 0;
-	        }
             resetSwipeState();
         }
 
-	/**
-	* スワイプ状態をリセットし、カードを元の状態に戻す
-	*/
+	// スワイプ状態をリセットし、カードを元の状態に戻す
 	function resetSwipeState() {
-	if (swipeTargetCard) {
-	swipeTargetCard.classList.remove('swiping');
-	// ドラッグ機能を元に戻す
-	swipeTargetCard.draggable = true;
-
-	// イベントリスナーを確実に削除
-	swipeTargetCard.removeEventListener('touchmove', handleSwipeMove);
-	swipeTargetCard.removeEventListener('touchend', handleSwipeEnd);
-	swipeTargetCard.removeEventListener('touchcancel', handleSwipeEnd);
-	}
-	if (swipeBackground) {
-	// 背景アイコンを非表示に戻す
-	swipeBackground.querySelectorAll('.swipe-action').forEach(el => el.classList.remove('visible'));
-	}
-
-	swipeTargetCard = null;
-	swipeBackground = null;
-	swipeStartX = 0;
-	swipeStartY = 0;
-	swipeDeltaX = 0;
-	isSwiping = false;
-	isSwipeScrollLock = false;
+	    if (swipeTargetCard) {
+	        swipeTargetCard.classList.remove('swiping');
+	        swipeTargetCard.draggable = true;
+	        swipeTargetCard.style.transform = '';
+	        swipeTargetCard.removeEventListener('touchmove', handleSwipeMove);
+	        swipeTargetCard.removeEventListener('touchend', handleSwipeEnd);
+	        swipeTargetCard.removeEventListener('touchcancel', handleSwipeEnd);
+	    }
+	    if (swipeBackground) {
+	        // 背景のアイコンとスタイルをリセット
+	        const bgRight = swipeBackground.querySelector('.swipe-bg-right');
+	        const bgLeft = swipeBackground.querySelector('.swipe-bg-left');
+	        if (bgRight) {
+	            bgRight.style.display = 'none';
+	            bgRight.style.backgroundColor = '#22c55e';
+	        }
+	        if (bgLeft) {
+	            bgLeft.style.display = 'none';
+	            bgLeft.style.backgroundColor = '#f59e0b';
+	        }
+	        swipeBackground.querySelectorAll('.swipe-action-icon').forEach(el => el.classList.remove('visible'));
+	    }
+	
+	    // グローバル変数を確実にリセット
+	    swipeTargetCard = null;
+	    swipeBackground = null;
+	    swipeStartX = 0;
+	    swipeStartY = 0;
+	    swipeDeltaX = 0;
+	    isSwiping = false;
+	    isSwipeScrollLock = false;
 	}
 	// --- スワイプ機能 END ---
 
@@ -3649,7 +3639,7 @@
                         ${rightShortIconHtml}
                     </div>
                     <div id="swipe-right-long" class="swipe-action-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                 </div>
                 <div class="swipe-bg swipe-bg-left">
