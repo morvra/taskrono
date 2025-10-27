@@ -1209,10 +1209,7 @@
             },
 			
             updateAuthUi: function(isLoggedIn) {
-				if (!this.authContainer || !this.signoutContainer || !this.authStatusEl || !this.driveStatusEl || !this.syncDataFab) {
-                console.warn("Dropbox UI elements not yet initialized. Skipping UI update.");
-                return;
-                }
+
 		        this.authContainer.classList.toggle('hidden', isLoggedIn);
 		        this.signoutContainer.classList.toggle('hidden', !isLoggedIn);
 				const inboxBtn = document.getElementById('inbox-btn');
