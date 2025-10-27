@@ -135,39 +135,6 @@
             top: 1px;
         }
 
-		/* 新しいフローティングバーの基本スタイル */
-		#floating-task-bar {
-		    display: none;
-		    align-items: center;
-		    justify-content: space-between;
-		    position: absolute;
-		    left: 0;
-		    right: 0;
-		    top: 0;
-		    will-change: transform;
-		    transition: transform 80ms linear, opacity 0.25s ease-in-out;
-		}
-
-		#floating-task-bar.active {
-		    display: flex; /* 表示 */
-		}
-
-        /* フローティングバー内の左右のボタン共通スタイル */
-        .floating-bar-btn {
-            height: 56px;
-            width: 56px;
-            min-width: 56px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            transition: all 0.15s;
-        }
-        .floating-bar-btn:active {
-            transform: scale(0.95);
-        }
-		
 		.fab {
             height: 56px;
             width: 56px;
@@ -182,16 +149,6 @@
 			background-color: #ddd;
             box-shadow: 0 6px 16px rgba(0,0,0,0.2);
         }
-
-		/* 同期ボタンコンテナのスタイル */
-		#sync-button-floating-container {
-		    position: absolute;
-		    left: 16px;
-		    top: 0;
-		    z-index: 40;
-		    will-change: transform;
-		    transition: transform 80ms linear, opacity 0.3s ease-in-out;
-		}
 
         /* タスク追加ボタンコンテナのスタイル (スマホでは非表示) */
         #add-task-floating-container {
@@ -469,7 +426,149 @@
 		        height: 24px;
 		    }
 		}
-		/* --- スワイプ機能用CSS END --- */
+		
+        /* 既存の同期ボタンコンテナはPCでは使うが、スマホでは非表示にする */
+        @media (max-width: 768px) {
+            #sync-button-floating-container {
+                display: none !important;
+            }
+        }
+        
+        /* --- 新しいボトムUIコンテナ (親) --- */
+        #bottom-ui-container {
+            display: none; /* スマホ以外では非表示 */
+            position: absolute; /* JSで制御 */
+            left: 0;
+            right: 0;
+            bottom: 0; /* JSで top が設定されるが、念のため */
+            height: 72px; /* コンテナ全体の高さ (カプセル + 上下マージン) */
+            
+            /* Flexboxで左右配置 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            
+            padding: 8px 16px; /* 左右マージン16px, 上下マージン8px */
+            box-sizing: border-box; /* paddingを含めて高さを計算 */
+            
+            z-index: 50;
+            will-change: transform;
+            transition: transform 80ms linear, opacity 0.25s ease-in-out;
+            background: transparent; /* 親コンテナ自体は透明 */
+            pointer-events: none; /* 親コンテナはクリックさせない */
+        }
+
+        /* --- 新しいボトムナビゲーションバー (左側カプセル) --- */
+        #bottom-nav-bar {
+            display: flex; /* 中のボタンを横並び */
+            position: static; /* absoluteを解除 */
+            height: 56px; /* カプセルの高さ */
+            align-items: center; 
+            justify-content: flex-start;
+            padding: 0 8px; /* カプセルの左右余白 */
+            gap: 8px; /* ボタン間の余白 */
+            
+            /* カプセルデザイン */
+            border-radius: 9999px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+            
+            /* iOS風すりガラス（フォールバック付き） */
+            background-color: rgba(249, 249, 249, 0.85); /* Light mode */
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            
+            will-change: auto;
+            transition: none;
+            pointer-events: auto; /* カプセルはクリック可能にする */
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            #bottom-nav-bar {
+                background-color: rgba(44, 44, 46, 0.85); /* Dark mode */
+                border: 0.5px solid rgba(255, 255, 255, 0.15);
+            }
+        }
+
+        .bottom-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* アイコンを中央揃え */
+            flex-basis: auto;
+            flex-grow: 0; /* 伸縮しない */
+            width: 56px; /* ボタンのタップ領域 */
+            height: 56px; /* ボタンのタップ領域 */
+            padding: 0;
+            color: #333; /* デフォルトのアイコン色 (Light) */
+            background: none;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .bottom-nav-btn {
+                color: #eee; /* デフォルトのアイコン色 (Dark) */
+            }
+        }
+
+        .bottom-nav-btn.active {
+            color: #007aff; /* アクティブな色 (iOS Blue) */
+        }
+        .bottom-nav-btn svg {
+            width: 28px;
+            height: 28px;
+        }
+        /* テキストラベルを非表示 */
+        .bottom-nav-btn .text-xs {
+            display: none;
+        }
+
+        /* --- 新しいスマホ用 追加FAB (右側) --- */
+        #bottom-fab-add-task {
+            display: block;
+            position: static;
+            z-index: auto;
+            will-change: auto;
+            transition: none;
+            pointer-events: auto;
+        }
+
+        #add-task-btn-floating-mobile {
+            height: 56px;
+            width: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
+            transition: all 0.2s ease-in-out;
+        }
+        #add-task-btn-floating-mobile:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+         #add-task-btn-floating-mobile:active {
+            transform: scale(0.95);
+        }
+
+        /* --- スマホ表示時の切り替え --- */
+        @media (max-width: 768px) {
+            #bottom-ui-container {
+                display: flex; /* 親コンテナを表示 */
+            }
+            /* スマホではメインコンテンツの下部に余白を追加して、ボトムUIに隠れないようにする */
+            .tab-content.active { padding-bottom: 90px; } /* 高さを 72px + α に調整 */
+        }
+        
+        /* --- PC表示時は新しい要素を非表示 --- */
+        @media (min-width: 769px) {
+             #bottom-ui-container {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -734,12 +833,7 @@
     </main>
 </div>
 
-<div id="sync-button-floating-container"></div>
 <div id="add-task-floating-container"></div>
-
-<div id="floating-task-bar" class="bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] h-20 px-4 z-50">
-    <div id="floating-task-bar-content" class="flex items-center justify-between w-full h-full"></div>
-</div>
 
 <div id="add-task-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-md">
@@ -926,7 +1020,44 @@
         </div>
     </div>
 </div>
-	
+
+<div id="bottom-ui-container">
+    
+    <div id="bottom-nav-bar">
+        <button id="bottom-nav-today-btn" class="bottom-nav-btn active">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-xs mt-1">当日</span>
+        </button>
+        <button id="bottom-nav-repeat-btn" class="bottom-nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M5.222 9.222a8.974 8.974 0 0113.556 0M19 20v-5h-5M18.778 14.778a8.974 8.974 0 01-13.556 0"></path>
+        	</svg>
+            <span class="text-xs mt-1">リピート</span>
+        </button>
+        <button id="bottom-nav-sync-btn" class="bottom-nav-btn" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+            <span class="text-xs mt-1">同期</span>
+        </button>
+        <button id="bottom-nav-inbox-btn" class="bottom-nav-btn" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <span class="text-xs mt-1">Inbox</span>
+        </button>
+        </div>
+    
+    <div id="bottom-fab-add-task">
+        <button id="add-task-btn-floating-mobile" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
+            ＋
+        </button>
+    </div>
+
+</div>
+
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 
 <script>
@@ -934,63 +1065,54 @@
     document.addEventListener('DOMContentLoaded', () => {
         // --- フローティング要素のキーボード追従と滑らかスクロール対策 ---
 		function setupFloatingElementsStick() {
-		    const bar = document.getElementById('floating-task-bar');
-		    const syncButtonContainer = document.getElementById('sync-button-floating-container');
+		    const container = document.getElementById('bottom-ui-container');
 		
-		    if (!bar || !syncButtonContainer) return;
+		    if (!container) return;
 		
 		    let ticking = false;
 		
-		function updateElementsPosition() {
-		    const bar = document.getElementById('floating-task-bar');
-		    const syncButtonContainer = document.getElementById('sync-button-floating-container');
-		    if (!bar || !syncButtonContainer) return;
+		    function updateElementsPosition() {
+		        const container = document.getElementById('bottom-ui-container');
+		        if (!container) return;
 		
-		    // PC表示時の処理 (変更なし)
-		    if (!isMobile()) {
-				bar.style.position = ''; 
-	            bar.style.bottom = '';
-		        bar.style.top = '';
-		        syncButtonContainer.style.position = '';
-		        syncButtonContainer.style.bottom = '';
-		        syncButtonContainer.style.top = '';
-		        return;
-		    }
+		        // PC表示時 (min-width: 769px)
+		        if (!isMobile()) {
+		            // CSSで display: none にしているので、JSでの操作は不要
+		            container.style.position = '';
+		            container.style.top = '';
+		            return;
+		        }
 		
-		    // モバイル表示時の処理 (absolute + 無限スクロール制限)
-		    const scrollY = window.scrollY || 0;
-		    const viewportHeight = window.innerHeight;
-		    const actualBarHeight = bar.offsetHeight;
-		    const barHeight = actualBarHeight > 0 ? actualBarHeight : 80;
+		        // モバイル表示時 (absolute + 無限スクロール制限)
+		        const scrollY = window.scrollY || 0;
+		        const viewportHeight = window.innerHeight;
+		        const actualBarHeight = container.offsetHeight;
+		        const barHeight = actualBarHeight > 0 ? actualBarHeight : 72; // デフォルト高さを72pxに
 		
-		    const documentHeight = Math.max(
-		        document.body.scrollHeight, 
-		        document.documentElement.scrollHeight,
-		        document.body.offsetHeight, 
-		        document.documentElement.offsetHeight
-		    );
-		    
-		    const maxScroll = documentHeight - viewportHeight;
-		    const absoluteBottomTop = documentHeight - barHeight;
-		
-		    let newBarTop;
-		    let newSyncButtonTop;
-		    
-		    if (scrollY >= maxScroll) {
-		        newBarTop = absoluteBottomTop;
+		        const documentHeight = Math.max(
+		            document.body.scrollHeight, 
+		            document.documentElement.scrollHeight,
+		            document.body.offsetHeight, 
+		            document.documentElement.offsetHeight
+		        );
 		        
-		    } 
-		    else {
-		        const scrollBottom = scrollY + viewportHeight;
-		        newBarTop = scrollBottom - barHeight;
+		        const maxScroll = documentHeight - viewportHeight;
+		        const absoluteBottomTop = documentHeight - barHeight;
+		
+		        let newContainerTop;
+		        
+		        if (scrollY >= maxScroll) {
+		            newContainerTop = absoluteBottomTop;
+		        } 
+		        else {
+		            const scrollBottom = scrollY + viewportHeight;
+		            newContainerTop = scrollBottom - barHeight;
+		        }
+		        
+		        // 親コンテナの位置設定
+		        container.style.position = 'absolute';
+		        container.style.top = newContainerTop + 'px';
 		    }
-		    bar.style.position = 'absolute';
-		    bar.style.top = newBarTop + 'px';
-		    const syncButtonHeight = syncButtonContainer.offsetHeight;
-		    newSyncButtonTop = newBarTop - syncButtonHeight - 16;
-		    syncButtonContainer.style.position = 'absolute';
-		    syncButtonContainer.style.top = newSyncButtonTop + 'px';		    
-		}
 		
 		    function requestTick() {
 		        if (!ticking) {
@@ -1087,6 +1209,10 @@
             },
 			
             updateAuthUi: function(isLoggedIn) {
+				if (!this.authContainer || !this.signoutContainer || !this.authStatusEl || !this.driveStatusEl || !this.syncDataFab) {
+                console.warn("Dropbox UI elements not yet initialized. Skipping UI update.");
+                return;
+                }
 		        this.authContainer.classList.toggle('hidden', isLoggedIn);
 		        this.signoutContainer.classList.toggle('hidden', !isLoggedIn);
 				const inboxBtn = document.getElementById('inbox-btn');
@@ -1094,6 +1220,10 @@
                     inboxBtn.classList.toggle('hidden', !isLoggedIn);
                 }
 		        
+                // ボトムバーのボタンを取得
+                const bottomSyncBtn = document.getElementById('bottom-nav-sync-btn');
+                const bottomInboxBtn = document.getElementById('bottom-nav-inbox-btn');
+
 		        if (isLoggedIn) {
 		            this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
 		            this.syncDataFab.innerHTML = `
@@ -1106,10 +1236,18 @@
 		            this.syncDataFab.querySelector('#sync-data-btn-floating').addEventListener('click', () => {
 		                this.loadStateFromDropbox();
 		            });
+
+                    // スマホ用ボトムバーのボタンを表示
+                    if (bottomSyncBtn) bottomSyncBtn.style.display = 'flex';
+                    if (bottomInboxBtn) bottomInboxBtn.style.display = 'flex';
 		
 		        } else {
 		            this.driveStatusEl.textContent = 'ログインするとデータを同期できます。';
-		            this.syncDataFab.innerHTML = '';
+		            this.syncDataFab.innerHTML = ''; // PC用同期ボタンを非表示
+
+                    // スマホ用ボトムバーのボタンを非表示
+                    if (bottomSyncBtn) bottomSyncBtn.style.display = 'none';
+                    if (bottomInboxBtn) bottomInboxBtn.style.display = 'none';
 		        }
 		    },
 
@@ -1880,7 +2018,6 @@
                 if (['today', 'repeat', 'projects', 'archive'].includes(activeTab)) {
                     render();
                 }
-				renderFloatingTaskBar();
             });
 
             setupFloatingElementsStick(); 
@@ -2173,7 +2310,6 @@
                 if (!currentTask || currentTask.status !== 'running') {
                     stopActiveTimer(); // 状態が変化していればタイマーを停止
                     updateTitle();
-                    renderFloatingTaskBar();
                     return;
                 }
                 const currentActualTime = calculateActualTime(currentTask);
@@ -2816,10 +2952,31 @@
 	// --- スワイプ機能 END ---
 
     function setupEventListeners() {
+        document.getElementById('bottom-nav-today-btn').addEventListener('click', () => {
+            document.querySelector('.tab-link[data-tab="today"]').click();
+        });
+        document.getElementById('bottom-nav-repeat-btn').addEventListener('click', () => {
+            document.querySelector('.tab-link[data-tab="repeat"]').click();
+        });
+        document.getElementById('bottom-nav-sync-btn').addEventListener('click', () => {
+            if (dailyTaskListApp.dbx) {
+                dailyTaskListApp.loadStateFromDropbox();
+            }
+        });
+        document.getElementById('bottom-nav-inbox-btn').addEventListener('click', () => {
+            if (dailyTaskListApp.dbx) {
+                openInboxModal();
+            }
+        });
+        document.getElementById('add-task-btn-floating-mobile').addEventListener('click', openAddTaskModal);
+
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
-                if (!tabName) return; 
+                if (!tabName) return;
+				if (['repeat', 'sections', 'projects', 'archive', 'data'].includes(tabName)) {
+                    window.scrollTo(0, 0);
+                }
 
                 tabs.forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -2828,6 +2985,11 @@
                 });
                 document.getElementById(tabName).classList.add('active');
                 
+                // ボトムバーのアクティブ状態を更新
+                const todayBtn = document.getElementById('bottom-nav-today-btn');
+                const repeatBtn = document.getElementById('bottom-nav-repeat-btn');
+                if (todayBtn) todayBtn.classList.toggle('active', tabName === 'today');
+                if (repeatBtn) repeatBtn.classList.toggle('active', tabName === 'repeat');
                 if (tabName === 'today') {
                     const tasks = getTasksForViewDate();
                     const firstUncompletedTask = tasks.find(t => getTaskStatus(t) !== 'completed');
@@ -2849,6 +3011,7 @@
             });
         });
         document.querySelector('.tab-link[data-tab="today"]').click();
+		if (document.getElementById('bottom-nav-today-btn')) document.getElementById('bottom-nav-today-btn').classList.add('active');
 
 	    const toggleBtn = document.getElementById('repeat-form-toggle');
         const content = document.getElementById('repeat-form-content');
@@ -3039,7 +3202,12 @@
 
     function openModal(modalId) {
         document.getElementById(modalId).classList.add('active');
-		renderFloatingTaskBar();
+
+        // スマホ用のボトムUIコンテナを非表示にする
+        if (isMobile()) {
+            const container = document.getElementById('bottom-ui-container');
+            if (container) container.style.display = 'none';
+        }
     }
 
     function closeModal(modalId) {
@@ -3048,7 +3216,12 @@
             state.editingTaskDateKey = null;
             state.editingTaskId = null;
         }
-		renderFloatingTaskBar();
+
+        // スマホ用のボトムUIコンテナを表示に戻す
+        if (isMobile()) {
+            const container = document.getElementById('bottom-ui-container');
+            if (container) container.style.display = 'flex';
+        }
     }
 
     function render(options = {}) {
@@ -3062,7 +3235,6 @@
 		updateSectionDropdowns();
         calculateAllEstimates();
 		updateTitle();
-		renderFloatingTaskBar();
     }
 
     function renderTodayTasks(options = {}) {
@@ -3201,7 +3373,7 @@
             
             const focusedEl = document.querySelector('.task-row.focused, .task-card.focused');
             if (focusedEl && !options.noScroll) {
-                focusedEl.scrollIntoView({ block:'nearest', behavior:'smooth' });
+                focusedEl.scrollIntoView({ block:'center', behavior:'smooth' });
             }
         }
 
@@ -5347,122 +5519,6 @@
         totalEstimatedEndTimeEls.forEach(el => {
             if(el) el.textContent = endTimeText;
         });
-	}
-
-	function renderFloatingTaskBar() {
-	    const bar = document.getElementById('floating-task-bar');
-	    const barContent = document.getElementById('floating-task-bar-content'); 
-	    if (!bar || !barContent) return;
-
-	    // スマホ以外、またはモーダル表示中はバーを隠す
-	    if (!isMobile() || document.querySelector('.modal.active')) {
-	        bar.classList.remove('active');
-	        return;
-	    }
-
-	    const tasks = getTasksForViewDate();
-	    const activeTask = tasks.find(t => t.id === state.activeTaskId);
-	    const nextTask = tasks.find(t => getTaskStatus(t) !== 'completed');
-	    const taskToDisplay = activeTask || nextTask;
-
-		const addTaskButtonHtml = `
-            <button id="add-task-btn-bar" class="floating-bar-btn bg-blue-600 hover:bg-blue-700 text-white text-3xl font-bold">
-                ＋
-            </button>`;
-
-	    if (!taskToDisplay) {
-			// 表示するタスクがない場合でも、バーと追加ボタンは表示する
-			barContent.innerHTML = `
-				<div class="flex-1 px-3 min-w-0 flex items-center">
-					<p class="text-gray-500">全てのタスクが完了しました 🎉</p>
-				</div>
-				${addTaskButtonHtml}
-			`;
-			bar.classList.add('active'); // activeクラスは外側のバーに設定
-			barContent.querySelector('#add-task-btn-bar').addEventListener('click', openAddTaskModal);
-			return;
-        }
-
-        const isTaskRunning = !!activeTask;
-        const buttonIcon = isTaskRunning ? '■' : '▶';
-        const buttonColor = isTaskRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
-
-        let taskInfoHtml = '';
-        if (isTaskRunning) {
-            const estimatedEndTime = new Date(new Date(activeTask.startTime).getTime() + (activeTask.estimatedTime * 60 * 1000));
-            taskInfoHtml = `
-                <p class="text-base font-bold text-gray-800 truncate" title="${escapeHtml(activeTask.name)}">${formatTaskName(activeTask.name)}</p>
-	            <p class="text-gray-500 font-mono">終了予定: ${formatClockTime(estimatedEndTime)}</p>
-            `;
-        } else {
-            taskInfoHtml = `
-                <p class="text-gray-500">Next: <span class="font-bold text-gray-800 truncate" title="${escapeHtml(nextTask.name)}">${formatTaskName(nextTask.name)}</span></p>
-	            <p class="text-sm text-gray-500">${nextTask.estimatedTime || 0}分</p>
-            `;
-        }
-
-        const timerButtonHtml = `
-            <button id="floating-timer-btn" class="floating-bar-btn ${buttonColor} text-white text-2xl">
-                ${buttonIcon}
-            </button>`;
-
-		barContent.innerHTML = `
-		    ${timerButtonHtml}
-		    <div class="flex-1 px-3 min-w-0 cursor-pointer" 
-		         id="floating-task-info"
-		         data-task-id="${taskToDisplay.id}">
-		        ${taskInfoHtml}
-		    </div>
-		    ${addTaskButtonHtml}
-		`;
-		
-		// タップイベントのハンドリング
-		const taskInfoArea = barContent.querySelector('#floating-task-info');
-		if (taskInfoArea) {
-		    let clickTimer = null;
-		    const delay = 250; // ダブルタップの待機時間 (ミリ秒)
-		
-		    taskInfoArea.addEventListener('click', (e) => {
-		        // リンクがクリックされた場合は、デフォルトの動作（ページ遷移）を許可
-		        if (e.target.tagName === 'A' || e.target.closest('a')) {
-		            // リンクの場合は何もしない（デフォルト動作を許可）
-		            return;
-		        }
-		        
-		        e.preventDefault();
-		        // ダブルタップでないことを確認するため、タイマーを設定
-		        if (clickTimer === null) {
-		            clickTimer = setTimeout(() => {
-		                clickTimer = null;
-		                // タイマーが実行されたらシングルタップと判断し、スクロール処理を実行
-		                const taskElement = document.querySelector(`[data-task-id='${taskToDisplay.id}']`);
-		                if (taskElement) {
-		                    taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-		                }
-		            }, delay);
-		        }
-		    });
-		
-		    taskInfoArea.addEventListener('dblclick', (e) => {
-		        // リンクがダブルクリックされた場合も、デフォルトの動作を許可
-		        if (e.target.tagName === 'A' || e.target.closest('a')) {
-		            return;
-		        }
-		        
-		        e.preventDefault();
-		        // シングルタップ用のタイマーが設定されていれば、それを解除
-		        if (clickTimer) {
-		            clearTimeout(clickTimer);
-		            clickTimer = null;
-		        }
-		        // ダブルタップの処理（メモ編集モーダル表示）を実行
-		        openMemoEditModal(taskToDisplay.id);
-		    });
-		}
-
-	    bar.classList.add('active'); // activeクラスは外側のバーに設定
-        barContent.querySelector('#floating-timer-btn').addEventListener('click', () => toggleTimer(taskToDisplay.id));
-        barContent.querySelector('#add-task-btn-bar').addEventListener('click', openAddTaskModal);
 	}
 
     function handleKeyboardShortcuts(e) {
