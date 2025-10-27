@@ -441,16 +441,14 @@
             left: 0;
             right: 0;
             bottom: 0; /* JSで top が設定されるが、念のため */
-            height: 72px; /* コンテナ全体の高さ (カプセル + 上下マージン) */
+            height: 96px; /* コンテナ全体の高さ (カプセル + 上下マージン) */
             
             /* Flexboxで左右配置 */
             display: flex;
             justify-content: space-between;
             align-items: center;
-            
             padding: 8px 16px; /* 左右マージン16px, 上下マージン8px */
             box-sizing: border-box; /* paddingを含めて高さを計算 */
-            
             z-index: 50;
             will-change: transform;
             transition: transform 80ms linear, opacity 0.25s ease-in-out;
@@ -481,14 +479,6 @@
             will-change: auto;
             transition: none;
             pointer-events: auto; /* カプセルはクリック可能にする */
-        }
-        
-        /* ダークモード対応 */
-        @media (prefers-color-scheme: dark) {
-            #bottom-nav-bar {
-                background-color: rgba(44, 44, 46, 0.85); /* Dark mode */
-                border: 0.5px solid rgba(255, 255, 255, 0.15);
-            }
         }
 
         .bottom-nav-btn {
@@ -560,7 +550,7 @@
                 display: flex; /* 親コンテナを表示 */
             }
             /* スマホではメインコンテンツの下部に余白を追加して、ボトムUIに隠れないようにする */
-            .tab-content.active { padding-bottom: 90px; } /* 高さを 72px + α に調整 */
+            .tab-content.active { padding-bottom: 96px; }
         }
         
         /* --- PC表示時は新しい要素を非表示 --- */
@@ -833,7 +823,7 @@
     </main>
 </div>
 
-<div id="sync-button-floating-container">
+<div id="sync-button-floating-container" class="hidden">
     <button id="sync-data-fab" class="fab bg-yellow-500 hover:bg-yellow-600 text-white" title="Dropboxからデータを取り込む (S)">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -1041,8 +1031,8 @@
         </button>
         <button id="bottom-nav-repeat-btn" class="bottom-nav-btn">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M5.222 9.222a8.974 8.974 0 0113.556 0M19 20v-5h-5M18.778 14.778a8.974 8.974 0 01-13.556 0"></path>
-        	</svg>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
             <span class="text-xs mt-1">リピート</span>
         </button>
 		<button id="bottom-nav-inbox" class="bottom-nav-btn hidden" title="Inboxを開く">
@@ -2763,6 +2753,7 @@
 	let swipeDeltaX = 0;
 	let isSwiping = false;
 	let isSwipeScrollLock = false; // trueなら縦スクロール中とみなし横スワイプをロック
+	let lastTapEnd = 0; // ダブルタップ判定用の最終タップ時刻
 
 	const SWIPE_THRESHOLD_SHORT = 60; // 短いスワイプのしきい値 (px)
 	const SWIPE_THRESHOLD_LONG = 120; // 長いスワイプのしきい値 (px)
@@ -2923,7 +2914,25 @@
                 swipeTargetCard.style.transform = 'translateX(0)';
 
             }
-
+			// --- ダブルタップ判定 ---
+	        // スワイプアクションが実行されず (isSwiping=false または 閾値未満)
+	        // かつ、ボタン等でない場所をタップした場合
+	        if (!actionTriggered && !e.target.closest('button, a')) {
+	            const currentTime = new Date().getTime();
+	            if (currentTime - lastTapEnd < 300) {
+	                // ダブルタップ検出
+	                const taskId = swipeTargetCard.dataset.taskId;
+	                if (taskId) {
+	                    openMemoEditModal(taskId);
+	                }
+	                lastTapEnd = 0; // リセット
+	            } else {
+	                lastTapEnd = currentTime;
+	            }
+	        } else {
+	            // スワイプアクションが実行されたらタップ履歴リセット
+	            lastTapEnd = 0;
+	        }
             resetSwipeState();
         }
 
@@ -3461,7 +3470,7 @@
 	                    <span class="flex items-center text-xs text-gray-400 ml-2 whitespace-nowrap flex-shrink-0 project-label">
 	                        ${task.originRepeatId ? `
 	                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1 text-gray-400 hidden md:inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" title="リピートタスク">
-	                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M5.222 9.222a8.974 8.974 0 0113.556 0M19 20v-5h-5M18.778 14.778a8.974 8.974 0 01-13.556 0" />
+	                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
 	                            </svg>
 	                        ` : ''}
 	                        ${escapeHtml(project.name)}
