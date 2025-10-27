@@ -638,7 +638,7 @@
 				    <button id="prev-day-btn" class="px-2 py-1 rounded-md bg-white hover:bg-gray-100 shadow-sm">&lt;</button>
 				    <h2 id="view-date-display" class="font-bold text-lg"></h2>
 				    <button id="next-day-btn" class="px-2 py-1 rounded-md bg-white hover:bg-gray-100 shadow-sm">&gt;</button>
-					<button id="inbox-btn" class="hidden px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm" title="Inboxを開く (I)">
+					<button id="inbox-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm" title="Inboxを開く (I)">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                         </svg>
@@ -833,7 +833,16 @@
     </main>
 </div>
 
-<div id="add-task-floating-container"></div>
+<div id="sync-button-floating-container">
+    <button id="sync-data-fab" class="fab bg-yellow-500 hover:bg-yellow-600 text-white" title="Dropboxからデータを取り込む (S)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+    </button>
+</div>
+
+<div id="add-task-floating-container" class="hidden">
+	</div>
 
 <div id="add-task-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-md">
@@ -1036,19 +1045,17 @@
         	</svg>
             <span class="text-xs mt-1">リピート</span>
         </button>
-        <button id="bottom-nav-sync-btn" class="bottom-nav-btn" style="display: none;">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
-            <span class="text-xs mt-1">同期</span>
-        </button>
-        <button id="bottom-nav-inbox-btn" class="bottom-nav-btn" style="display: none;">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		<button id="bottom-nav-inbox" class="bottom-nav-btn hidden" title="Inboxを開く">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
-            <span class="text-xs mt-1">Inbox</span>
         </button>
-        </div>
+        <button id="bottom-nav-dropbox-import" class="bottom-nav-btn hidden" title="Dropboxから取り込む">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        </button>
+    </div>
     
     <div id="bottom-fab-add-task">
         <button id="add-task-btn-floating-mobile" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
@@ -1150,32 +1157,65 @@
             dbx: null,
             saveTimeout: null,
             // DOM Elements
-            authorizeButton: document.getElementById('authorize_button'),
-            signoutButton: document.getElementById('signout_button'),
-            authContainer: document.getElementById('auth-container'),
-            signoutContainer: document.getElementById('signout_container'),
-            authStatusEl: document.getElementById('auth-status'),
-            driveStatusEl: document.getElementById('drive-status'),
-			syncDataFab: document.getElementById('sync-button-floating-container'),
-		    reauthNotification: document.getElementById('reauth-notification'),
-		    reauthButton: document.getElementById('reauth-button'),
-            updateReauthUi: function(show) {
-                if (show) {
-                    this.reauthNotification.classList.remove('hidden');
-                    // 少し遅延させてから表示アニメーションを開始
-                    setTimeout(() => {
-                        this.reauthNotification.classList.remove('-translate-y-20', 'opacity-0');
-                        this.reauthNotification.style.display = 'flex';
-                    }, 50);
-                } else {
-                    this.reauthNotification.classList.add('-translate-y-20', 'opacity-0');
-                    // アニメーション完了後に非表示にする
-                    setTimeout(() => {
-                        this.reauthNotification.classList.add('hidden');
-                        this.reauthNotification.style.display = 'none';
-                    }, 500);
-                }
+            authorizeButton: null,
+            signoutButton: null,
+            authContainer: null,
+            signoutContainer: null,
+            authStatusEl: null,
+            driveStatusEl: null,
+			syncDataFab: null,
+		    reauthNotification: null,
+		    reauthButton: null,
+            
+            // DOM要素を初期化するメソッド
+            initDomElements: function() {
+                this.authorizeButton = document.getElementById('authorize_button');
+                this.signoutButton = document.getElementById('signout_button');
+                this.authContainer = document.getElementById('auth-container');
+                this.signoutContainer = document.getElementById('signout_container');
+                this.authStatusEl = document.getElementById('auth-status');
+                this.driveStatusEl = document.getElementById('drive-status');
+                this.syncDataFab = document.getElementById('sync-button-floating-container');
+                this.reauthNotification = document.getElementById('reauth-notification');
+                this.reauthButton = document.getElementById('reauth-button');
             },
+			
+            updateAuthUi: function(isAuthenticated) {
+		        const dataTabLinks = document.querySelectorAll('.tab-link[data-tab="data"]');
+		        const syncFab = document.getElementById('sync-button-floating-container');
+		        const inboxBtn = document.getElementById('inbox-btn');
+		        const bottomNavInbox = document.getElementById('bottom-nav-inbox');
+		        const bottomNavDropboxImport = document.getElementById('bottom-nav-dropbox-import');
+		
+		        if (isAuthenticated) {
+		            // Dropbox連携済み
+		            this.authContainer?.classList.add('hidden');
+		            this.signoutContainer?.classList.remove('hidden');
+		            this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
+		            
+		            dataTabLinks.forEach(el => {
+		                el.textContent = 'データ管理 (Dropbox)'; 
+		            });
+		            
+		            syncFab?.classList.remove('hidden');
+		            inboxBtn?.classList.remove('hidden');
+		            bottomNavDropboxImport?.classList.remove('hidden');
+		            bottomNavInbox?.classList.remove('hidden');		
+		        } else {
+		            // Dropbox未連携
+		            this.authContainer?.classList.remove('hidden');
+		            this.signoutContainer?.classList.add('hidden');
+		            this.authStatusEl.textContent = 'Dropboxにログインしていません。';
+		            
+		            dataTabLinks.forEach(el => {
+		                el.textContent = 'データ管理';
+		            });
+		            syncFab?.classList.add('hidden');
+		            inboxBtn?.classList.add('hidden'); 
+		            bottomNavDropboxImport?.classList.add('hidden'); 
+		            bottomNavInbox?.classList.add('hidden');
+		        }
+		    },
 
             fetchInboxContent: async function() {
                 if (!this.dbx) return '';
@@ -1212,7 +1252,7 @@
 				if (!this.authContainer || !this.signoutContainer || !this.authStatusEl || !this.driveStatusEl || !this.syncDataFab) {
                 console.warn("Dropbox UI elements not yet initialized. Skipping UI update.");
                 return;
-            	}
+                }
 		        this.authContainer.classList.toggle('hidden', isLoggedIn);
 		        this.signoutContainer.classList.toggle('hidden', !isLoggedIn);
 				const inboxBtn = document.getElementById('inbox-btn');
@@ -1220,9 +1260,9 @@
                     inboxBtn.classList.toggle('hidden', !isLoggedIn);
                 }
 		        
-                // ボトムバーのボタンを取得
-                const bottomSyncBtn = document.getElementById('bottom-nav-sync-btn');
-                const bottomInboxBtn = document.getElementById('bottom-nav-inbox-btn');
+                // ボトムバーのボタンを取得 (IDをHTMLに合わせる)
+                const bottomSyncBtn = document.getElementById('bottom-nav-dropbox-import');
+                const bottomInboxBtn = document.getElementById('bottom-nav-inbox');
 
 		        if (isLoggedIn) {
 		            this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
@@ -1992,7 +2032,11 @@
             loadState();
 			handleUrlScheme();
             restoreRunningTaskState();
+            // DOM要素の初期化を先に行う
+            dailyTaskListApp.initDomElements();
             setupEventListeners();
+            
+            // DOM要素とイベントリスナーが設定された後にDropboxの初期化を行う
             initializeDropboxSync();
 			renderPcAddTaskButton();
             checkDayChange();
@@ -2958,16 +3002,6 @@
         document.getElementById('bottom-nav-repeat-btn').addEventListener('click', () => {
             document.querySelector('.tab-link[data-tab="repeat"]').click();
         });
-        document.getElementById('bottom-nav-sync-btn').addEventListener('click', () => {
-            if (dailyTaskListApp.dbx) {
-                dailyTaskListApp.loadStateFromDropbox();
-            }
-        });
-        document.getElementById('bottom-nav-inbox-btn').addEventListener('click', () => {
-            if (dailyTaskListApp.dbx) {
-                openInboxModal();
-            }
-        });
         document.getElementById('add-task-btn-floating-mobile').addEventListener('click', openAddTaskModal);
 
         tabs.forEach(tab => {
@@ -3111,6 +3145,8 @@
         document.getElementById('export-data-btn').addEventListener('click', exportData);
         document.getElementById('import-data-btn').addEventListener('click', importData);
         document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
+		document.getElementById('bottom-nav-inbox')?.addEventListener('click', openInboxModal);
+        document.getElementById('bottom-nav-dropbox-import')?.addEventListener('click', dailyTaskListApp.loadStateFromDropbox.bind(dailyTaskListApp));
 
         setupModalEvents();
 
