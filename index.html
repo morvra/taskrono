@@ -400,6 +400,76 @@
 		    background-color: #f9fafb;
 		    border-radius: 6px;
 		}
+		/* --- スワイプ機能用CSS --- */
+		@media (max-width: 768px) {
+		    .task-card-swipe-wrapper {
+		        position: relative;
+		        overflow: hidden;
+		        margin-top: 0.5rem;
+		        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+		    }
+		    .task-card {
+		        margin-top: 0 !important;
+		        position: relative;
+		        z-index: 10;
+		        transition: transform 0.2s ease-out;
+		        touch-action: pan-y;
+		    }
+		    .task-card.swiping {
+		        transition: none;
+		    }
+		    .task-card-swipe-background {
+		        position: absolute;
+		        top: 0;
+		        left: 0;
+		        right: 0;
+		        bottom: 0;
+		        display: flex;
+		        justify-content: stretch;
+		        align-items: center;
+		        z-index: 1;
+		        color: white;
+		        font-weight: bold;
+		        overflow: hidden;
+		    }
+		
+		    /* 背景色を保持するコンテナ */
+		    .swipe-bg {
+		        position: absolute;
+		        top: 0;
+		        bottom: 0;
+		        width: 100%;
+		        display: flex;
+		        align-items: center;
+		        transition: background-color 0.1s;
+		    }
+		    .swipe-bg-right {
+		        left: 0;
+		        background-color: #22c55e; /* デフォルト: 短（緑） */
+		        justify-content: flex-start;
+		        display: none; /* JSで制御 */
+		    }
+		    .swipe-bg-left {
+		        right: 0;
+		        background-color: #f59e0b; /* デフォルト: 短（黄） */
+		        justify-content: flex-end;
+		        display: none; /* JSで制御 */
+		    }
+		
+		    /* アイコンのラッパー */
+		    .swipe-action-icon {
+		        display: none; /* JSで表示制御 */
+		        padding: 0 20px;
+		    }
+		    .swipe-action-icon.visible {
+		        display: flex;
+		    }
+		    .swipe-action-icon svg {
+		        width: 24px;
+		        height: 24px;
+		    }
+		}
+		/* --- スワイプ機能用CSS END --- */
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -2544,6 +2614,207 @@
         textarea.focus();
     }
 
+	// --- スワイプ機能 START ---
+	let swipeTargetCard = null;
+	let swipeBackground = null;
+	let swipeStartX = 0;
+	let swipeStartY = 0;
+	let swipeDeltaX = 0;
+	let isSwiping = false;
+	let isSwipeScrollLock = false; // trueなら縦スクロール中とみなし横スワイプをロック
+
+	const SWIPE_THRESHOLD_SHORT = 60; // 短いスワイプのしきい値 (px)
+	const SWIPE_THRESHOLD_LONG = 120; // 長いスワイプのしきい値 (px)
+	const SWIPE_ICON_VISIBLE_THRESHOLD = 60; // アイコン表示を開始するしきい値 (px)
+
+	/**
+	* タッチ開始イベント
+	*/
+	function handleSwipeStart(e) {
+	// ドラッグ中の場合はスワイプを開始しない
+	if (document.body.classList.contains('dragging-active')) return;
+	// 既にスワイプ中の場合は多重実行を防ぐ
+	if (isSwiping) return;
+
+	const card = e.target.closest('.task-card');
+	// タスクカード以外、またはタッチ情報がなければ無視
+	if (!card || !e.touches[0]) return;
+
+	swipeTargetCard = card;
+	// .task-card の直前の兄弟要素が .task-card-swipe-background
+	swipeBackground = card.previousElementSibling; 
+	swipeStartX = e.touches[0].clientX;
+	swipeStartY = e.touches[0].clientY;
+	swipeDeltaX = 0;
+	isSwiping = false; // moveが始まるまではスワイプ確定ではない
+	isSwipeScrollLock = false;
+
+	// イベントリスナーを対象カードに直接追加
+	swipeTargetCard.addEventListener('touchmove', handleSwipeMove, { passive: false });
+	swipeTargetCard.addEventListener('touchend', handleSwipeEnd);
+	swipeTargetCard.addEventListener('touchcancel', handleSwipeEnd);
+	}
+
+	/**
+	* タッチ移動イベント
+	*/
+	function handleSwipeMove(e) {
+	if (!swipeTargetCard || !e.touches[0] || isSwipeScrollLock) {
+	return;
+	}
+
+	const currentX = e.touches[0].clientX;
+	const currentY = e.touches[0].clientY;
+	swipeDeltaX = currentX - swipeStartX;
+	const deltaY = currentY - swipeStartY;
+
+	if (!isSwiping) {
+	// スワイプ開始の判定
+	// 縦の動きが横の動きより大きい場合は、スワイプ（横）ではなくスクロール（縦）とみなす
+	if (Math.abs(deltaY) > Math.abs(swipeDeltaX) && Math.abs(deltaY) > 10) {
+	isSwipeScrollLock = true; // 縦スクロールをロック
+	resetSwipeState(); // スワイプ処理を中断
+	return;
+	}
+	// 横の動きが一定以上になったらスワイプ開始とみなす
+	if (Math.abs(swipeDeltaX) > 10) {
+	isSwiping = true;
+	// スワイプ中はドラッグ不可にする
+	swipeTargetCard.draggable = false;
+	swipeTargetCard.classList.add('swiping');
+	// 親要素（ページ全体）のスクロールを止める
+	e.preventDefault();
+	} else {
+	return; // まだスワイプ開始とみなさない
+	}
+	}
+
+	// スワイプ中（isSwiping = true）の処理
+	e.preventDefault();
+
+	// カードを指に追従させる
+	swipeTargetCard.style.transform = `translateX(${swipeDeltaX}px)`;
+
+	// 背景のアクション表示を更新
+	updateSwipeBackground(swipeDeltaX);
+	}
+
+	/**
+	* スワイプ量に応じて背景のアイコン表示を切り替える
+	*/
+	function updateSwipeBackground(deltaX) {
+            if (!swipeBackground) return;
+
+            // 背景パネルを取得
+            const bgRight = swipeBackground.querySelector('.swipe-bg-right');
+            const bgLeft = swipeBackground.querySelector('.swipe-bg-left');
+
+            // アイコンを取得
+            const actions = {
+                rightShort: swipeBackground.querySelector('#swipe-right-short'),
+                rightLong: swipeBackground.querySelector('#swipe-right-long'),
+                leftShort: swipeBackground.querySelector('#swipe-left-short'),
+                leftLong: swipeBackground.querySelector('#swipe-left-long'),
+            };
+
+            // 1. 全てのアイコンを非表示にし、背景色をデフォルト（短スワイプ用）に戻す
+            Object.values(actions).forEach(el => el.classList.remove('visible'));
+            bgRight.style.backgroundColor = '#22c55e'; // green-500
+            bgLeft.style.backgroundColor = '#f59e0b'; // yellow-500
+
+            // 2. スワイプ方向に応じて、操作対象の背景パネルのみ表示
+            bgRight.style.display = (deltaX > 1) ? 'flex' : 'none'; // わずかでも動いたら表示
+            bgLeft.style.display = (deltaX < -1) ? 'flex' : 'none';
+
+            // 3. スワイプ量に応じて表示するアイコンと背景色を決定
+            if (deltaX > 0) {
+                // 右スワイプ
+                if (deltaX > SWIPE_THRESHOLD_LONG) {
+                    actions.rightLong.classList.add('visible');
+                    bgRight.style.backgroundColor = '#3b82f6'; // 長（青）
+                } else if (deltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+                    // 短（緑） - 10px超えたらアイコン表示
+                    actions.rightShort.classList.add('visible');
+                }
+            } else if (deltaX < 0) {
+                // 左スワイプ
+                const absDeltaX = Math.abs(deltaX);
+                if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+                    actions.leftLong.classList.add('visible');
+                    bgLeft.style.backgroundColor = '#ef4444'; // 長（赤）
+                } else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+                    // 短（黄） - 10px超えたらアイコン表示
+                    actions.leftShort.classList.add('visible');
+                }
+            }
+        }
+	/**
+	* タッチ終了イベント
+	*/
+	function handleSwipeEnd(e) {
+            if (!swipeTargetCard) return;
+
+            if (isSwiping) {
+                const taskId = swipeTargetCard.dataset.taskId;
+                let actionTriggered = false;
+
+                // ↓ 判定ロジックをより厳密に変更
+                if (swipeDeltaX > SWIPE_THRESHOLD_LONG) {
+                    // 右スワイプ（長）: 編集 (150px以上)
+                    openTaskEditModal(taskId);
+                    actionTriggered = true;
+                } else if (swipeDeltaX > SWIPE_THRESHOLD_SHORT) {
+                    // 右スワイプ（短）: タイマー (60px 〜 150px)
+                    toggleTimer(taskId);
+                    actionTriggered = true;
+                } else if (swipeDeltaX < -SWIPE_THRESHOLD_LONG) {
+                    // 左スワイプ（長）: 削除 (-150px以下)
+                    deleteTask(taskId); 
+                    actionTriggered = true; 
+                } else if (swipeDeltaX < -SWIPE_THRESHOLD_SHORT) {
+                    // 左スワイプ（短）: 先送り (-60px 〜 -150px)
+                    postponeTask(taskId);
+                    actionTriggered = true;
+                }
+                // ↑ 判定ロジックの変更ここまで
+
+                // アクションが実行されたかどうかにかかわらず、カードを元の位置に戻す
+                swipeTargetCard.style.transform = 'translateX(0)';
+
+            }
+
+            resetSwipeState();
+        }
+
+	/**
+	* スワイプ状態をリセットし、カードを元の状態に戻す
+	*/
+	function resetSwipeState() {
+	if (swipeTargetCard) {
+	swipeTargetCard.classList.remove('swiping');
+	// ドラッグ機能を元に戻す
+	swipeTargetCard.draggable = true;
+
+	// イベントリスナーを確実に削除
+	swipeTargetCard.removeEventListener('touchmove', handleSwipeMove);
+	swipeTargetCard.removeEventListener('touchend', handleSwipeEnd);
+	swipeTargetCard.removeEventListener('touchcancel', handleSwipeEnd);
+	}
+	if (swipeBackground) {
+	// 背景アイコンを非表示に戻す
+	swipeBackground.querySelectorAll('.swipe-action').forEach(el => el.classList.remove('visible'));
+	}
+
+	swipeTargetCard = null;
+	swipeBackground = null;
+	swipeStartX = 0;
+	swipeStartY = 0;
+	swipeDeltaX = 0;
+	isSwiping = false;
+	isSwipeScrollLock = false;
+	}
+	// --- スワイプ機能 END ---
+
     function setupEventListeners() {
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -3091,10 +3362,9 @@
             const allTasks = getTasksForViewDate();
             const index = allTasks.findIndex(t => t.id === task.id);
             const project = state.projects.find(p => p.id === task.projectId) || { name: '', color: '#cccccc' };
-            const cardWrapper = document.createElement('div');
             const card = document.createElement('div');
             const isCompleted = task.status === 'completed';
-            card.className = `task-card bg-white px-3 py-2 mt-2 shadow border-l-4 ${isCompleted ? 'completed' : ''} ${task.status === 'running' ? 'bg-blue-50' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
+            card.className = `task-card bg-white px-3 py-2 border-l-4 ${isCompleted ? 'completed' : ''} ${task.status === 'running' ? 'bg-blue-50' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
             card.style.borderLeftColor = project.color;
             card.dataset.taskId = task.id;
             card.dataset.index = index;
@@ -3145,7 +3415,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </button>`;
             }
-
+            
             card.innerHTML = `
                 <div class="flex items-center gap-3">
                     <div class="flex flex-col items-center">
@@ -3182,7 +3452,39 @@
                     </div>
                 </div>
             `;
-            cardWrapper.appendChild(card);
+
+            // --- スワイプ対応のための修正 ---
+            // 1. スワイプ背景要素を作成
+            const swipeBackground = document.createElement('div');
+            swipeBackground.className = 'task-card-swipe-background';
+            swipeBackground.innerHTML = `
+                <div class="swipe-bg swipe-bg-right">
+                    <div id="swipe-right-short" class="swipe-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" /></svg>
+                    </div>
+                    <div id="swipe-right-long" class="swipe-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                    </div>
+                </div>
+                <div class="swipe-bg swipe-bg-left">
+                    <div id="swipe-left-short" class="swipe-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div id="swipe-left-long" class="swipe-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12.578 0c-.275-.046-.55-.09-.826-.13m15.026 0v.117c0 .621-.504 1.125-1.125 1.125H9.824a1.125 1.125 0 01-1.125-1.125V5.841m12.728 0c-.616 0-1.19.014-1.766.042m-1.766-.042L15 4.135A1.875 1.875 0 0013.125 3H10.875A1.875 1.875 0 009 4.135L6.96 5.841m0 0a48.108 48.108 0 013.478-.397m7.5 0v-.117c0-.621.504-1.125 1.125-1.125h.625c.621 0 1.125.504 1.125 1.125v.117m-7.5 0h7.5" /></svg>
+                    </div>
+                </div>
+            `;
+
+            // 2. CSSで定義した .task-card-swipe-wrapper を作成
+            const swipeWrapper = document.createElement('div');
+            swipeWrapper.className = 'task-card-swipe-wrapper shadow';
+            
+            swipeWrapper.appendChild(swipeBackground); // 背景を先に追加
+            swipeWrapper.appendChild(card); // カードを上に追加
+
+            wrapper.appendChild(swipeWrapper); // 最終的にセクションコンテナ `wrapper` に追加
+            // --- スワイプ対応修正 END ---
             
             if (subtasks.length > 0) {
                 const subtaskContainer = document.createElement('div');
@@ -3210,9 +3512,8 @@
                     });
                     subtaskContainer.appendChild(item);
                 });
-                cardWrapper.appendChild(subtaskContainer);
+                wrapper.appendChild(subtaskContainer);
             }
-            wrapper.appendChild(cardWrapper);
         });
     }
 
@@ -3388,6 +3689,14 @@
                     openMemoEditModal(taskId);
                 }
             });
+
+            // --- スワイプ開始イベントリスナーを追加 ---
+            if (el.classList.contains('task-card')) {
+                // passive: true を指定し、スクロール性能を阻害しないようにしつつ、
+                // moveイベント内でスクロールロックを判定する
+                el.addEventListener('touchstart', handleSwipeStart);
+            }
+            // --- スワイプ追加 END ---
         });
 
         document.querySelectorAll('.timer-btn, .checkmark-btn').forEach(btn => 
