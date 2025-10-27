@@ -1200,11 +1200,7 @@
 		            this.authContainer?.classList.add('hidden');
 		            this.signoutContainer?.classList.remove('hidden');
 		            this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
-		            
-		            dataTabLinks.forEach(el => {
-		                el.textContent = 'データ管理 (Dropbox)'; 
-		            });
-		            
+
 		            syncFab?.classList.remove('hidden');
 		            inboxBtn?.classList.remove('hidden');
 		            bottomNavDropboxImport?.classList.remove('hidden');
@@ -4357,7 +4353,7 @@
             name: name,
             estimatedTime: time,
             projectId: projectId,
-            sectionId: sectionId, // 変更点: sectionIdを追加
+            sectionId: sectionId,
             memo: task.memo || '',
 			subtasks: JSON.parse(JSON.stringify(task.subtasks || [])),
             type: 'daily',
