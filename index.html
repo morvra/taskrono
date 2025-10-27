@@ -4889,7 +4889,11 @@
 	    const allTasksForDate = state.dailyTasks[state.viewDate] || [];
 	    const taskIndex = allTasksForDate.findIndex(t => t.id === id);
 	    if (taskIndex === -1) return;
-	
+
+	    const task = allTasksForDate[taskIndex];
+	    const taskName = task.name.length > 30 ? task.name.substring(0, 30) + '...' : task.name;
+	    if (!window.confirm(`タスク「${taskName}」を翌日に先送りしますか？`)) { return; }
+
 	    // 1. 翌日にタスクのコピーを追加します
 	    const taskToMove = { ...allTasksForDate[taskIndex] }; // 元のタスクをコピー
 	
