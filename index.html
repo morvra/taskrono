@@ -3001,7 +3001,7 @@
                         state.archiveViewDate = getFormattedDate(yesterday);
                     }
                 }
-                render();
+                render({ scroll: true });
             });
         });
         document.querySelector('.tab-link[data-tab="today"]').click();
@@ -3368,9 +3368,9 @@
             setupDragAndDrop('.task-row, .task-card', tasks); 
             
             const focusedEl = document.querySelector('.task-row.focused, .task-card.focused');
-            if (focusedEl && !options.noScroll) {
-                focusedEl.scrollIntoView({ block:'center', behavior:'smooth' });
-            }
+	        if (focusedEl && options.scroll) {
+	            focusedEl.scrollIntoView({ block:'center', behavior:'smooth' });
+	        }
         }
 
 			function renderTaskTable(tbody, tasksToRender, options = {}) {
@@ -4801,6 +4801,15 @@
 	            default:
 	                repeatText = '不明';
 	        }
+
+			const subtaskIcon = (rt.subtasks && rt.subtasks.length > 0) ? `
+	            <span class="tooltip-container">
+	                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+	                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+	                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+	                </svg>
+	                <span class="custom-tooltip">サブタスク: ${rt.subtasks.length}件</span>
+	            </span>` : '';
 	
 	        const memoIcon = rt.memo ? `<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span class="custom-tooltip">${escapeHtml(rt.memo)}</span></span>` : '';
 	
@@ -4812,7 +4821,7 @@
 	        tr.draggable = true;
 	        tr.innerHTML = `
 	            <td class="py-1 px-4 text-center text-sm"><span class="drag-handle">⋮⋮</span></td>
-	            <td class="py-1 px-4 text-sm"><div class="flex items-center">${formatTaskName(rt.name)}${memoIcon}</div></td>
+	            <td class="py-1 px-4 text-sm"><div class="flex items-center">${formatTaskName(rt.name)}${subtaskIcon}${memoIcon}</div></td>
 	            <td class="py-1 px-4 text-sm">${escapeHtml(project.name)}</td>
 	            <td class="py-1 px-4 text-sm">${rt.estimatedTime} 分</td>
 	            <td class="py-1 px-4 text-sm">${escapeHtml(repeatText)}</td>
@@ -4873,6 +4882,15 @@
 	        card.dataset.index = idx;
 	        card.dataset.sectionId = rt.sectionId || 'null';
 	        card.draggable = true;
+
+			const subtaskIcon = (rt.subtasks && rt.subtasks.length > 0) ? `
+	            <span class="tooltip-container">
+	                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+	                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+	                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+	                </svg>
+	                <span class="custom-tooltip">サブタスク: ${rt.subtasks.length}件</span>
+	            </span>` : '';
 	
 	        const memoIcon = rt.memo ? `<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span class="custom-tooltip">${escapeHtml(rt.memo)}</span></span>` : '';
 	
@@ -4882,7 +4900,7 @@
 	                <div class="flex-1 min-w-0">
 	                    <div class="flex justify-between items-start">
 	                         <h3 class="font-semibold text-base flex items-center pr-2" title="${escapeHtml(rt.name || '')}">
-	                           ${formatTaskName(rt.name)} ${memoIcon}
+	                           ${formatTaskName(rt.name)} ${subtaskIcon} ${memoIcon}
 	                        </h3>
 	                         <div class="flex space-x-1 flex-shrink-0">
 	                            <button class="generate-single-repeat-btn text-gray-400 hover:text-green-500 p-1" data-id="${rt.id}" title="今日のタスクとして生成"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg></button>
@@ -4999,7 +5017,8 @@
 	    const task = tasks.find(t => t.id === id);
 	    if (!task) return;
 
-	    if (!confirm(`タスク「${task.name}」を削除しますか？`)) return;
+	    const plainName = getPlainTaskName(task.name);
+	    if (!confirm(`タスク「${plainName}」を削除しますか?`)) return;
 	
 	    const allTasksForDate = state.dailyTasks[state.viewDate] || [];
 	    const index = allTasksForDate.findIndex(t => t.id === id);
@@ -5058,8 +5077,9 @@
 	    if (taskIndex === -1) return;
 
 	    const task = allTasksForDate[taskIndex];
-	    const taskName = task.name.length > 30 ? task.name.substring(0, 30) + '...' : task.name;
-	    if (!window.confirm(`タスク「${taskName}」を翌日に先送りしますか？`)) { return; }
+	    const plainName = getPlainTaskName(task.name);
+	    const taskName = plainName.length > 30 ? plainName.substring(0, 30) + '...' : plainName;
+	    if (!window.confirm(`タスク「${taskName}」を翌日に先送りしますか?`)) { return; }
 
 	    // 1. 翌日にタスクのコピーを追加します
 	    const taskToMove = { ...allTasksForDate[taskIndex] }; // 元のタスクをコピー
@@ -5260,7 +5280,7 @@
                 }, 1000);
             }
         }
-        saveAndRender();
+        saveAndRender({ scroll: true });
     }
 
     function stopActiveTimer() {
@@ -5564,6 +5584,17 @@
                             state.focusedSubtaskId = null;
                         }
                         render();
+						// サブタスク移動後の最小限スクロール
+		                requestAnimationFrame(() => {
+		                    const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
+		                    if (focusedEl) {
+		                        const rect = focusedEl.getBoundingClientRect();
+		                        const viewportHeight = window.innerHeight;
+		                        if (rect.top < 0 || rect.bottom > viewportHeight) {
+		                            focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		                        }
+		                    }
+		                });
                         return;
                     case 'arrowdown':
                         e.preventDefault();
@@ -5581,6 +5612,17 @@
                             }
                         }
                         render();
+						// サブタスク移動後の最小限スクロール
+		                requestAnimationFrame(() => {
+		                    const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
+		                    if (focusedEl) {
+		                        const rect = focusedEl.getBoundingClientRect();
+		                        const viewportHeight = window.innerHeight;
+		                        if (rect.top < 0 || rect.bottom > viewportHeight) {
+		                            focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		                        }
+		                    }
+		                });
                         return; 
                     case ' ':
                         e.preventDefault();
@@ -5712,6 +5754,24 @@
                         }
                     }
                     render();
+					
+					// レンダリング後に、フォーカス要素が画面外なら最小限スクロール
+			        requestAnimationFrame(() => {
+			            const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
+			            if (focusedEl) {
+			                const rect = focusedEl.getBoundingClientRect();
+			                const viewportHeight = window.innerHeight;
+			                
+			                // 要素が画面上部より上にある場合
+			                if (rect.top < 0) {
+			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+			                }
+			                // 要素が画面下部より下にある場合
+			                else if (rect.bottom > viewportHeight) {
+			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+			                }
+			            }
+			        });
                 }
                 break;
             case 'arrowleft': e.preventDefault(); moveViewDate(-1); break;
@@ -5754,7 +5814,7 @@
             // タスクがなければ選択しない
             state.focusedTaskId = null;
         }
-        renderTodayTasks();
+        renderTodayTasks({ scroll: true });
     }
     
     function moveArchiveDate(direction) {
@@ -5768,6 +5828,12 @@
         if (!s) return '';
         return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
+
+	function getPlainTaskName(text) {
+	    if (!text) return '';
+	    const plainText = text.replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+	    return plainText;
+	}
 
     function formatTaskName(text) {
         if (!text) return '';
