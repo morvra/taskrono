@@ -1146,6 +1146,9 @@
 			inboxFilePath: '/inbox.txt', // Inboxファイルのパスを追加
             dbx: null,
             saveTimeout: null,
+			// favicon
+            defaultFavicon: './taskrono.ico',
+            runningFavicon: './taskrono_running.ico',
             // DOM Elements
             authorizeButton: null,
             signoutButton: null,
@@ -2079,6 +2082,16 @@
 	    state.dailyTasks[state.viewDate] = [...tasks, ...deletedTasks];
 	}
 
+	function setFavicon(url) {
+        let link = document.querySelector("link[rel='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.href = url;
+    }
+
 	function updateTitle() {
         const activeTask = getTasksForViewDate().find(t => t.id === state.activeTaskId);
         if (activeTask) {
@@ -2086,8 +2099,10 @@
             const plainTaskName = (activeTask.name || '').replace(markdownRegex, '$1');
             
             document.title = `⏱ ${plainTaskName} - Taskrono`;
+            setFavicon(dailyTaskListApp.runningFavicon);
         } else {
             document.title = 'Taskrono';
+            setFavicon(dailyTaskListApp.defaultFavicon);
         }
     }
 
