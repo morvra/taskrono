@@ -277,7 +277,9 @@
             .task-card.completed {
                 background-color: #e5e7eb; 
             }
-            
+            .task-card.completed.focused {
+                background-color: #fef9c3;
+            }
             .archive-table-wrapper {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
@@ -2192,9 +2194,13 @@
 	    if (lastCompletedIndexInSection !== -1) {
 	        insertIndex = lastCompletedIndexInSection + 1;
 	    } else {
-	        insertIndex = tasks.findIndex(t => (t.sectionId || 'null') === sectionId);
-	        if (insertIndex === -1) { insertIndex = 0; }
+            insertIndex = tasks.findIndex(t => (t.sectionId || 'null') === sectionId && t.id !== taskId);
+
+	        if (insertIndex === -1) { 
+                insertIndex = taskIndex; 
+            }
 	    }
+
 	    if (taskIndex === insertIndex || taskIndex === insertIndex - 1) {
 	        return;
 	    }
@@ -3406,7 +3412,7 @@
 	        const index = allTasks.findIndex(t => t.id === task.id);
 	        const project = state.projects.find(p => p.id === task.projectId) || { name: '', color: '#cccccc' };
 	        const tr = document.createElement('tr');
-	        tr.className = `border-b task-row ${task.status === 'completed' ? 'bg-gray-100 text-gray-500' : ''} ${task.status === 'running' ? 'bg-blue-50' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
+	        tr.className = `border-b task-row ${task.status === 'completed' ? 'bg-gray-100 text-gray-500' : ''} ${task.status === 'running' ? 'bg-blue-100' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
 	        tr.dataset.taskId = task.id;
 	        tr.dataset.index = index;
 	        tr.dataset.sectionId = task.sectionId || 'null';
@@ -3547,7 +3553,7 @@
             const project = state.projects.find(p => p.id === task.projectId) || { name: '', color: '#cccccc' };
             const card = document.createElement('div');
             const isCompleted = task.status === 'completed';
-            card.className = `task-card bg-white px-3 py-2 border-l-4 ${isCompleted ? 'completed' : ''} ${task.status === 'running' ? 'bg-blue-50' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
+            card.className = `task-card bg-white px-3 py-2 border-l-4 ${isCompleted ? 'completed' : ''} ${task.status === 'running' ? 'bg-blue-100' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
             card.style.borderLeftColor = project.color;
             card.dataset.taskId = task.id;
             card.dataset.index = index;
@@ -3558,7 +3564,7 @@
             let timerButtonHtml = '';
             if (isCompleted) {
                  timerButtonHtml = `
-                 <button class="timer-btn checkmark-btn rounded-full bg-gray-200 cursor-pointer items-center justify-center">
+                 <button class="timer-btn checkmark-btn rounded-full cursor-pointer items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 </button>`;
             } else {
