@@ -106,8 +106,8 @@
         }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
-        .task-row.focused, .subtask-item.focused { background-color: #fef9c3; }
-        .task-card.focused { background-color: #fef9c3; border-color: #eab308; }
+        .task-row.focused, .subtask-item.focused, tr.repeat-task-row.focused { background-color: #fef9c3; } /* PC版リピートタスク行の背景色 */
+        .task-card.focused, div.repeat-task-row.focused { background-color: #fef9c3; border-color: #eab308; } /* スマホ版リピートタスクカードの背景色とボーダー色 */
         ::-webkit-scrollbar { width:8px; height:0px; }
         ::-webkit-scrollbar-track { background:#f1f1f1; border-radius:10px; }
         ::-webkit-scrollbar-thumb { background:#888; border-radius:10px; }
@@ -1761,6 +1761,7 @@
             activeTimerId: null,
             activeTaskId: null,
             focusedTaskId: null,
+			focusedRepeatTaskId: null,
 			focusedSubtaskId: null,
 			openTaskIds: new Set(),
             editingTaskId: null,
@@ -2530,7 +2531,7 @@
 
     function generateSingleRepeatTask(repeatTaskId) {
 	    const rt = state.repeatTasks.find(t => t.id === repeatTaskId);
-	    if (!rt) return;
+	    if (!rt) return null;
 	
 	    const today = getFormattedDate(new Date());
 	    if (!state.dailyTasks[today]) state.dailyTasks[today] = [];
@@ -2558,7 +2559,7 @@
 	        updatedAt: new Date().toISOString()
 	    };
 	
-	    const allTasks = state.dailyTasks[today]; // isDeletedを含む全タスクで位置を計算
+	    const allTasks = state.dailyTasks[today];
 	    const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
 	    const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
 	    const targetSectionId = newTask.sectionId || 'null';
@@ -2591,11 +2592,9 @@
 	    }
 	
 	    allTasks.splice(insertIndex, 0, newTask);
-	    // setTasksForViewDateは使わず、直接state.dailyTasks[today]を更新する
 	    state.focusedTaskId = newTask.id;
-	    state.viewDate = today;
-	    saveAndRender();
         showToast(`「${escapeHtml(rt.name)}」を今日のタスクに追加しました。`);
+	    return rt;
 	}
 
 	function renderSections() {
@@ -3014,6 +3013,16 @@
                         state.focusedTaskId = tasks[tasks.length - 1].id;
                     } else {
                         state.focusedTaskId = null;
+                    }
+                } else if (tabName === 'repeat') {
+                    const firstUnsectionedTask = state.repeatTasks.find(rt => !rt.sectionId || rt.sectionId === 'null');
+                    
+                    if (firstUnsectionedTask) {
+                        state.focusedRepeatTaskId = firstUnsectionedTask.id;
+                    } else if (!state.focusedRepeatTaskId && state.repeatTasks.length > 0) {
+                        state.focusedRepeatTaskId = state.repeatTasks[0].id;
+                    } else if (state.repeatTasks.length === 0) {
+                        state.focusedRepeatTaskId = null;
                     }
                 } else if (tabName === 'archive') {
                     if (!state.archiveViewDate) {
@@ -3643,7 +3652,6 @@
                 </div>
             `;
 
-            // --- スワイプ対応のための修正 ---
 			const rightShortIconHtml = isRunning 
                 ? `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" />
@@ -3682,7 +3690,6 @@
             swipeWrapper.appendChild(card); // カードを上に追加
 
             wrapper.appendChild(swipeWrapper); // 最終的にセクションコンテナ `wrapper` に追加
-            // --- スワイプ対応修正 END ---
             
             if (subtasks.length > 0) {
                 const subtaskContainer = document.createElement('div');
@@ -4754,10 +4761,29 @@
 	    }
 		
 		setupDragAndDrop('.repeat-task-row', state.repeatTasks, 'repeat');
-	    container.querySelectorAll('.generate-single-repeat-btn').forEach(btn => btn.addEventListener('click', (e) => generateSingleRepeatTask(e.currentTarget.dataset.id)));
+	    container.querySelectorAll('.generate-single-repeat-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            const rt = generateSingleRepeatTask(e.currentTarget.dataset.id);
+            if (rt) {
+                saveAndRender();
+            }
+        }));
 	    container.querySelectorAll('.edit-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => openRepeatEditModal(e.currentTarget.dataset.id)));
 	    container.querySelectorAll('.delete-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => deleteRepeatTask(e.currentTarget.dataset.id)));
-		container.querySelectorAll('.repeat-task-row').forEach(row => {
+		
+        container.querySelectorAll('.repeat-task-row').forEach(el => { // ★追加 (クリックイベント)
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('button, a, .drag-handle, .tooltip-container')) {
+                    return;
+                }
+                const taskId = e.currentTarget.dataset.id;
+                if (state.focusedRepeatTaskId !== taskId) {
+                    state.focusedRepeatTaskId = taskId;
+                    renderRepeatTasks(); // render() ではなく renderRepeatTasks() を呼ぶ
+                }
+            });
+        });
+
+        container.querySelectorAll('.repeat-task-row').forEach(row => {
             row.addEventListener('dblclick', (e) => {
                 // ボタンやドラッグハンドルなど、特定の操作対象上でのダブルクリックは無視する
                 if (e.target.closest('button, a, .drag-handle, .tooltip-container')) {
@@ -4766,7 +4792,10 @@
                 e.preventDefault();
                 const taskId = e.currentTarget.dataset.id;
                 if (taskId) {
-                    generateSingleRepeatTask(taskId);
+                    const rt = generateSingleRepeatTask(taskId);
+                    if (rt) {
+                        saveAndRender();
+                    }
                 }
             });
         });
@@ -4836,7 +4865,7 @@
 	        const memoIcon = rt.memo ? `<span class="tooltip-container"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span class="custom-tooltip">${escapeHtml(rt.memo)}</span></span>` : '';
 	
 	        const tr = document.createElement('tr');
-	        tr.className = 'border-b repeat-task-row';
+	        tr.className = `border-b repeat-task-row ${rt.id === state.focusedRepeatTaskId ? 'focused' : ''}`;
 	        tr.dataset.id = rt.id;
 	        tr.dataset.index = idx;
 	        tr.dataset.sectionId = rt.sectionId || 'null';
@@ -4898,7 +4927,7 @@
 	        }
 	
 	        const card = document.createElement('div');
-	        card.className = 'bg-white px-3 py-2 shadow border-l-4 repeat-task-row';
+	        card.className = `bg-white px-3 py-2 shadow border-l-4 repeat-task-row ${rt.id === state.focusedRepeatTaskId ? 'focused' : ''}`;
 	        card.style.borderLeftColor = project.color;
 	        card.dataset.id = rt.id;
 	        card.dataset.index = idx;
@@ -5560,6 +5589,20 @@
 
     function handleKeyboardShortcuts(e) {
         if (document.querySelector('input:focus, select:focus, textarea:focus, .modal.active')) return;
+
+		// タブ移動ショートカット (Alt + 1, Alt + 2)
+        if (e.ctrlKey) {
+            switch (e.key) {
+                case '[': // Alt + [ で「当日のタスク」
+                    e.preventDefault();
+                    document.querySelector('.tab-link[data-tab="today"]')?.click();
+                    return; // 他のショートカットと競合しないように return
+                case ']': // Alt + ] で「リピートタスク」
+                    e.preventDefault();
+                    document.querySelector('.tab-link[data-tab="repeat"]')?.click();
+                    return;
+            }
+        }
         
         if (e.key.toLowerCase() === 'i') {
             e.preventDefault();
@@ -5575,6 +5618,8 @@
             handleTodayShortcuts(e);
         } else if (activeTab === 'archive') {
             handleArchiveShortcuts(e);
+        } else if (activeTab === 'repeat') {
+            handleRepeatShortcuts(e);
         }
     }
 
@@ -5729,16 +5774,22 @@
                                     newIndex = lastTaskOfPrevSectionIndex + 1;
                                 } else {
                                      let precedingSectionFound = false;
-                                     for(let i = nextSectionOrderIndex + 1; i < sectionOrder.length; i++) {
-                                        const followingSectionId = sectionOrder[i];
-                                        const firstTaskIndex = tasks.findIndex(t => (t.sectionId || 'null') === followingSectionId);
-                                        if (firstTaskIndex !== -1) {
-                                            newIndex = firstTaskIndex;
+                                     for(let i = nextSectionOrderIndex - 1; i >= 0; i--) { 
+                                        const precedingSectionId = sectionOrder[i];
+                                        let lastTaskIndex = -1;
+                                        for(let j = tasks.length - 1; j >= 0; j--) {
+                                            if ((tasks[j].sectionId || 'null') === precedingSectionId) {
+                                                lastTaskIndex = j;
+                                                break;
+                                            }
+                                        }
+                                        if (lastTaskIndex !== -1) {
+                                            newIndex = lastTaskIndex + 1; 
                                             precedingSectionFound = true;
                                             break;
                                         }
                                      }
-                                     if (!precedingSectionFound) newIndex = tasks.length;
+                                     if (!precedingSectionFound) newIndex = 0;
                                 }
                             }
                         } else {
@@ -5799,6 +5850,188 @@
             case 'arrowleft': e.preventDefault(); moveViewDate(-1); break;
             case 'arrowright': e.preventDefault(); moveViewDate(1); break;
             case ' ': e.preventDefault(); if (state.focusedTaskId && !state.focusedSubtaskId) toggleTimer(state.focusedTaskId); break;
+        }
+    }
+
+	function handleRepeatShortcuts(e) {
+        const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+        const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+        
+        // セクションIDに基づくソートキーをMapに保存
+        const sectionIndexMap = new Map(sectionOrder.map((id, index) => [id, index]));
+        
+        // 安定ソート (Stable Sort) を行う
+        // 1. 各要素に元のインデックスを付与
+        const tasksWithIndex = state.repeatTasks.map((task, index) => ({ task, index }));
+        
+        // 2. セクション順 -> 元のインデックス順 でソート
+        tasksWithIndex.sort((a, b) => {
+            const sectionIndexA = sectionIndexMap.get(a.task.sectionId || 'null');
+            const sectionIndexB = sectionIndexMap.get(b.task.sectionId || 'null');
+            
+            if (sectionIndexA !== sectionIndexB) {
+                return sectionIndexA - sectionIndexB;
+            }
+            
+            return a.index - b.index; // 元の順序を維持
+        });
+        
+        // 3. ソート後の配列を state.repeatTasks に反映
+        state.repeatTasks = tasksWithIndex.map(item => item.task);
+
+        const tasks = state.repeatTasks; // これで tasks は必ずソート済み
+        if (tasks.length === 0 && !['n', 'r'].includes(e.key.toLowerCase())) return;
+
+        const currentTaskIndex = tasks.findIndex(t => t.id === state.focusedRepeatTaskId);
+        const currentTask = (currentTaskIndex !== -1) ? tasks[currentTaskIndex] : null;
+        
+        switch (e.key.toLowerCase()) {
+            case 'n': // 新規
+                e.preventDefault();
+                const repeatNameInput = document.getElementById('repeat-task-name');
+                if (repeatNameInput) {
+                    document.getElementById('repeat-form-toggle')?.click(); // フォームが開いてない場合があるため
+                    repeatNameInput.focus();
+                }
+                break;
+            case 'e': // 編集
+                e.preventDefault(); 
+                if (state.focusedRepeatTaskId) openRepeatEditModal(state.focusedRepeatTaskId); 
+                break;
+            case 'm': // メモ (編集と同じ動作)
+                e.preventDefault(); 
+                if (state.focusedRepeatTaskId) openRepeatEditModal(state.focusedRepeatTaskId);
+                break;
+            case 'd': // 削除
+                e.preventDefault(); 
+                if (state.focusedRepeatTaskId) deleteRepeatTask(state.focusedRepeatTaskId); 
+                break;
+            case 'r': // Dropbox同期
+                e.preventDefault();
+                if (dailyTaskListApp.dbx) {
+                    dailyTaskListApp.loadStateFromDropbox();
+                }
+                break;
+            case 'arrowdown':
+            case 'arrowup':
+                e.preventDefault();
+                if (!currentTask) { // フォーカスが当たってない場合
+                    if (tasks.length > 0) state.focusedRepeatTaskId = tasks[0].id;
+                    renderRepeatTasks(); // focusedRepeatTaskId を反映して再描画
+                    break;
+                }
+
+                if (e.ctrlKey || e.metaKey) {
+                    // --- タスクの順番移動ロジック ---
+                    // 配列は関数の先頭でソート済みなので、ここではソート処理は不要
+                    const sortedTasks = tasks; 
+                    const sortedCurrentTaskIndex = currentTaskIndex;
+
+                    const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
+                    const movedTask = sortedTasks.splice(sortedCurrentTaskIndex, 1)[0];
+                    let newIndex = sortedCurrentTaskIndex; 
+
+                    const currentSectionId = movedTask.sectionId || 'null';
+                    
+                    const isAtBoundary = (direction === 1 && (sortedCurrentTaskIndex === sortedTasks.length || (sortedTasks[sortedCurrentTaskIndex].sectionId || 'null') !== currentSectionId)) ||
+                                         (direction === -1 && (sortedCurrentTaskIndex === 0 || (sortedTasks[sortedCurrentTaskIndex-1].sectionId || 'null') !== currentSectionId));
+
+                    if (!isAtBoundary) {
+                        newIndex = sortedCurrentTaskIndex + direction;
+                    } else {
+                        const currentSectionOrderIndex = sectionOrder.indexOf(currentSectionId);
+                        let nextSectionOrderIndex = currentSectionOrderIndex + direction;
+                        if (nextSectionOrderIndex >= 0 && nextSectionOrderIndex < sectionOrder.length) {
+                            const nextSectionId = sectionOrder[nextSectionOrderIndex];
+                            movedTask.sectionId = nextSectionId === 'null' ? null : nextSectionId;
+                            
+                            if (direction === 1) { // 下へ
+                                const firstTaskOfNextSectionIndex = sortedTasks.findIndex(t => (t.sectionId || 'null') === nextSectionId);
+                                if (firstTaskOfNextSectionIndex !== -1) {
+                                    newIndex = firstTaskOfNextSectionIndex;
+                                } else {
+                                    let followingSectionFound = false;
+                                    for(let i = nextSectionOrderIndex + 1; i < sectionOrder.length; i++) {
+                                        const followingSectionId = sectionOrder[i];
+                                        const firstTaskIndex = sortedTasks.findIndex(t => (t.sectionId || 'null') === followingSectionId);
+                                        if (firstTaskIndex !== -1) {
+                                            newIndex = firstTaskIndex;
+                                            followingSectionFound = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!followingSectionFound) newIndex = sortedTasks.length;
+                                }
+                            } else { // 上へ
+                                let lastTaskOfPrevSectionIndex = -1;
+                                for(let i = sortedTasks.length - 1; i >= 0; i--) {
+                                    if ((sortedTasks[i].sectionId || 'null') === nextSectionId) {
+                                        lastTaskOfPrevSectionIndex = i;
+                                        break;
+                                    }
+                                }
+                                if (lastTaskOfPrevSectionIndex !== -1) {
+                                    newIndex = lastTaskOfPrevSectionIndex + 1;
+                                } else {
+                                     let precedingSectionFound = false;
+                                     for(let i = nextSectionOrderIndex - 1; i >= 0; i--) { 
+                                        const precedingSectionId = sectionOrder[i];
+                                        let lastTaskIndex = -1;
+                                        for(let j = sortedTasks.length - 1; j >= 0; j--) {
+                                            if ((sortedTasks[j].sectionId || 'null') === precedingSectionId) {
+                                                lastTaskIndex = j;
+                                                break;
+                                            }
+                                        }
+                                        if (lastTaskIndex !== -1) {
+                                            newIndex = lastTaskIndex + 1; 
+                                            precedingSectionFound = true;
+                                            break;
+                                        }
+                                     }
+                                     if (!precedingSectionFound) newIndex = 0; 
+                                }
+                            }
+                        } else {
+                             newIndex = (direction === 1) ? sortedTasks.length : 0;
+                        }
+                    }
+
+                    sortedTasks.splice(newIndex, 0, movedTask);
+                    state.repeatTasks = sortedTasks; // state.repeatTasks にソート済みの配列を保存
+                    saveAndRender();
+
+                } else { // --- 通常の選択移動 ---
+                    const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
+                    let nextIndex = currentTaskIndex + direction;
+                    if (nextIndex >= 0 && nextIndex < tasks.length) {
+                        state.focusedRepeatTaskId = tasks[nextIndex].id;
+                    }
+                    renderRepeatTasks(); // focusedRepeatTaskId を反映して再描画
+					
+			        requestAnimationFrame(() => {
+			            const focusedEl = document.querySelector('.repeat-task-row.focused');
+			            if (focusedEl) {
+			                const rect = focusedEl.getBoundingClientRect();
+			                const viewportHeight = window.innerHeight;
+			                
+			                if (rect.top < 0 || rect.bottom > viewportHeight) {
+			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+			                }
+			            }
+			        });
+                }
+                break;
+            
+            case ' ': // [Space] 当日のタスクに追加
+                e.preventDefault(); 
+                if (state.focusedRepeatTaskId) {
+                    const rt = generateSingleRepeatTask(state.focusedRepeatTaskId);
+                    if (rt) {
+                        saveAndRender();
+                    }
+                }
+                break;
         }
     }
 
