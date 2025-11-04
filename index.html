@@ -2529,14 +2529,11 @@
         }
     }
 
-    function generateSingleRepeatTask(repeatTaskId) {
+	function generateSingleRepeatTask(repeatTaskId) {
 	    const rt = state.repeatTasks.find(t => t.id === repeatTaskId);
 	    if (!rt) return null;
-	
 	    const today = getFormattedDate(new Date());
 	    if (!state.dailyTasks[today]) state.dailyTasks[today] = [];
-	    
-	    // isDeletedでないタスクのみをチェック対象にする
 	    const tasksForToday = state.dailyTasks[today].filter(t => !t.isDeleted);
 	    
 	    const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
@@ -2558,19 +2555,18 @@
 	        endTime: null,
 	        updatedAt: new Date().toISOString()
 	    };
-	
-	    const allTasks = state.dailyTasks[today];
+	    const allTasks = state.dailyTasks[today]; // 削除済み含む全タスク
 	    const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
 	    const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
 	    const targetSectionId = newTask.sectionId || 'null';
 	    const targetSectionOrderIndex = sectionOrder.indexOf(targetSectionId);
 	
 	    let insertIndex = allTasks.length;
-	
 	    let lastTaskInTargetSectionIndex = -1;
-	    for (let i = allTasks.length - 1; i >= 0; i--) {
-	        if ((allTasks[i].sectionId || 'null') === targetSectionId) {
-	            lastTaskInTargetSectionIndex = i;
+	    for (let i = tasksForToday.length - 1; i >= 0; i--) {
+	        if ((tasksForToday[i].sectionId || 'null') === targetSectionId) {
+	            const taskId = tasksForToday[i].id;
+	            lastTaskInTargetSectionIndex = allTasks.findIndex(t => t.id === taskId);
 	            break;
 	        }
 	    }
@@ -2579,10 +2575,11 @@
 	        insertIndex = lastTaskInTargetSectionIndex + 1;
 	    } else {
 	        let firstTaskInNextSectionIndex = -1;
-	        for (let i = 0; i < allTasks.length; i++) {
-	            const taskSectionOrderIndex = sectionOrder.indexOf(allTasks[i].sectionId || 'null');
+	        for (let i = 0; i < tasksForToday.length; i++) {
+	            const taskSectionOrderIndex = sectionOrder.indexOf(tasksForToday[i].sectionId || 'null');
 	            if (taskSectionOrderIndex > targetSectionOrderIndex) {
-	                firstTaskInNextSectionIndex = i;
+	                const taskId = tasksForToday[i].id;
+	                firstTaskInNextSectionIndex = allTasks.findIndex(t => t.id === taskId);
 	                break;
 	            }
 	        }
@@ -2590,10 +2587,9 @@
 	            insertIndex = firstTaskInNextSectionIndex;
 	        }
 	    }
-	
 	    allTasks.splice(insertIndex, 0, newTask);
 	    state.focusedTaskId = newTask.id;
-        showToast(`「${escapeHtml(rt.name)}」を今日のタスクに追加しました。`);
+	    showToast(`「${escapeHtml(rt.name)}」を今日のタスクに追加しました。`);
 	    return rt;
 	}
 
