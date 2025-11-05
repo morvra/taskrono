@@ -55,6 +55,17 @@
             </div>
             <a href="./" class="mt-2 md:mt-0 text-blue-600 hover:underline">&larr; メインアプリに戻る</a>
         </div>
+		<div id="dropbox-auth-container" class="mt-4 text-sm bg-white p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-3">Dropbox 接続</h3>
+            <div id="auth-container">
+                <button id="authorize_button" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">Dropbox ログインして分析データを読み込む</button>
+            </div>
+            <div id="signout_container" class="hidden">
+                <p id="auth-status" class="text-sm text-green-600 mb-2"></p>
+                <button id="signout_button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">ログアウト</button>
+            </div>
+            <p id="drive-status" class="text-sm text-gray-500 mt-2"></p>
+        </div>
     </header>
 
     <nav class="flex space-x-0 border-b border-gray-200">
@@ -123,6 +134,8 @@
     </main>
 </div>
 
+<script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -142,6 +155,43 @@ document.addEventListener('DOMContentLoaded', () => {
         isLoadingMore: false,
         // Chart.js instance
         pieChartInstance: null,
+    };
+
+    // --- DROPBOX APP OBJECT ---
+    const dailyTaskListApp = {
+        dropboxFilePath: '/DailyTaskListData.json',
+        archiveFilePath: '/ArchiveData.json', // アーカイブファイルのパス
+        dbx: null,
+        // DOM Elements
+        authorizeButton: null,
+        signoutButton: null,
+        authContainer: null,
+        signoutContainer: null,
+        authStatusEl: null,
+        driveStatusEl: null,
+
+        // DOM要素を初期化
+        initDomElements: function() {
+            this.authorizeButton = document.getElementById('authorize_button');
+            this.signoutButton = document.getElementById('signout_button');
+            this.authContainer = document.getElementById('auth-container');
+            this.signoutContainer = document.getElementById('signout_container');
+            this.authStatusEl = document.getElementById('auth-status');
+            this.driveStatusEl = document.getElementById('drive-status');
+        },
+        
+        // 認証UIを更新
+        updateAuthUi: function(isAuthenticated) {
+            if (isAuthenticated) {
+                this.authContainer?.classList.add('hidden');
+                this.signoutContainer?.classList.remove('hidden');
+                this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
+            } else {
+                this.authContainer?.classList.remove('hidden');
+                this.signoutContainer?.classList.add('hidden');
+                this.authStatusEl.textContent = 'Dropboxにログインしていません。';
+            }
+        }
     };
 
     // --- UTILITY FUNCTIONS ---
@@ -194,12 +244,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INITIALIZATION ---
     function init() {
-        loadDataFromLocalStorage();
+        dailyTaskListApp.initDomElements();
         setupEventListeners();
+        initializeDropboxSync();
+
+        // Fallback if Dropbox auth fails or isn't used
+        if (!localStorage.getItem('dropbox_access_token')) {
+            console.log("No Dropbox token, loading from localStorage as fallback.");
+            loadDataFromLocalStorage(); // ローカルから読み込み
+            triggerRender(); // 画面描画
+        }
+    }
+
+    // 画面描画のトリガー
+    function triggerRender() {
         document.getElementById('time-view-mode').value = state.timeViewMode;
         document.querySelector('.tab-link[data-tab="time-analysis"]').click();
     }
-
+    
+    // (Dropbox非ログイン時のフォールバック用)
     function loadDataFromLocalStorage() {
         state.projects = JSON.parse(localStorage.getItem('dtl_projects') || '[]');
         state.repeatTasks = JSON.parse(localStorage.getItem('dtl_repeatTasks') || '[]');
@@ -207,6 +270,159 @@ document.addEventListener('DOMContentLoaded', () => {
         state.dailyTasks = JSON.parse(localStorage.getItem('dtl_dailyTasks') || '{}');
     }
 
+    // --- Dropbox データ取得 ---
+    async function loadDataFromDropbox() {
+        if (!dailyTaskListApp.dbx) {
+            alert('Dropboxにログインしてください。');
+            dailyTaskListApp.driveStatusEl.textContent = 'Dropboxに接続されていません。';
+            // フォールバック
+            loadDataFromLocalStorage();
+            triggerRender();
+            return;
+        }
+        dailyTaskListApp.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
+        
+        try {
+            // メインデータとアーカイブデータを並行して取得
+            const p1 = dailyTaskListApp.dbx.filesDownload({ path: dailyTaskListApp.dropboxFilePath });
+            const p2 = dailyTaskListApp.dbx.filesDownload({ path: dailyTaskListApp.archiveFilePath });
+            
+            const [mainDataResponse, archiveDataResponse] = await Promise.all([p1, p2]);
+
+            // メインデータを処理 (プロジェクト、リピート、当日タスク)
+            const mainFileContent = await mainDataResponse.result.fileBlob.text();
+            const mainData = JSON.parse(mainFileContent);
+            state.projects = mainData.projects || [];
+            state.repeatTasks = mainData.repeatTasks || [];
+            state.dailyTasks = mainData.dailyTasks || {};
+            
+            // アーカイブデータを処理
+            const archiveFileContent = await archiveDataResponse.result.fileBlob.text();
+            const archiveData = JSON.parse(archiveFileContent);
+            state.archivedTasks = archiveData.archivedTasks || {};
+
+            // 取得したデータをローカルストレージにキャッシュとして保存
+            localStorage.setItem('dtl_projects', JSON.stringify(state.projects));
+            localStorage.setItem('dtl_repeatTasks', JSON.stringify(state.repeatTasks));
+            localStorage.setItem('dtl_dailyTasks', JSON.stringify(state.dailyTasks));
+            localStorage.setItem('dtl_archivedTasks', JSON.stringify(state.archivedTasks));
+
+            dailyTaskListApp.driveStatusEl.textContent = `データを読み込みました (${new Date().toLocaleTimeString()})。`;
+            
+            // データを読み込めたので画面を描画
+            triggerRender();
+
+        } catch (error) {
+            console.error('Error loading data from Dropbox:', error);
+            dailyTaskListApp.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
+            // エラー時はローカルフォールバックを試す
+            loadDataFromLocalStorage();
+            triggerRender();
+        }
+    }
+    
+    // --- Dropbox 認証ロジック (index.htmlから移植・最適化) ---
+    async function initializeDropboxSync() {
+        const DROPBOX_CLIENT_ID = '0fno7q10xgfdyki';
+        const REDIRECT_URI = window.location.origin + window.location.pathname; 
+    
+        const accessToken = localStorage.getItem('dropbox_access_token');
+        const refreshToken = localStorage.getItem('dropbox_refresh_token');
+
+        const dbx = new Dropbox.Dropbox({ 
+            clientId: DROPBOX_CLIENT_ID,
+            accessToken,
+            refreshToken
+        });
+
+        dailyTaskListApp.dbx = dbx;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get('code');
+    
+        if (authCode) {
+            try {
+                const savedVerifier = sessionStorage.getItem('dropbox_pkce_code_verifier');
+                if (savedVerifier && dbx && dbx.auth) {
+                    try { dbx.auth.codeVerifier = savedVerifier; } catch (e) { /* ignore */ }
+                }
+    
+                const response = await dbx.auth.getAccessTokenFromCode(REDIRECT_URI, authCode);
+                const { result } = response;
+                const newAccessToken = result.access_token;
+                const newRefreshToken = result.refresh_token;
+    
+                sessionStorage.removeItem('dropbox_pkce_code_verifier');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                localStorage.setItem('dropbox_access_token', newAccessToken);
+                if (newRefreshToken) {
+                    localStorage.setItem('dropbox_refresh_token', newRefreshToken);
+                }
+                dbx.auth.setAccessToken(newAccessToken);
+                if (newRefreshToken) {
+                    dbx.auth.setRefreshToken(newRefreshToken);
+                }
+
+                dailyTaskListApp.updateAuthUi(true);
+                loadDataFromDropbox(); // ★認証成功、データをロード
+
+            } catch (error) {
+                console.error('Error getting access token from code:', error);
+                dailyTaskListApp.driveStatusEl.textContent = `認証交換エラー`;
+            }
+        } else {
+            if (accessToken) {
+                try {
+                    await dbx.usersGetCurrentAccount();
+                    dailyTaskListApp.updateAuthUi(true);
+                    loadDataFromDropbox(); // ★既存トークン有効、データをロード
+                } catch (error) {
+                    console.error('Stored token invalid:', error);
+                    localStorage.removeItem('dropbox_access_token');
+                    localStorage.removeItem('dropbox_refresh_token');
+                    dailyTaskListApp.dbx = null;
+                    dailyTaskListApp.updateAuthUi(false);
+                }
+            } else {
+                dailyTaskListApp.updateAuthUi(false);
+            }
+        }
+    
+        dailyTaskListApp.authorizeButton.addEventListener('click', async () => {
+            try {
+                const authUrl = await dbx.auth.getAuthenticationUrl(
+                    REDIRECT_URI, undefined, 'code', 'offline', undefined, undefined, true
+                );
+                try {
+                    const codeVerifier = dbx.auth && dbx.auth.codeVerifier;
+                    if (codeVerifier) {
+                        sessionStorage.setItem('dropbox_pkce_code_verifier', codeVerifier);
+                    }
+                } catch (e) { /* ignore */ }
+                window.location.href = authUrl;
+            } catch (e) {
+                console.error('Error creating Dropbox auth URL:', e);
+            }
+        });
+    
+        dailyTaskListApp.signoutButton.addEventListener('click', async () => {
+            if (!dailyTaskListApp.dbx) return;
+            try {
+                await dailyTaskListApp.dbx.authTokenRevoke();
+            } catch (error) {
+                console.error('Failed to revoke token', error);
+            } finally {
+                localStorage.removeItem('dropbox_access_token');
+                localStorage.removeItem('dropbox_refresh_token');
+                dailyTaskListApp.dbx = null;
+                dailyTaskListApp.updateAuthUi(false);
+            }
+        });
+    }
+
+
+    // --- EVENT LISTENERS ---
     function setupEventListeners() {
         // Main Tab Navigation
         document.querySelectorAll('.tab-link').forEach(tab => {
@@ -533,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             // 'date', 'week', 'month' の場合は従来の昇順（古い順）
-            tasks.sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate) || new Date(a.startTime) - new Date(b.startTime));
+            tasks.sort((a, b) => new Date(a.completedDate) - new Date(a.completedDate) || new Date(a.startTime) - new Date(b.startTime));
         }
 
         const visibleTasks = tasks.slice(0, state.timeAnalysisVisibleItems);
