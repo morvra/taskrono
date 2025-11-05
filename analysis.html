@@ -47,24 +47,30 @@
 <body class="antialiased text-gray-800">
 
 <div class="container mx-auto p-4 md:p-6 max-w-7xl">
-    <header class="mb-6">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Analysis</h1>
-                <p class="text-gray-500">for Taskrono</p>
-            </div>
-            <a href="./" class="mt-2 md:mt-0 text-blue-600 hover:underline">&larr; メインアプリに戻る</a>
-        </div>
-		<div id="dropbox-auth-container" class="mt-4 text-sm bg-white p-4 rounded-lg shadow-md">
-            <h3 class="text-lg font-semibold mb-3">Dropbox 接続</h3>
-            <div id="auth-container">
-                <button id="authorize_button" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">Dropbox ログインして分析データを読み込む</button>
-            </div>
-            <div id="signout_container" class="hidden">
-                <p id="auth-status" class="text-sm text-green-600 mb-2"></p>
-                <button id="signout_button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">ログアウト</button>
-            </div>
-            <p id="drive-status" class="text-sm text-gray-500 mt-2"></p>
+    <header class="p-4 md:p-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between">
+            <div class="flex items-center justify-between md:justify-start flex-wrap gap-2">
+                <h2 class="text-2xl font-bold text-gray-800">Analysis</h2>
+                
+                <div id="dropbox-auth-container" class="text-xs ml-4 flex-shrink-0">
+                    <div id="auth-container">
+                        <button id="authorize_button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-lg text-xs transition-colors duration-200">
+                            Dropbox ログイン
+                        </button>
+                    </div>
+                    <div id="signout_container" class="hidden flex items-center gap-2">
+                        <span id="auth-status" class="text-green-600 font-medium">接続済み</span>
+                        <button id="signout_button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-0.5 px-2 rounded-md text-xs transition-colors duration-200">
+                            ログアウト
+                        </button>
+                    </div>
+                    <p id="drive-status" class="text-gray-500 mt-1 hidden"></p>
+                </div>
+                </div>
+            
+            <a href="./" class="mt-4 md:mt-0 text-blue-600 hover:underline flex-shrink-0">
+                &larr; メインアプリに戻る
+            </a>
         </div>
     </header>
 
@@ -180,16 +186,15 @@ document.addEventListener('DOMContentLoaded', () => {
             this.driveStatusEl = document.getElementById('drive-status');
         },
         
-        // 認証UIを更新
         updateAuthUi: function(isAuthenticated) {
             if (isAuthenticated) {
                 this.authContainer?.classList.add('hidden');
                 this.signoutContainer?.classList.remove('hidden');
-                this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
+                this.authStatusEl.textContent = '接続済み'; 
             } else {
                 this.authContainer?.classList.remove('hidden');
                 this.signoutContainer?.classList.add('hidden');
-                this.authStatusEl.textContent = 'Dropboxにログインしていません。';
+                this.authStatusEl.textContent = ''; 
             }
         }
     };
@@ -273,14 +278,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Dropbox データ取得 ---
     async function loadDataFromDropbox() {
         if (!dailyTaskListApp.dbx) {
-            alert('Dropboxにログインしてください。');
             dailyTaskListApp.driveStatusEl.textContent = 'Dropboxに接続されていません。';
+            dailyTaskListApp.driveStatusEl.classList.remove('hidden');
             // フォールバック
             loadDataFromLocalStorage();
             triggerRender();
             return;
         }
-        dailyTaskListApp.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
+		// ステータスを一時的に表示
+        dailyTaskListApp.driveStatusEl.textContent = '読み込み中...';
+        dailyTaskListApp.driveStatusEl.classList.remove('hidden');
         
         try {
             // メインデータとアーカイブデータを並行して取得
@@ -307,14 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('dtl_dailyTasks', JSON.stringify(state.dailyTasks));
             localStorage.setItem('dtl_archivedTasks', JSON.stringify(state.archivedTasks));
 
-            dailyTaskListApp.driveStatusEl.textContent = `データを読み込みました (${new Date().toLocaleTimeString()})。`;
-            
+            dailyTaskListApp.driveStatusEl.textContent = ``;
+            dailyTaskListApp.driveStatusEl.classList.add('hidden');
+			
             // データを読み込めたので画面を描画
             triggerRender();
 
         } catch (error) {
             console.error('Error loading data from Dropbox:', error);
-            dailyTaskListApp.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
+            dailyTaskListApp.driveStatusEl.textContent = `読み込みエラー`;
+            dailyTaskListApp.driveStatusEl.classList.remove('hidden'); // エラー時は表示
             // エラー時はローカルフォールバックを試す
             loadDataFromLocalStorage();
             triggerRender();
