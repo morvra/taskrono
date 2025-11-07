@@ -561,33 +561,7 @@
                 display: none !important;
             }
         }
-		.modal-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            margin-left: 1rem;
-        }
-        .modal-icon-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            padding: 8px;
-            border-radius: 9999px;
-            color: #6b7280;
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .modal-icon-btn:hover {
-            background-color: #f3f4f6;
-        }
-        /* Specific hover colors */
-        .modal-icon-btn.hover-blue:hover { color: #2563eb; }
-        .modal-icon-btn.hover-red:hover { color: #dc2626; }
-        .modal-icon-btn.hover-green:hover { color: #16a34a; }
+
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -847,28 +821,7 @@
 
 
 <div id="task-edit-modal" class="modal">
-    <div class="modal-content px-6 py-4 w-full max-w-md">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold">タスクを編集</h3>
-            <div class="modal-header-actions">
-                <button id="save-task-edit" class="modal-icon-btn hover-blue" title="保存">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                </button>
-                <button id="cancel-task-edit" class="modal-icon-btn hover-red" title="キャンセル">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-				<button id="create-repeat-from-task" class="modal-icon-btn hover-green" title="リピート作成">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
+    <div class="modal-content p-6 w-full max-w-md">
         <div class="space-y-4">
             <input type="text" id="edit-task-name" placeholder="タスク名" class="w-full p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
             <div class="grid grid-cols-2 gap-4">
@@ -909,7 +862,12 @@
                 </div>
             </div>
         </div>
+        <div class="flex gap-3 mt-6">
+            <button id="save-task-edit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存</button>
+            <button id="cancel-task-edit" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+            <button id="create-repeat-from-task" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-2 rounded-lg">リピート作成</button>
         </div>
+    </div>
 </div>
 
 <div id="memo-edit-modal" class="modal">
@@ -924,23 +882,7 @@
 </div>
 
 <div id="repeat-edit-modal" class="modal">
-    <div class="modal-content px-6 py-4 w-full max-w-lg">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold">リピートタスクを編集</h3>
-            <div class="modal-header-actions">
-                <button id="save-repeat-edit" class="modal-icon-btn hover-blue" title="保存">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                </button>
-                <button id="cancel-repeat-edit" class="modal-icon-btn hover-red" title="キャンセル">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
+    <div class="modal-content p-6 w-full max-w-lg">
         <div class="space-y-4">
             <input type="text" id="edit-repeat-name" placeholder="タスク名" class="w-full p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
              <div class="grid grid-cols-2 gap-4">
@@ -1014,7 +956,12 @@
             <label class="text-sm">何日ごと: <input type="number" id="edit-repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
             <label class="text-sm">基準日: <input type="date" id="edit-repeat-interval-start-date" class="p-2 border rounded-lg"></label>
         </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="save-repeat-edit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存</button>
+            <button id="cancel-repeat-edit" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
         </div>
+    </div>
 </div>
 
 <div id="toast-notification" class="fixed top-5 right-1 bg-green-600 text-white mx-2 py-2 px-4 rounded-lg shadow-md transition-all duration-500 ease-in-out transform -translate-y-20 opacity-0 z-[2000]"></div>
