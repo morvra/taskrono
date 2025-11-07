@@ -4979,6 +4979,7 @@
         const task = tasks.find(t => t.id === id);
         if (!task) return;
 
+        // [Case 1] 実行中のタスクを停止する
         if (state.activeTaskId === id && !forceStop) {
             task.endTime = new Date().toISOString();
             task.actualTime = calculateActualTime(task);
@@ -4987,9 +4988,14 @@
             const nextTask = tasks.find(t => t.status !== 'completed');
             state.focusedTaskId = nextTask ? nextTask.id : null;
             task.updatedAt = new Date().toISOString();
+            
+            saveAndRender({ scroll: true });
+            return;
         }
-        else {
-            if (state.activeTaskId) {
+        
+        // [Case 2] forceStop (外部からの停止要求)
+        if (forceStop) { 
+             if (state.activeTaskId) {
                 const runningTask = tasks.find(t => t.id === state.activeTaskId);
                 if (runningTask) {
                     runningTask.endTime = new Date().toISOString();
@@ -4999,51 +5005,72 @@
                 }
                 stopActiveTimer();
             }
+            saveAndRender({ scroll: true });
+            return;
+        }
 
-            if (!forceStop) {
-                if (task.startTime && task.status !== 'running') {
-                    if (confirm('このタスクは既に一度開始されています。新しいタスクとして再開しますか？')) {
-                        const newTask = addTask(task.name, task.estimatedTime, task.projectId, task.isInterrupt, {
-                            memo: task.memo,
-                            originRepeatId: task.originRepeatId
-                        });
-                        task.endTime = task.endTime || new Date().toISOString();
-                        task.actualTime = calculateActualTime(task);
-                        updateTaskStatus(task);
-                        task.updatedAt = new Date().toISOString();
-                        
-                        toggleTimer(newTask.id);
-                        return;
-                    } else {
-						 task.updatedAt = new Date().toISOString();
-                         saveAndRender();
-                         return;
-                    }
-                }
-                
-                task.startTime = task.startTime || new Date().toISOString();
-                task.endTime = null;
-	            const currentSection = getCurrentSection();
-	            const targetSectionId = currentSection ? currentSection.id : null;
-	            task.sectionId = targetSectionId;
-			
+        // [Case 3] 完了済み/実行済みタスクの再開処理
+        if (task.startTime && task.status !== 'running') {
+            if (confirm('このタスクは既に一度開始されています。新しいタスクとして再開しますか？')) {
+                // [3a] 'OK' (再開する)
+                const originalEstimateMinutes = task.estimatedTime || 0;
+                const originalActualSeconds = calculateActualTime(task);
+                const originalActualMinutes = Math.round(originalActualSeconds / 60); 
+                const newEstimatedTime = Math.max(0, originalEstimateMinutes - originalActualMinutes); 
+
+                const newTask = addTask(task.name, newEstimatedTime, task.projectId, task.isInterrupt, {
+                    memo: task.memo,
+                    originRepeatId: task.originRepeatId
+                });
+
+                task.endTime = task.endTime || new Date().toISOString();
+                task.actualTime = calculateActualTime(task);
                 updateTaskStatus(task);
-                state.activeTaskId = id;
-                state.focusedTaskId = id;
                 task.updatedAt = new Date().toISOString();
                 
-                state.activeTimerId = setInterval(() => {
-                    const timeEl = document.querySelector(`[data-task-id="${id}"] .time-actual`);
-                    if (timeEl) {
-                        timeEl.textContent = formatTime(calculateActualTime(task));
-                    }
-					const floatingTimeEl = document.getElementById('floating-elapsed-time');
-				    if (floatingTimeEl) {
-				        floatingTimeEl.textContent = formatTime(calculateActualTime(task));
-				    }
-                }, 1000);
+                toggleTimer(newTask.id); // 新タスクのタイマーを開始 (Case 4/5 へ)
+                return;
+            } else {
+                // [3b] 'キャンセル' (何もしない)
+                return; // ★重要: 何もせずに関数を終了
             }
         }
+
+        // [Case 4] 他のタスクが実行中なら停止する
+        if (state.activeTaskId) { 
+            const runningTask = tasks.find(t => t.id === state.activeTaskId);
+            if (runningTask) {
+                runningTask.endTime = new Date().toISOString();
+                runningTask.actualTime = calculateActualTime(runningTask);
+                updateTaskStatus(runningTask);
+                runningTask.updatedAt = new Date().toISOString();
+            }
+            stopActiveTimer();
+        }
+
+        // [Case 5] (id)のタスクを開始する
+        task.startTime = task.startTime || new Date().toISOString();
+        task.endTime = null;
+        const currentSection = getCurrentSection();
+        const targetSectionId = currentSection ? currentSection.id : null;
+        task.sectionId = targetSectionId;
+
+        updateTaskStatus(task);
+        state.activeTaskId = id;
+        state.focusedTaskId = id;
+        task.updatedAt = new Date().toISOString();
+        
+        state.activeTimerId = setInterval(() => {
+            const timeEl = document.querySelector(`[data-task-id="${id}"] .time-actual`);
+            if (timeEl) {
+                timeEl.textContent = formatTime(calculateActualTime(task));
+            }
+            const floatingTimeEl = document.getElementById('floating-elapsed-time');
+            if (floatingTimeEl) {
+                floatingTimeEl.textContent = formatTime(calculateActualTime(task));
+            }
+        }, 1000);
+
         saveAndRender({ scroll: true });
     }
 
