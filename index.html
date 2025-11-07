@@ -3138,6 +3138,13 @@
             if (e.key === 'Enter') { e.preventDefault(); saveRepeatEdit(); }
         });
 
+		document.getElementById('inbox-textarea').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                document.getElementById('save-inbox-btn').click();
+            }
+        });
+
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModal(modal.id);
