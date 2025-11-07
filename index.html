@@ -1337,9 +1337,9 @@
 			            const taskMap = new Map();
 			        
 			            for (const task of combinedTasks) {
-			                const key = task.originRepeatId
-			                    ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
-			                    : `task-${task.id}`;
+			                const key = (task.originRepeatId && !task.isManuallyAddedRepeat) // 自動生成リピートタスク
+			                    ? `repeat-${task.originRepeatId}-${task.createdDate || date}` // 従来通り (IDと日付でマージ)
+			                    : `task-${task.id}`; // 通常タスクまたは手動生成リピートタスク (task.idでユニーク)
 			        
 			                if (!taskMap.has(key)) {
 			                    taskMap.set(key, task);
@@ -2513,6 +2513,7 @@
 	        createdDate: today,
 	        startTime: null,
 	        endTime: null,
+	        isManuallyAddedRepeat: true, // ★フラグ追加
 	        updatedAt: new Date().toISOString()
 	    };
 	    const allTasks = state.dailyTasks[today]; // 削除済み含む全タスク
