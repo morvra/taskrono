@@ -2732,6 +2732,7 @@
 
 	const SWIPE_THRESHOLD_SHORT = 60; // 短いスワイプのしきい値 (px)
 	const SWIPE_THRESHOLD_LONG = 120; // 長いスワイプのしきい値 (px)
+	const SWIPE_THRESHOLD_EXTRA_LONG = 180; // さらに長いスワイプのしきい値 (px)
 	const SWIPE_ICON_VISIBLE_THRESHOLD = 60; // アイコン表示を開始するしきい値 (px)
 
 	// タッチ開始イベント
@@ -2819,6 +2820,7 @@
 	    const actions = {
 	        rightShort: swipeBackground.querySelector('#swipe-right-short'),
 	        rightLong: swipeBackground.querySelector('#swipe-right-long'),
+	        rightExtraLong: swipeBackground.querySelector('#swipe-right-extra-long'),
 	        leftShort: swipeBackground.querySelector('#swipe-left-short'),
 	        leftLong: swipeBackground.querySelector('#swipe-left-long'),
 	    };
@@ -2841,11 +2843,14 @@
 	    // 3. スワイプ量に応じて表示するアイコンと背景色を決定
 	    if (deltaX > 0) {
 	        // 右スワイプ
-	        if (deltaX > SWIPE_THRESHOLD_LONG) {
+	        if (deltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
+	            actions.rightExtraLong.classList.add('visible');
+	            bgRight.style.backgroundColor = '#a855f7'; // ExtraLong(紫) - タスク編集
+	        } else if (deltaX > SWIPE_THRESHOLD_LONG) {
 	            actions.rightLong.classList.add('visible');
 	            bgRight.style.backgroundColor = '#3b82f6'; // 長(青) - メモ編集
 	        } else if (deltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
-	            // 短 - タイマー操作 (10px超えたらアイコン表示)
+	            // 短 - タイマー操作 (60px超えたらアイコン表示)
 	            actions.rightShort.classList.add('visible');
 	            // 背景色は上で設定済み（実行中なら赤、そうでなければ緑）
 	        }
@@ -2856,7 +2861,7 @@
 	            actions.leftLong.classList.add('visible');
 	            bgLeft.style.backgroundColor = '#ef4444'; // 長(赤) - 削除
 	        } else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
-	            // 短(黄) - 先送り (10px超えたらアイコン表示)
+	            // 短(黄) - 先送り (60px超えたらアイコン表示)
 	            actions.leftShort.classList.add('visible');
 	        }
 	    }
@@ -2870,12 +2875,16 @@
                 let actionTriggered = false;
 
                 // ロジック
-                if (swipeDeltaX > SWIPE_THRESHOLD_LONG) {
-                    // 右スワイプ（長）: メモ編集 (150px以上)
+                if (swipeDeltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
+                    // 右スワイプ（特長）: タスク編集
+                    openTaskEditModal(taskId);
+                    actionTriggered = true;
+                } else if (swipeDeltaX > SWIPE_THRESHOLD_LONG) {
+                    // 右スワイプ（長）: メモ編集
                     openMemoEditModal(taskId);
                     actionTriggered = true;
                 } else if (swipeDeltaX > SWIPE_THRESHOLD_SHORT) {
-                    // 右スワイプ（短）: タイマー (60px 〜 150px)
+                    // 右スワイプ（短）: タイマー
                     toggleTimer(taskId);
                     actionTriggered = true;
                 } else if (swipeDeltaX < -SWIPE_THRESHOLD_LONG) {
@@ -3615,6 +3624,11 @@
                     </div>
                     <div id="swipe-right-long" class="swipe-action-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                    <div id="swipe-right-extra-long" class="swipe-action-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                     </div>
                 </div>
                 <div class="swipe-bg swipe-bg-left">
