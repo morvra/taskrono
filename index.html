@@ -2063,7 +2063,14 @@
             document.title = `⏱ ${plainTaskName} - Taskrono`;
             setFavicon(dailyTaskListApp.runningFavicon);
         } else {
-            document.title = 'Taskrono';
+            const tasks = getTasksForViewDate();
+            const remainingTasksCount = tasks.filter(t => t.status !== 'completed').length;
+            
+            if (remainingTasksCount > 0) {
+                document.title = `(${remainingTasksCount}) Taskrono`;
+            } else {
+                document.title = 'Taskrono';
+            }
             setFavicon(dailyTaskListApp.defaultFavicon);
         }
     }
