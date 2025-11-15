@@ -634,6 +634,11 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                         </svg>
                     </button>
+					<button id="delete-all-tasks-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm hidden" title="表示中の日のタスクをすべて削除">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
 				</div>
                 <p class="text-xs text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
             </div>
@@ -2970,6 +2975,12 @@
                     matchingTab.classList.add('active');
                 });
                 document.getElementById(tabName).classList.add('active');
+
+				// 一括削除ボタンの表示/非表示をタブに連動させる
+                const deleteAllBtn = document.getElementById('delete-all-tasks-btn');
+                if (deleteAllBtn) {
+                    deleteAllBtn.classList.toggle('hidden', tabName !== 'today');
+                }
                 
                 // ボトムバーのアクティブ状態を更新
                 const todayBtn = document.getElementById('bottom-nav-today-btn');
@@ -3024,6 +3035,7 @@
         document.getElementById('add-project-btn').addEventListener('click', addProject);
 		document.getElementById('add-section-btn').addEventListener('click', addSection);
 		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
+		document.getElementById('delete-all-tasks-btn').addEventListener('click', deleteAllTasksForViewDate);
         document.getElementById('save-inbox-btn').addEventListener('click', async () => {
             const textarea = document.getElementById('inbox-textarea');
             textarea.disabled = true; // 保存中は無効化
@@ -4876,6 +4888,43 @@
 	    // 4. 状態を保存し、画面を再描画する
 	    saveAndRender();
 	}
+
+	function deleteAllTasksForViewDate() {
+        const tasks = getTasksForViewDate(); // これは !isDeleted なタスクのみを返す
+        if (tasks.length === 0) {
+            alert('削除するタスクがありません。');
+            return;
+        }
+
+        if (!confirm(`表示中の日（${state.viewDate}）のタスク ${tasks.length} 件をすべて削除しますか？\nこの操作は元に戻せません。`)) {
+            return;
+        }
+
+        // 実行中のタスクがあれば停止
+        if (state.activeTaskId && tasks.some(t => t.id === state.activeTaskId)) {
+            stopActiveTimer();
+        }
+
+        const allTasksForDate = state.dailyTasks[state.viewDate] || [];
+        const now = new Date().toISOString();
+        let deletedCount = 0;
+
+        allTasksForDate.forEach(task => {
+            if (!task.isDeleted) {
+                task.isDeleted = true;
+                task.updatedAt = now;
+                deletedCount++;
+            }
+        });
+
+        if (deletedCount > 0) {
+            state.focusedTaskId = null;
+            saveAndRender();
+            showToast(`${deletedCount} 件のタスクを削除しました。`);
+        } else {
+            alert('削除するタスクがありませんでした。');
+        }
+    }
     
 	function postponeTask(id) {
 	    // isDeletedフラグを持つタスクも含めた、その日の全タスクリストを取得します
