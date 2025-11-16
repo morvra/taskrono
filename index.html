@@ -1780,15 +1780,26 @@
 				if (subtask) {
 					subtask.completed = isCompleted;
 					task.updatedAt = new Date().toISOString();
+
+                    let nextFocusedTaskId = taskId;
+                    let nextFocusedSubtaskId = state.focusedSubtaskId;
                     if (isCompleted) {
                         const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
                         if (subtaskIndex !== -1 && subtaskIndex < task.subtasks.length - 1) {
-                            state.focusedSubtaskId = task.subtasks[subtaskIndex + 1].id;
+                            nextFocusedSubtaskId = task.subtasks[subtaskIndex + 1].id;
                         } else {
-                            state.focusedSubtaskId = null;
+                            nextFocusedSubtaskId = null;
                         }
                     }
-					saveAndRender();
+                    saveState();
+
+                    const subtaskItem = document.querySelector(`.subtask-item[data-subtask-id="${subtaskId}"]`);
+                    if (subtaskItem) {
+                        subtaskItem.classList.toggle('completed', isCompleted);
+                        const checkbox = subtaskItem.querySelector('.subtask-checkbox');
+                        if (checkbox) checkbox.checked = isCompleted;
+                    }
+                    updateFocus({ taskId: nextFocusedTaskId, subtaskId: nextFocusedSubtaskId });
 				}
 			}
 		}
@@ -4799,11 +4810,8 @@
             const targetSectionId = sectionId || 'null';
             const targetSectionOrderIndex = sectionOrder.indexOf(targetSectionId);
             
-            // 挿入すべき位置を探す
-            // デフォルトはリストの末尾
             insertIndex = tasks.length; 
 
-            // 1. ターゲットセクションの最後のタスクを探す
             let lastTaskInTargetSectionIndex = -1;
             for (let i = tasks.length - 1; i >= 0; i--) {
                 if ((tasks[i].sectionId || 'null') === targetSectionId) {
@@ -4813,11 +4821,8 @@
             }
 
             if (lastTaskInTargetSectionIndex !== -1) {
-                // 同じセクションのタスクが既にあれば、その直後に追加
                 insertIndex = lastTaskInTargetSectionIndex + 1;
             } else {
-                // ターゲットセクションにタスクがない場合
-                // ターゲットセクションより後のセクションに属する最初のタスクを探す
                 let firstTaskInNextSectionIndex = -1;
                 for (let i = 0; i < tasks.length; i++) {
                     const taskSectionOrderIndex = sectionOrder.indexOf(tasks[i].sectionId || 'null');
@@ -4828,10 +4833,8 @@
                 }
 
                 if (firstTaskInNextSectionIndex !== -1) {
-                    // 後のセクションのタスクがあれば、その直前に追加
                     insertIndex = firstTaskInNextSectionIndex;
                 }
-                // 後のセクションのタスクがなければ、デフォルトの `tasks.length` (末尾) が使われる
             }
 	    }
 	
@@ -5245,7 +5248,6 @@
         saveAndRender();
     }
 
-	// function addProject() の後に追加
 	function archiveProject(id) {
 	    const project = state.projects.find(p => p.id === id);
 	    if (project && confirm(`プロジェクト「${project.name}」をアーカイブしますか？`)) {
@@ -5416,6 +5418,60 @@
         });
 	}
 
+	function updateFocus(newFocusedInfo = {}) {
+        const { taskId, subtaskId, repeatTaskId } = newFocusedInfo;
+
+        const activeTab = document.querySelector('.tab-link.active').dataset.tab;
+
+        // 1. 古いフォーカスをDOMから削除
+        document.querySelectorAll('.focused').forEach(el => el.classList.remove('focused'));
+
+        let focusedElement = null;
+
+        if (activeTab === 'today') {
+            // 2. stateを更新
+            state.focusedTaskId = taskId || null;
+            state.focusedSubtaskId = subtaskId || null;
+            state.focusedRepeatTaskId = null; // 他のタブのフォーカスはクリア
+
+            // 3. 新しいフォーカスをDOMに適用
+            if (taskId && subtaskId) {
+                // サブタスクを探す
+                focusedElement = document.querySelector(`.subtask-item[data-subtask-id="${subtaskId}"]`);
+            } else if (taskId) {
+                // 親タスクを探す (PCテーブル or スマホカード)
+                focusedElement = document.querySelector(`.task-row[data-task-id="${taskId}"], .task-card[data-task-id="${taskId}"]`);
+            }
+        } else if (activeTab === 'repeat') {
+            // 2. stateを更新
+            state.focusedRepeatTaskId = repeatTaskId || null;
+            state.focusedTaskId = null; // 他のタブのフォーカスはクリア
+            state.focusedSubtaskId = null;
+
+            // 3. 新しいフォーカスをDOMに適用
+            if (repeatTaskId) {
+                focusedElement = document.querySelector(`.repeat-task-row[data-id="${repeatTaskId}"]`);
+            }
+        }
+
+        if (focusedElement) {
+            focusedElement.classList.add('focused');
+
+            // 4. スクロール判定
+            const rect = focusedElement.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            // 要素が画面上部より上にある
+            if (rect.top < 0) {
+                focusedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+            // 要素が画面下部より下にある
+            else if (rect.bottom > viewportHeight) {
+                focusedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+    }
+
     function handleKeyboardShortcuts(e) {
         if (document.querySelector('input:focus, select:focus, textarea:focus, .modal.active')) return;
 
@@ -5471,24 +5527,10 @@
                             break; 
                         }
                         if (currentSubtaskIndex > 0) {
-                            // 1つ上のサブタスクへ
-                            state.focusedSubtaskId = subtasks[currentSubtaskIndex - 1].id;
+                            updateFocus({ taskId: currentTask.id, subtaskId: subtasks[currentSubtaskIndex - 1].id });
                         } else {
-                            // 最初のサブタスクから親タスクへ
-                            state.focusedSubtaskId = null;
+                            updateFocus({ taskId: currentTask.id });
                         }
-                        render();
-						// サブタスク移動後の最小限スクロール
-		                requestAnimationFrame(() => {
-		                    const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
-		                    if (focusedEl) {
-		                        const rect = focusedEl.getBoundingClientRect();
-		                        const viewportHeight = window.innerHeight;
-		                        if (rect.top < 0 || rect.bottom > viewportHeight) {
-		                            focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-		                        }
-		                    }
-		                });
                         return;
                     case 'arrowdown':
                         e.preventDefault();
@@ -5496,27 +5538,14 @@
                             break;
                         }
                         if (currentSubtaskIndex < subtasks.length - 1) {
-                            // 1つ下のサブタスクへ
-                            state.focusedSubtaskId = subtasks[currentSubtaskIndex + 1].id;
+                            updateFocus({ taskId: currentTask.id, subtaskId: subtasks[currentSubtaskIndex + 1].id });
                         } else {
-                            // 最後のサブタスクから次の親タスクへ
-                            state.focusedSubtaskId = null;
                             if (currentTaskIndex < tasks.length - 1) {
-                                state.focusedTaskId = tasks[currentTaskIndex + 1].id;
+                                updateFocus({ taskId: tasks[currentTaskIndex + 1].id });
+                            } else {
+                                updateFocus({ taskId: currentTask.id });
                             }
                         }
-                        render();
-						// サブタスク移動後の最小限スクロール
-		                requestAnimationFrame(() => {
-		                    const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
-		                    if (focusedEl) {
-		                        const rect = focusedEl.getBoundingClientRect();
-		                        const viewportHeight = window.innerHeight;
-		                        if (rect.top < 0 || rect.bottom > viewportHeight) {
-		                            focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-		                        }
-		                    }
-		                });
                         return; 
                     case ' ':
                         e.preventDefault();
@@ -5545,8 +5574,9 @@
             case 'arrowup':
                 e.preventDefault();
                 if (!currentTask) {
-                    if (tasks.length > 0) state.focusedTaskId = tasks[0].id;
-                    render();
+                    if (tasks.length > 0) {
+                        updateFocus({ taskId: tasks[0].id });
+                    }
                     break;
                 }
 
@@ -5633,45 +5663,21 @@
                     if (direction === 1) { // ↓キー
                         const hasOpenSubtasks = state.openTaskIds.has(currentTask.id) && currentTask.subtasks && currentTask.subtasks.length > 0;
                         if (hasOpenSubtasks) {
-                            // 開いているサブタスクがあれば、最初のサブタスクへ
-                            state.focusedSubtaskId = currentTask.subtasks[0].id;
+                            updateFocus({ taskId: currentTask.id, subtaskId: currentTask.subtasks[0].id });
                         } else if (currentTaskIndex < tasks.length - 1) {
-                            // サブタスクがなければ、次の親タスクへ
-                            state.focusedTaskId = tasks[currentTaskIndex + 1].id;
+                            updateFocus({ taskId: tasks[currentTaskIndex + 1].id });
                         }
                     } else { // ↑キー
                         if (currentTaskIndex > 0) {
                             const prevTask = tasks[currentTaskIndex - 1];
                             const prevHasOpenSubtasks = state.openTaskIds.has(prevTask.id) && prevTask.subtasks && prevTask.subtasks.length > 0;
                             if (prevHasOpenSubtasks) {
-                                // 1つ前のタスクに開いているサブタスクがあれば、その最後のサブタスクへ
-                                state.focusedTaskId = prevTask.id;
-                                state.focusedSubtaskId = prevTask.subtasks[prevTask.subtasks.length - 1].id;
+                                updateFocus({ taskId: prevTask.id, subtaskId: prevTask.subtasks[prevTask.subtasks.length - 1].id });
                             } else {
-                                // なければ、1つ前の親タスクへ
-                                state.focusedTaskId = prevTask.id;
+                                updateFocus({ taskId: prevTask.id });
                             }
                         }
                     }
-                    render();
-					
-					// レンダリング後に、フォーカス要素が画面外なら最小限スクロール
-			        requestAnimationFrame(() => {
-			            const focusedEl = document.querySelector('.task-row.focused, .task-card.focused, .subtask-item.focused');
-			            if (focusedEl) {
-			                const rect = focusedEl.getBoundingClientRect();
-			                const viewportHeight = window.innerHeight;
-			                
-			                // 要素が画面上部より上にある場合
-			                if (rect.top < 0) {
-			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			                }
-			                // 要素が画面下部より下にある場合
-			                else if (rect.bottom > viewportHeight) {
-			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			                }
-			            }
-			        });
                 }
                 break;
             case 'arrowleft': e.preventDefault(); moveViewDate(-1); break;
@@ -5706,7 +5712,7 @@
         // 3. ソート後の配列を state.repeatTasks に反映
         state.repeatTasks = tasksWithIndex.map(item => item.task);
 
-        const tasks = state.repeatTasks; // これで tasks は必ずソート済み
+        const tasks = state.repeatTasks;
         if (tasks.length === 0 && !['n', 'r'].includes(e.key.toLowerCase())) return;
 
         const currentTaskIndex = tasks.findIndex(t => t.id === state.focusedRepeatTaskId);
@@ -5743,14 +5749,13 @@
             case 'arrowup':
                 e.preventDefault();
                 if (!currentTask) { // フォーカスが当たってない場合
-                    if (tasks.length > 0) state.focusedRepeatTaskId = tasks[0].id;
-                    renderRepeatTasks(); // focusedRepeatTaskId を反映して再描画
+                    if (tasks.length > 0) {
+                        updateFocus({ repeatTaskId: tasks[0].id });
+                    }
                     break;
                 }
 
                 if (e.ctrlKey || e.metaKey) {
-                    // タスクの順番移動ロジック
-                    // 配列は関数の先頭でソート済みなので、ここではソート処理は不要
                     const sortedTasks = tasks; 
                     const sortedCurrentTaskIndex = currentTaskIndex;
 
@@ -5825,32 +5830,18 @@
                     }
 
                     sortedTasks.splice(newIndex, 0, movedTask);
-                    state.repeatTasks = sortedTasks; // state.repeatTasks にソート済みの配列を保存
+                    state.repeatTasks = sortedTasks;
                     saveAndRender();
 
                 } else { // 通常の選択移動
                     const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
                     let nextIndex = currentTaskIndex + direction;
                     if (nextIndex >= 0 && nextIndex < tasks.length) {
-                        state.focusedRepeatTaskId = tasks[nextIndex].id;
+                        updateFocus({ repeatTaskId: tasks[nextIndex].id });
                     }
-                    renderRepeatTasks(); // focusedRepeatTaskId を反映して再描画
-					
-			        requestAnimationFrame(() => {
-			            const focusedEl = document.querySelector('.repeat-task-row.focused');
-			            if (focusedEl) {
-			                const rect = focusedEl.getBoundingClientRect();
-			                const viewportHeight = window.innerHeight;
-			                
-			                if (rect.top < 0 || rect.bottom > viewportHeight) {
-			                    focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			                }
-			            }
-			        });
                 }
                 break;
-            
-            case ' ': // [Space] 当日のタスクに追加
+            case ' ':
                 e.preventDefault(); 
                 if (state.focusedRepeatTaskId) {
                     const rt = generateSingleRepeatTask(state.focusedRepeatTaskId);
@@ -5880,13 +5871,10 @@
         const tasks = getTasksForViewDate();
         const firstUncompletedTask = tasks.find(t => getTaskStatus(t) !== 'completed');
         if (firstUncompletedTask) {
-            // 未完了タスクがあれば、その最初のタスクを選択
             state.focusedTaskId = firstUncompletedTask.id;
         } else if (tasks.length > 0) {
-            // 未完了タスクがなく、タスクが1件以上あれば、リストの最後のタスクを選択
             state.focusedTaskId = tasks[tasks.length - 1].id;
         } else {
-            // タスクがなければ選択しない
             state.focusedTaskId = null;
         }
         renderTodayTasks({ scroll: true });
