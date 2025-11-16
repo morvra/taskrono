@@ -359,7 +359,7 @@
 		    background-color: #f9fafb;
 		    border-radius: 6px;
 		}
-		/* --- スワイプ機能用CSS --- */
+		/* スワイプ機能用CSS */
 		@media (max-width: 768px) {
 		    .task-card-swipe-wrapper {
 		        position: relative;
@@ -436,7 +436,7 @@
             }
         }
         
-        /* --- 新しいボトムUIコンテナ (親) --- */
+        /* 新しいボトムUIコンテナ (親) */
         #bottom-ui-container {
             display: none; /* スマホ以外では非表示 */
             position: absolute; /* JSで制御 */
@@ -458,7 +458,7 @@
             pointer-events: none; /* 親コンテナはクリックさせない */
         }
 
-        /* --- 新しいボトムナビゲーションバー (左側カプセル) --- */
+        /* 新しいボトムナビゲーションバー (左側カプセル) */
         #bottom-nav-bar {
             display: flex; /* 中のボタンを横並び */
             position: static; /* absoluteを解除 */
@@ -519,7 +519,7 @@
             display: none;
         }
 
-        /* --- 新しいスマホ用 追加FAB (右側) --- */
+        /* 新しいスマホ用 追加FAB (右側) */
         #bottom-fab-add-task {
             display: block;
             position: static;
@@ -546,7 +546,7 @@
             transform: scale(0.95);
         }
 
-        /* --- スマホ表示時の切り替え --- */
+        /* スマホ表示時の切り替え */
         @media (max-width: 768px) {
             #bottom-ui-container {
                 display: flex; /* 親コンテナを表示 */
@@ -555,7 +555,7 @@
             .tab-content.active { padding-bottom: 104px; }
         }
         
-        /* --- PC表示時は新しい要素を非表示 --- */
+        /* PC表示時は新しい要素を非表示 */
         @media (min-width: 769px) {
              #bottom-ui-container {
                 display: none !important;
@@ -1029,7 +1029,7 @@
 <script>
 
     document.addEventListener('DOMContentLoaded', () => {
-        // --- フローティング要素のキーボード追従と滑らかスクロール対策 ---
+        // フローティング要素のキーボード追従と滑らかスクロール対策
 		function setupFloatingElementsStick() {
 		    const container = document.getElementById('bottom-ui-container');
 		
@@ -1109,7 +1109,7 @@
 		    }
 		}
 
-        // --- DROPBOX SYNC START ---
+        // DROPBOX SYNC START
         const dailyTaskListApp = window.dailyTaskListApp = {
             dropboxFilePath: '/DailyTaskListData.json', // Dropbox App Folder内のパス
 			inboxFilePath: '/inbox.txt', // Inboxファイルのパス
@@ -1323,13 +1323,13 @@
 			        const fileContent = await response.result.fileBlob.text();
 			        const importedData = JSON.parse(fileContent);
 			
-			        // --- セクション情報の復元（タスク復元より前に実行） ---
+			        // セクション情報の復元（タスク復元より前に実行）
 			        if (importedData.sections && Array.isArray(importedData.sections)) {
 			            state.sections = importedData.sections;
 			            state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
 			        }
 			
-			        // --- Custom Merge Logic for dailyTasks ---
+			        // Custom Merge Logic for dailyTasks
 			        const driveDailyTasks = importedData.dailyTasks || {};
 			        const localDailyTasks = state.dailyTasks;
 			        const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
@@ -1373,7 +1373,7 @@
 			            
 			            let mergedTasks = Array.from(taskMap.values());
 			            
-			            // --- タスクをセクション順にソート ---
+			            // タスクをセクション順にソート
 			            const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
 			            const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
 			            
@@ -1392,7 +1392,7 @@
 			            
 			            state.dailyTasks[date] = mergedTasks;
 			        });
-			        // --- End of dailyTasks Merge Logic ---
+			        // End of dailyTasks Merge Logic
 					
 			        const sortedDates = Array.from(new Set([
 			            ...Object.keys(state.dailyTasks), 
@@ -1438,13 +1438,13 @@
 			                return false;
 			            });
 			        });
-			        // --- End of リピートタスク重複削除処理 ---
+			        // End of リピートタスク重複削除処理
 			
 			        if (importedData.projects) state.projects = importedData.projects;
 			        if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
 			        state.lastDate = importedData.lastDate || state.lastDate;
 			        
-                    // --- Inboxからのインポート処理を呼び出す ---
+                    // Inboxからのインポート処理を呼び出す
                     await this.importTasksFromInbox();
 
 			        stopActiveTimer();
@@ -1504,7 +1504,7 @@
 			        }
 			    }
 			    
-                // --- メインデータとアーカイブデータを分離 ---
+                // メインデータとアーカイブデータを分離
 			    const mainDataToSave = {
 			        dailyTasks: cleanedDailyTasks,
 			        projects: state.projects,
@@ -1586,7 +1586,7 @@
 		
 		    if (authCode) {
 		        try {
-		            // --- PKCE: 認証開始時に保存した code_verifier を復元 ---
+		            // PKCE: 認証開始時に保存した code_verifier を復元
 		            const savedVerifier = sessionStorage.getItem('dropbox_pkce_code_verifier');
 		            if (savedVerifier && dbx && dbx.auth) {
 		                try { dbx.auth.codeVerifier = savedVerifier; } catch (e) { /* ignore */ }
@@ -1649,7 +1649,7 @@
 		        }
 		    }
 		
-		    // --- 認証開始処理 ---
+		    // 認証開始処理
 		    dailyTaskListApp.authorizeButton.addEventListener('click', async () => {
 		        try {
 		            const authUrl = await dbx.auth.getAuthenticationUrl(
@@ -1678,7 +1678,7 @@
 		        }
 		    });
 		
-		    // --- ログアウト処理 ---
+		    // ログアウト処理
 		    dailyTaskListApp.signoutButton.addEventListener('click', async () => {
 		        if (!dailyTaskListApp.dbx) return;
 		        try {
@@ -1694,7 +1694,7 @@
 		        }
 		    });
 		}
-		// --- DROPBOX SYNC END ---
+		// DROPBOX SYNC END
 		
 
         function showToast(message, duration = 3000) {
@@ -2524,7 +2524,7 @@
 	        createdDate: today,
 	        startTime: null,
 	        endTime: null,
-	        isManuallyAddedRepeat: true, // ★フラグ追加
+	        isManuallyAddedRepeat: true,
 	        updatedAt: new Date().toISOString()
 	    };
 	    const allTasks = state.dailyTasks[today]; // 削除済み含む全タスク
@@ -2733,7 +2733,7 @@
         textarea.focus();
     }
 
-	// --- スワイプ機能 START ---
+	// スワイプ機能 START
 	let swipeTargetCard = null;
 	let swipeBackground = null;
 	let swipeStartX = 0;
@@ -2950,7 +2950,7 @@
 	    isSwiping = false;
 	    isSwipeScrollLock = false;
 	}
-	// --- スワイプ機能 END ---
+	// スワイプ機能 END
 
     function setupEventListeners() {
         document.getElementById('bottom-nav-today-btn').addEventListener('click', () => {
@@ -3050,7 +3050,7 @@
         document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
         document.getElementById('generate-from-repeat-btn').addEventListener('click', generateTasksFromRepeatManual);
         
-        // --- リピートタスク追加フォームのUI制御 ---
+        // リピートタスク追加フォームのUI制御
         document.getElementById('repeat-task-type').addEventListener('change', (e) => {
             const value = e.target.value;
             document.getElementById('repeat-weekly-options').classList.toggle('hidden', value !== 'weekly');
@@ -3573,9 +3573,7 @@
 			
 			const actualTimeHtml = isCompleted ? `<span class="text-gray-600">実績: ${formatTime(calculateActualTime(task))}</span>` : '';
 
-            // ★ 変更点: moveButtonHtml の定義を削除
-            
-            // ★ 変更点: リピートアイコンとプロジェクト名を表示するHTMLを定義
+            // リピートアイコンとプロジェクト名を表示するHTMLを定義
             const projectLabelHtml = `
                 <span class="flex items-center text-xs text-gray-500 ml-2 whitespace-nowrap flex-shrink-0 project-label">
                     ${task.originRepeatId ? `
@@ -3587,7 +3585,6 @@
                 </span>
             `;
             
-            // ★ 変更点: card.innerHTML のボタン部分を projectLabelHtml に置き換え
             card.innerHTML = `
                 <div class="flex items-center gap-3">
                     <div class="flex flex-col items-center">
@@ -3719,13 +3716,13 @@
                 }
             });
 
-            // --- スワイプ開始イベントリスナーを追加 ---
+            // スワイプ開始イベントリスナーを追加
             if (el.classList.contains('task-card')) {
                 // passive: true を指定し、スクロール性能を阻害しないようにしつつ、
                 // moveイベント内でスクロールロックを判定する
                 el.addEventListener('touchstart', handleSwipeStart);
             }
-            // --- スワイプ追加 END ---
+            // スワイプ追加 END
         });
 
         document.querySelectorAll('.timer-btn, .checkmark-btn').forEach(btn => 
@@ -4238,7 +4235,7 @@
             });
         }
         
-        // --- 値のクリアと設定 ---
+        // 値のクリアと設定
         document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => cb.checked = false);
         document.getElementById('edit-repeat-weekly-interval').value = '1';
         document.getElementById('edit-repeat-weekly-start-date').value = '';
@@ -4251,7 +4248,7 @@
         document.getElementById('edit-repeat-interval-days').value = '';
         document.getElementById('edit-repeat-interval-start-date').value = '';
         
-        // --- 保存された値の反映 ---
+        // 保存された値の反映
         if (repeatTask.type === 'weekly') {
             if (Array.isArray(repeatTask.value)) {
                 document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => {
@@ -4553,7 +4550,7 @@
 	    container.querySelectorAll('.edit-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => openRepeatEditModal(e.currentTarget.dataset.id)));
 	    container.querySelectorAll('.delete-repeat-task-btn').forEach(btn => btn.addEventListener('click', (e) => deleteRepeatTask(e.currentTarget.dataset.id)));
 		
-        container.querySelectorAll('.repeat-task-row').forEach(el => { // ★追加 (クリックイベント)
+        container.querySelectorAll('.repeat-task-row').forEach(el => {
             el.addEventListener('click', (e) => {
                 if (e.target.closest('button, a, .drag-handle, .tooltip-container')) {
                     return;
@@ -4561,7 +4558,7 @@
                 const taskId = e.currentTarget.dataset.id;
                 if (state.focusedRepeatTaskId !== taskId) {
                     state.focusedRepeatTaskId = taskId;
-                    renderRepeatTasks(); // render() ではなく renderRepeatTasks() を呼ぶ
+                    renderRepeatTasks();
                 }
             });
         });
@@ -5124,7 +5121,7 @@
                 return;
             } else {
                 // [3b] 'キャンセル' (何もしない)
-                return; // ★重要: 何もせずに関数を終了
+                return;
             }
         }
 
@@ -5217,7 +5214,7 @@
 
         state.repeatTasks.push({ id: 'rt' + Date.now(), name, estimatedTime: time, projectId, sectionId, memo, type, value, startDate, weekInterval, subtasks: [] });
 
-        // --- 入力フォームのリセット ---
+        // 入力フォームのリセット
         document.getElementById('repeat-task-name').value = '';
         document.getElementById('repeat-task-time').value = '';
         document.querySelectorAll('#repeat-weekly-days input').forEach(cb => cb.checked = false);
@@ -5327,7 +5324,7 @@
 	        try {
 	            const importedData = JSON.parse(e.target.result);
 	            
-	            // --- セクション情報の復元 ---
+	            // セクション情報の復元
 	            if (importedData.sections && Array.isArray(importedData.sections)) {
 	                const sectionMap = new Map(state.sections.map(s => [s.id, s]));
 	                importedData.sections.forEach(s => sectionMap.set(s.id, s));
@@ -5460,7 +5457,7 @@
         const currentTaskIndex = tasks.findIndex(t => t.id === state.focusedTaskId);
         const currentTask = (currentTaskIndex !== -1) ? tasks[currentTaskIndex] : null;
 
-        // --- 1. サブタスクがフォーカスされている場合の処理を最優先 ---
+        // 1. サブタスクがフォーカスされている場合の処理を最優先
         if (currentTask && state.focusedSubtaskId) {
             const subtasks = currentTask.subtasks || [];
             const currentSubtaskIndex = subtasks.findIndex(st => st.id === state.focusedSubtaskId);
@@ -5530,7 +5527,7 @@
             }
         }
         
-        // --- 2. 親タスクがフォーカスされている場合の処理 ---
+        // 2. 親タスクがフォーカスされている場合の処理
         switch (e.key.toLowerCase()) {
             case 'n': e.preventDefault(); openAddTaskModal(); break;
             case 'e': e.preventDefault(); if (state.focusedTaskId) openTaskEditModal(state.focusedTaskId); break;
@@ -5554,7 +5551,7 @@
                 }
 
                 if (e.ctrlKey || e.metaKey) {
-                    // --- タスクの順番移動ロジック ---
+                    // タスクの順番移動ロジック
                     const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
                     const movedTask = tasks.splice(currentTaskIndex, 1)[0];
                     let newIndex = currentTaskIndex;
@@ -5631,7 +5628,7 @@
                     setTasksForViewDate(tasks);
                     saveAndRender();
 
-                } else { // --- 通常の選択移動 ---
+                } else { // 通常の選択移動
                      const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
                     if (direction === 1) { // ↓キー
                         const hasOpenSubtasks = state.openTaskIds.has(currentTask.id) && currentTask.subtasks && currentTask.subtasks.length > 0;
@@ -5752,7 +5749,7 @@
                 }
 
                 if (e.ctrlKey || e.metaKey) {
-                    // --- タスクの順番移動ロジック ---
+                    // タスクの順番移動ロジック
                     // 配列は関数の先頭でソート済みなので、ここではソート処理は不要
                     const sortedTasks = tasks; 
                     const sortedCurrentTaskIndex = currentTaskIndex;
@@ -5831,7 +5828,7 @@
                     state.repeatTasks = sortedTasks; // state.repeatTasks にソート済みの配列を保存
                     saveAndRender();
 
-                } else { // --- 通常の選択移動 ---
+                } else { // 通常の選択移動
                     const direction = e.key.toLowerCase() === 'arrowdown' ? 1 : -1;
                     let nextIndex = currentTaskIndex + direction;
                     if (nextIndex >= 0 && nextIndex < tasks.length) {
