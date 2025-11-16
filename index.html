@@ -3388,7 +3388,7 @@
 	        }
         }
 
-			function renderTaskTable(tbody, tasksToRender, options = {}) {
+	function renderTaskTable(tbody, tasksToRender, options = {}) {
 	    if (tasksToRender.length === 0) {
 	        const parentHeader = tbody.lastElementChild;
 	        if (parentHeader && parentHeader.dataset.sectionId) {
@@ -3513,6 +3513,7 @@
 	            subtasks.forEach(st => {
 	                const item = document.createElement('div');
 	                item.className = `subtask-item ${st.completed ? 'completed' : ''} ${st.id === state.focusedSubtaskId ? 'focused' : ''}`;
+					item.dataset.subtaskId = st.id;
 	                item.innerHTML = `
 	                    <input type="checkbox" class="subtask-checkbox form-checkbox h-4 w-4 text-blue-600" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''}>
 	                    <span class="ml-3 text-sm flex-1">${formatTaskName(st.name)}</span>
@@ -3522,10 +3523,7 @@
 	                        return;
 	                    }
 	                    e.stopPropagation();
-	                    state.focusedTaskId = task.id;
-	                    state.focusedSubtaskId = st.id;
-	                    render();
-	                });
+                        updateFocus({ taskId: task.id, subtaskId: st.id });	                });
 	                item.addEventListener('dblclick', (e) => {
 	                    e.preventDefault();
 	                    toggleSubtaskCompletion(task.id, st.id, !st.completed);
@@ -3678,6 +3676,7 @@
                 subtasks.forEach(st => {
                     const item = document.createElement('div');
                     item.className = `subtask-item ${st.completed ? 'completed' : ''} ${st.id === state.focusedSubtaskId ? 'focused' : ''}`;
+					item.dataset.subtaskId = st.id;
                     item.innerHTML = `
                         <input type="checkbox" class="subtask-checkbox form-checkbox h-4 w-4 text-blue-600" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''}>
                         <span class="ml-3 flex-1">${formatTaskName(st.name)}</span>
@@ -3687,9 +3686,7 @@
                             return;
                         }
                         e.stopPropagation();
-                        state.focusedTaskId = task.id;
-                        state.focusedSubtaskId = st.id;
-                        render();
+                        updateFocus({ taskId: task.id, subtaskId: st.id });
                     });
 					item.addEventListener('dblclick', (e) => {
                         e.preventDefault();
