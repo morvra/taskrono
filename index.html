@@ -1230,6 +1230,11 @@
 			        const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
 			        const timeRegex = /:(\d+)/;
 			        const todayStr = getFormattedDate(new Date());
+
+                    // 翌日の日付文字列を取得
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const tomorrowStr = getFormattedDate(tomorrow);
 			
 			        lines.forEach(line => {
 			            const match = line.match(taskRegex);
@@ -1250,8 +1255,8 @@
 			                    }
 			                }
 			
-			                // 未来の日付かどうかを判定
-			                if (hasDate && targetDate > todayStr) {
+			                // 未来の日付判定：明日までは取り込み、明後日以降は残す
+			                if (hasDate && targetDate > tomorrowStr) {
 			                    remainingLines.push(line);
 			                    return; // この行の処理をスキップして次の行へ
 			                }
@@ -1972,6 +1977,7 @@
             initializeDropboxSync();
 			renderPcAddTaskButton();
             checkDayChange();
+			generateTomorrowRepeats();
             setInterval(checkDayChange, 1000 * 60); 
             updateTitle();
             
@@ -2320,6 +2326,13 @@
         }
     }
 		
+    function generateTomorrowRepeats() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = getFormattedDate(tomorrow);
+        generateTasksFromRepeatAuto(tomorrowStr);
+    }
+
     async function checkDayChange() {
             const today = getFormattedDate(new Date());
             if (state.lastDate !== today) {
@@ -2338,8 +2351,11 @@
                     }
                 }
                 archiveCompletedTasks(state.lastDate);
-                // リピートタスクを生成（これは末尾に追加される）
+                
+                // リピートタスクを生成
                 generateTasksFromRepeatAuto(today);
+                generateTomorrowRepeats();
+
                 state.lastDate = today;
                 state.viewDate = today; 
                 
@@ -2386,7 +2402,7 @@
         }
     }
 
-    function generateTasksFromRepeatAuto(dateStr) {
+    function generateTasksFromRepeatAuto(dateStr, isManualForce = false) {
         const today = new Date(dateStr);
         today.setMinutes(today.getMinutes() + today.getTimezoneOffset());
         
@@ -2462,7 +2478,9 @@
                 const isAlreadyAdded = state.dailyTasks[dateStr].some(
                     task => task.originRepeatId === rt.id && task.createdDate === dateStr
                 );
-                if (!isAlreadyAdded) {
+
+                // 重複していない場合、または強制モード（isManualForce）の場合に追加
+                if (!isAlreadyAdded || isManualForce) {
 					const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
 					
                     state.dailyTasks[dateStr].push({
@@ -2480,6 +2498,7 @@
                         createdDate: dateStr,
                         startTime: null,
                         endTime: null,
+                        isManuallyAddedRepeat: isManualForce
                     });
                 }
             }
@@ -2497,7 +2516,8 @@
         let addedCount = 0;
         const tasksBefore = tasksForToday.length;
         
-        generateTasksFromRepeatAuto(todayStr);
+        // 第2引数に true (isManualForce) を渡して強制生成する
+        generateTasksFromRepeatAuto(todayStr, true);
 
         const tasksAfter = state.dailyTasks[todayStr].length;
         addedCount = tasksAfter - tasksBefore;
@@ -2507,7 +2527,8 @@
             saveAndRender();
             alert(addedCount + ' 件のタスクを生成しました。');
         } else {
-            alert('今日生成できるリピートタスクはありません（既に生成済みか該当なし）。');
+            // 強制モードなので通常ここに来ることは稀ですが、リピート設定が一つもない場合などはここに来ます
+            alert('今日生成できるリピートタスク設定がありません。');
         }
     }
 
