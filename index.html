@@ -1235,6 +1235,7 @@
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     const tomorrowStr = getFormattedDate(tomorrow);
+                    const tasksToAddByDate = {};
 			
 			        lines.forEach(line => {
 			            const match = line.match(taskRegex);
@@ -1283,10 +1284,11 @@
 			                    updatedAt: new Date().toISOString()
 			                };
 			                
-			                if (!state.dailyTasks[targetDate]) {
-			                    state.dailyTasks[targetDate] = [];
-			                }
-			                state.dailyTasks[targetDate].push(newTask);
+                            if (!tasksToAddByDate[targetDate]) {
+                                tasksToAddByDate[targetDate] = [];
+                            }
+                            tasksToAddByDate[targetDate].push(newTask);
+
 			                newTasks.push(newTask);
 			                processed = true; // 1行でも処理したらフラグを立てる
 			
@@ -1295,6 +1297,15 @@
 			            }
 			        });
 			
+                    // 各日付ごとに、既存のタスクリストの「先頭」に新規タスクを追加する
+                    Object.keys(tasksToAddByDate).forEach(date => {
+                        if (!state.dailyTasks[date]) {
+                            state.dailyTasks[date] = [];
+                        }
+                        // 新規タスク(Inbox順) + 既存タスク の順で結合
+                        state.dailyTasks[date] = [...tasksToAddByDate[date], ...state.dailyTasks[date]];
+                    });
+
 			        // 処理されたタスクがある（＝inbox.txtの内容に変更があった）場合のみファイルを更新
 			        if (processed) {
 			            const newContent = remainingLines.join('\n').trim();
@@ -2077,7 +2088,10 @@
     }
 
 	function updateTitle() {
-        const activeTask = getTasksForViewDate().find(t => t.id === state.activeTaskId);
+        const todayStr = getFormattedDate(new Date());
+        const tasksToday = (state.dailyTasks[todayStr] || []).filter(task => !task.isDeleted);
+        const activeTask = tasksToday.find(t => t.id === state.activeTaskId);
+
         if (activeTask) {
             const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
             const plainTaskName = (activeTask.name || '').replace(markdownRegex, '$1');
@@ -2085,8 +2099,8 @@
             document.title = `⏱ ${plainTaskName} - Taskrono`;
             setFavicon(dailyTaskListApp.runningFavicon);
         } else {
-            const tasks = getTasksForViewDate();
-            const remainingTasksCount = tasks.filter(t => t.status !== 'completed').length;
+            // 今日のリストの未完了数をカウント
+            const remainingTasksCount = tasksToday.filter(t => t.status !== 'completed').length;
             
             if (remainingTasksCount > 0) {
                 document.title = `(${remainingTasksCount}) Taskrono`;
@@ -2302,15 +2316,18 @@
     function restoreRunningTaskState() {
         // 既に動いているタイマーがあれば止める
         stopActiveTimer();
-
-        const tasks = getTasksForViewDate();
-        const runningTask = tasks.find(t => t.status === 'running');
+		
+        const todayStr = getFormattedDate(new Date());
+        const tasksToday = (state.dailyTasks[todayStr] || []).filter(task => !task.isDeleted);
+        const runningTask = tasksToday.find(t => t.status === 'running');
         
         if (runningTask) {
             state.activeTaskId = runningTask.id;
             state.activeTimerId = setInterval(() => {
+                const currentTodayStr = getFormattedDate(new Date());
+                const currentTasksToday = state.dailyTasks[currentTodayStr] || [];                
                 // 実行中のタスクの最新の状態を取得
-                const currentTask = getTasksForViewDate().find(t => t.id === state.activeTaskId);
+                const currentTask = currentTasksToday.find(t => t.id === state.activeTaskId);
                 // タスクが存在し、かつ実行中であることを確認
                 if (!currentTask || currentTask.status !== 'running') {
                     stopActiveTimer(); // 状態が変化していればタイマーを停止
@@ -2318,6 +2335,8 @@
                     return;
                 }
                 const currentActualTime = calculateActualTime(currentTask);
+                
+                // DOM更新: もし現在そのタスクが画面上に表示されていれば時間を更新する
                 const timeEl = document.querySelector(`[data-task-id="${currentTask.id}"] .time-actual`);
                 if (timeEl) {
                     timeEl.textContent = formatTime(currentActualTime);
