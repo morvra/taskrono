@@ -42,7 +42,6 @@
                 padding: 1rem 2rem;
             }
 
-            /* 中央コンテンツ */
             main {
                 max-width: 960px;
                 margin: 0;
@@ -128,13 +127,11 @@
              padding-right: 0.5rem;
 	    	 vertical-align: middle;
         }
-		/* font-monoのセルだけを1px下に下げる（微調整用） */
         .task-table td.font-mono,
         .task-table td .font-mono {
             position: relative;
             top: 1px;
         }
-
 		.fab {
             height: 56px;
             width: 56px;
@@ -219,7 +216,6 @@
 		.empty-section-drop-target {
 		    display: none;
 		}
-		
 		.dragging-active .empty-section-drop-target {
 		    display: table-row;
 		}
@@ -242,7 +238,7 @@
                 display: none;
 		    }
 		    .dragging-active .empty-section-drop-target {
-                display: block; /* table-rowではなくblock */
+                display: block;
 		        height: auto;
 		        padding: 1rem !important;
 		        margin-top: 0.5rem !important;
@@ -250,16 +246,12 @@
 		        border-width: 2px !important;
 		    }
 		}
-		
 		.drag-handle { cursor: move; color: #9ca3af; }
         .drag-handle:hover { color: #6b7280; }
-
         .archive-tabs { border-bottom: 1px solid #e5e7eb; }
         .archive-tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; }
         .archive-tab.active { border-bottom-color: #3b82f6; color: #3b82f6; }
-
         .time-input { width: 80px; text-align: center; border: 1px solid #d1d5db; border-radius: 4px; padding: 2px 4px; }
-
 		.archive-search-box { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
         .archive-search-input { flex:1; padding:8px 10px; max-width: 50%; border-radius:6px; border:1px solid #d1d5db; background:white; }
         .archive-search-btn { padding:8px 12px; border-radius:6px; background:#3b82f6; color:white; border:none; cursor:pointer; }
@@ -271,25 +263,15 @@
             .task-card-wrapper {
                 space-y: 0.5rem; 
             }
-            .task-card {
-                border-radius: 0;
-            }
-            .task-card.completed {
-                background-color: #e5e7eb; 
-            }
-            .task-card.completed.focused {
-                background-color: #fef9c3;
-            }
+            .task-card { border-radius: 0; }
+            .task-card.completed { background-color: #e5e7eb; }
+            .task-card.completed.focused { background-color: #fef9c3; }
             .archive-table-wrapper {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
             }
-            .archive-table-wrapper > table {
-                min-width: 640px; 
-            }
-            .archive-table-wrapper td, .archive-table-wrapper th {
-                white-space: nowrap; 
-            }
+            .archive-table-wrapper > table { min-width: 640px; }
+            .archive-table-wrapper td, .archive-table-wrapper th { white-space: nowrap; }
             .archive-table-wrapper .task-memo-cell {
                 white-space: normal;
                 min-width: 250px;
@@ -305,23 +287,15 @@
 		    color: #9ca3af;
 		    padding: 0px 4px 2px;
 		}
-		.subtask-toggle-icon:hover {
-		    color: #4b5563;
-		}
+		.subtask-toggle-icon:hover { color: #4b5563; }
 		.subtask-container {
-		    display: none; /* 初期状態は非表示 */
-		    padding-left: 3.5rem; /* PC表示でのインデント */
+		    display: none;
+		    padding-left: 3.5rem;
 		    background-color: #f9fafb;
 		}
-		.task-row.dragging + .subtask-container-row {
-		    display: none;
-		}
-		.subtask-container-row td {
-		    padding: 0;
-		}
-		.subtask-container.open {
-		    display: block; /* 表示状態 */
-		}
+		.task-row.dragging + .subtask-container-row { display: none; }
+		.subtask-container-row td { padding: 0; }
+		.subtask-container.open { display: block; }
 		.subtask-item {
 		    display: flex;
 		    align-items: center;
@@ -349,7 +323,7 @@
 		    }
 		}
 		
-		/* 編集モーダル内のサブタスクスタイル */
+		/* 編集モーダル内のサブタスク */
 		#edit-task-subtasks, #edit-repeat-subtasks { max-height: 200px; overflow-y: auto; }
 		.subtask-edit-item {
 		    display: flex;
@@ -417,7 +391,7 @@
 		
 		    /* アイコンのラッパー */
 		    .swipe-action-icon {
-		        display: none; /* JSで表示制御 */
+		        display: none;
 		        padding: 0 20px;
 		    }
 		    .swipe-action-icon.visible {
@@ -429,71 +403,64 @@
 		    }
 		}
 		
-        /* 既存の同期ボタンコンテナはPCでは使うが、スマホでは非表示にする */
+        /* 同期ボタンコンテナはPCでは使うが、スマホでは非表示 */
         @media (max-width: 768px) {
             #sync-button-floating-container {
                 display: none !important;
             }
         }
         
-        /* 新しいボトムUIコンテナ (親) */
+        /* ボトムUIコンテナ */
         #bottom-ui-container {
             display: none; /* スマホ以外では非表示 */
             position: absolute; /* JSで制御 */
             left: 0;
             right: 0;
-            bottom: 0; /* JSで top が設定されるが、念のため */
+            bottom: 0;
             height: 104px; /* コンテナ全体の高さ (カプセル + 上下マージン) */
-            
-            /* Flexboxで左右配置 */
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 8px 16px; /* 左右マージン16px, 上下マージン8px */
-            box-sizing: border-box; /* paddingを含めて高さを計算 */
+            box-sizing: border-box;
             z-index: 50;
             will-change: transform;
             transition: transform 80ms linear, opacity 0.25s ease-in-out;
-            background: transparent; /* 親コンテナ自体は透明 */
-            pointer-events: none; /* 親コンテナはクリックさせない */
+            background: transparent;
+            pointer-events: none;
         }
 
-        /* 新しいボトムナビゲーションバー (左側カプセル) */
+        /* ボトムナビゲーションバー (左側カプセル) */
         #bottom-nav-bar {
-            display: flex; /* 中のボタンを横並び */
+            display: flex;
             position: static; /* absoluteを解除 */
             height: 56px; /* カプセルの高さ */
             align-items: center; 
             justify-content: flex-start;
-            padding: 0 8px; /* カプセルの左右余白 */
-            gap: 8px; /* ボタン間の余白 */
-            
-            /* カプセルデザイン */
+            padding: 0 8px;
+            gap: 8px;
             border-radius: 9999px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
-            
-            /* iOS風すりガラス（フォールバック付き） */
-            background-color: rgba(249, 249, 249, 0.85); /* Light mode */
+            background-color: rgba(249, 249, 249, 0.85);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
             border: 0.5px solid rgba(0, 0, 0, 0.1);
-            
             will-change: auto;
             transition: none;
-            pointer-events: auto; /* カプセルはクリック可能にする */
+            pointer-events: auto;
         }
 
         .bottom-nav-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* アイコンを中央揃え */
+            justify-content: center;
             flex-basis: auto;
-            flex-grow: 0; /* 伸縮しない */
-            width: 56px; /* ボタンのタップ領域 */
-            height: 56px; /* ボタンのタップ領域 */
+            flex-grow: 0;
+            width: 56px;
+            height: 56px;
             padding: 0;
-            color: #333; /* デフォルトのアイコン色 (Light) */
+            color: #333;
             background: none;
             border: none;
             border-radius: 50%;
@@ -503,12 +470,11 @@
         
         @media (prefers-color-scheme: dark) {
             .bottom-nav-btn {
-                color: #eee; /* デフォルトのアイコン色 (Dark) */
+                color: #eee;
             }
         }
-
         .bottom-nav-btn.active {
-            color: #007aff; /* アクティブな色 (iOS Blue) */
+            color: #007aff;
         }
         .bottom-nav-btn svg {
             width: 28px;
@@ -518,8 +484,7 @@
         .bottom-nav-btn .text-xs {
             display: none;
         }
-
-        /* 新しいスマホ用 追加FAB (右側) */
+        /* スマホ用 追加FAB (右側) */
         #bottom-fab-add-task {
             display: block;
             position: static;
@@ -555,7 +520,7 @@
             .tab-content.active { padding-bottom: 104px; }
         }
         
-        /* PC表示時は新しい要素を非表示 */
+        /* PC表示時はボトムUI非表示 */
         @media (min-width: 769px) {
              #bottom-ui-container {
                 display: none !important;
@@ -564,14 +529,12 @@
 
 		/* 実行中タスクカード */
 		.task-card.running-enhanced {
-		    background-color: #eff6ff; /* 薄い青 */
-		    z-index: 20; /* 他より手前に */
+		    background-color: #eff6ff;
 		}
 		.task-card.running-enhanced.focused {
-		    background-color: #fef9c3 !important; /* 黄色 (デフォルトのフォーカス色) */
-		}
-		
-		/* タイマー（少しコンパクトに） */
+		    background-color: #fef9c3 !important;
+		}		
+		/* タイマー */
 		.running-timer {
 		    color: #1d4ed8;
 		    border-radius: 4px;
@@ -582,7 +545,6 @@
 		    min-width: 64px;
 		    margin-left: 12px;
 		}
-		
 		/* プログレスバー */
 		.running-progress-bg {
 		    position: absolute;
@@ -6044,6 +6006,6 @@
     init();
 });
 </script>
-	
+
 </body>
 </html>
