@@ -558,6 +558,71 @@
 		    pointer-events: none;
 		}
 
+		/* --- クイックアクション（長押しスライド）用スタイル --- */
+		#quick-action-overlay {
+		    display: none;
+		    position: fixed;
+		    top: 0; left: 0; width: 100%; height: 100%;
+		    background: rgba(0, 0, 0, 0.3); /* 背景を少し暗く */
+		    z-index: 2000;
+		    touch-action: none; /* スクロール防止 */
+		}
+		
+		#quick-action-menu {
+		    position: absolute;
+		    bottom: 90px; /* FABの上に表示 */
+		    right: 24px;
+		    display: flex;
+		    flex-direction: column-reverse; /* 下から上へ積む */
+		    gap: 12px;
+		    align-items: flex-end;
+		    pointer-events: none; /* タッチ判定はJSで行うため透過させる */
+		}
+		
+		.quick-action-item {
+		    background: white;
+		    border-left: 4px solid #ccc;
+		    padding: 8px 16px;
+		    border-radius: 8px;
+		    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+		    font-size: 0.9rem;
+		    font-weight: 600;
+		    color: #374151;
+		    transform: translateX(20px);
+		    opacity: 0;
+		    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		    pointer-events: auto; /* 個別の要素は判定対象にする */
+		}
+		
+		/* メニュー表示時のアニメーション */
+		#quick-action-overlay.active .quick-action-item {
+		    transform: translateX(0);
+		    opacity: 1;
+		}
+		
+		/* 指が乗っている時のハイライト */
+		.quick-action-item.hovered {
+		    background-color: #3b82f6;
+		    color: white;
+		    transform: scale(1.1) translateX(-10px);
+		    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+		}
+		
+		/* 吹き出しの矢印（オプション） */
+		.quick-action-item::after {
+		    content: '';
+		    position: absolute;
+		    right: -6px;
+		    top: 50%;
+		    transform: translateY(-50%);
+		    border-width: 6px 0 6px 6px;
+		    border-style: solid;
+		    border-color: transparent transparent transparent #fff;
+		}
+		.quick-action-item.hovered::after {
+		    border-left-color: #3b82f6;
+		}
+
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -1019,6 +1084,9 @@
             ＋
         </button>
     </div>
+	<div id="quick-action-overlay">
+    <div id="quick-action-menu"></div>
+	</div>
 
 </div>
 
@@ -3013,8 +3081,143 @@
         document.getElementById('bottom-nav-repeat-btn').addEventListener('click', () => {
             document.querySelector('.tab-link[data-tab="repeat"]').click();
         });
-        document.getElementById('add-task-btn-floating-mobile').addEventListener('click', openAddTaskModal);
+        // ★変更: 長押しスライド機能の実装
+        const fabMobile = document.getElementById('add-task-btn-floating-mobile');
+        const quickOverlay = document.getElementById('quick-action-overlay');
+        const quickMenu = document.getElementById('quick-action-menu');
+        let longPressTimer = null;
+        let isLongPressActive = false;
 
+        // タッチ開始
+        fabMobile.addEventListener('touchstart', (e) => {
+            // 右クリック等の防止
+            if (e.touches.length > 1) return;
+
+            isLongPressActive = false;
+            longPressTimer = setTimeout(() => {
+                // --- 長押し発動 ---
+                isLongPressActive = true;
+                
+                // 1. テンプレートを取得
+                const templates = state.repeatTasks.filter(rt => rt.type === 'template');
+                if (templates.length === 0) {
+                    showToast('テンプレートがありません');
+                    return;
+                }
+
+                // 2. バイブレーション（対応端末のみ）
+                if (navigator.vibrate) navigator.vibrate(50);
+
+                // 3. メニュー生成
+                quickMenu.innerHTML = '';
+                templates.forEach(tpl => {
+                    const item = document.createElement('div');
+                    item.className = 'quick-action-item';
+                    item.textContent = tpl.name;
+                    item.dataset.templateId = tpl.id;
+                    
+                    // プロジェクトカラーを適用
+                    const project = state.projects.find(p => p.id === tpl.projectId);
+                    if (project) item.style.borderLeftColor = project.color;
+                    
+                    quickMenu.appendChild(item);
+                });
+
+                // 4. 表示
+                quickOverlay.style.display = 'block';
+                // アニメーション用に少し遅延させる
+                requestAnimationFrame(() => {
+                    quickOverlay.classList.add('active');
+                });
+
+            }, 500); // 0.5秒長押しで発動
+        }, { passive: false });
+
+        // 指を動かしている間 (スライド選択)
+        fabMobile.addEventListener('touchmove', (e) => {
+            if (!isLongPressActive) {
+                // 長押し未発動で指が動いたら、長押しキャンセル（スクロール等を優先）
+                clearTimeout(longPressTimer);
+                return;
+            }
+
+            e.preventDefault(); // スクロール防止
+            const touch = e.touches[0];
+            
+            // 指の下にある要素を取得
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            // ハイライト処理
+            document.querySelectorAll('.quick-action-item').forEach(el => el.classList.remove('hovered'));
+            if (target && target.classList.contains('quick-action-item')) {
+                target.classList.add('hovered');
+                // 軽いフィードバック（任意）
+                // if (navigator.vibrate) navigator.vibrate(5); 
+            }
+        }, { passive: false });
+
+        // 指を離した時 (決定 or キャンセル)
+        fabMobile.addEventListener('touchend', (e) => {
+            clearTimeout(longPressTimer);
+
+            if (isLongPressActive) {
+                // --- 長押しモード終了処理 ---
+                e.preventDefault();
+                
+                // 最後に指が乗っていた要素を探す（touchmoveの最終地点）
+                // touchendにはtouchesがないのでchangedTouchesを使う
+                const touch = e.changedTouches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (target && target.classList.contains('quick-action-item')) {
+                    // ★テンプレート登録実行
+                    const tplId = target.dataset.templateId;
+                    const tpl = state.repeatTasks.find(t => t.id === tplId);
+                    if (tpl) {
+                        const currentSection = getCurrentSection();
+                        const subtasksCopy = tpl.subtasks ? JSON.parse(JSON.stringify(tpl.subtasks)) : [];
+                        subtasksCopy.forEach(st => st.completed = false);
+
+                        addTask(
+                            tpl.name,
+                            tpl.estimatedTime,
+                            tpl.projectId,
+                            currentSection ? currentSection.id : null,
+                            false,
+                            { 
+                                memo: tpl.memo || '',
+                                subtasks: subtasksCopy,
+                                originRepeatId: tpl.id
+                            }
+                        );
+                        showToast(`「${tpl.name}」を追加しました`);
+                        if (navigator.vibrate) navigator.vibrate(100); // 成功バイブ
+                    }
+                }
+
+                // 閉じる
+                quickOverlay.classList.remove('active');
+                setTimeout(() => {
+                    quickOverlay.style.display = 'none';
+                    quickMenu.innerHTML = ''; // クリーンアップ
+                }, 200);
+
+            } else {
+                // --- 普通のタップ ---
+                // 長押しタイマーが発火する前に指を離した -> 通常のモーダルオープン
+                openAddTaskModal();
+            }
+            isLongPressActive = false;
+        });
+
+        // タッチキャンセル時（画面外に出たなど）
+        fabMobile.addEventListener('touchcancel', () => {
+            clearTimeout(longPressTimer);
+            isLongPressActive = false;
+            quickOverlay.classList.remove('active');
+            quickOverlay.style.display = 'none';
+        });
+		
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
