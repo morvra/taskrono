@@ -503,6 +503,10 @@
             justify-content: center;
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
             transition: all 0.2s ease-in-out;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
         }
         #add-task-btn-floating-mobile:hover {
             box-shadow: 0 6px 16px rgba(0,0,0,0.2);
@@ -1052,8 +1056,7 @@
     </div>
 </div>
 
-<div id="bottom-ui-container">
-    
+<div id="bottom-ui-container"> 
     <div id="bottom-nav-bar">
         <button id="bottom-nav-today-btn" class="bottom-nav-btn active">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1084,10 +1087,10 @@
             ＋
         </button>
     </div>
-	<div id="quick-action-overlay">
-    <div id="quick-action-menu"></div>
-	</div>
+    </div>
 
+<div id="quick-action-overlay">
+    <div id="quick-action-menu"></div>
 </div>
 
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
@@ -3081,12 +3084,16 @@
         document.getElementById('bottom-nav-repeat-btn').addEventListener('click', () => {
             document.querySelector('.tab-link[data-tab="repeat"]').click();
         });
-        // ★変更: 長押しスライド機能の実装
         const fabMobile = document.getElementById('add-task-btn-floating-mobile');
         const quickOverlay = document.getElementById('quick-action-overlay');
         const quickMenu = document.getElementById('quick-action-menu');
         let longPressTimer = null;
         let isLongPressActive = false;
+		fabMobile.addEventListener('contextmenu', (e) => {
+		    e.preventDefault();
+		    e.stopPropagation();
+		    return false;
+		}, { passive: false });
 
         // タッチ開始
         fabMobile.addEventListener('touchstart', (e) => {
