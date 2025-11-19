@@ -562,7 +562,7 @@
 		    pointer-events: none;
 		}
 
-		/* --- クイックアクション（長押しスライド）用スタイル --- */
+		/* クイックアクション（長押しスライド） */
 		#quick-action-overlay {
 		    display: none;
 		    position: fixed;
@@ -574,20 +574,19 @@
 		
 		#quick-action-menu {
 		    position: absolute;
-		    bottom: 90px; /* FABの上に表示 */
+		    bottom: 90px;
 		    right: 24px;
 		    display: flex;
-		    flex-direction: column-reverse; /* 下から上へ積む */
+		    flex-direction: column;
 		    gap: 12px;
 		    align-items: flex-end;
-		    pointer-events: none; /* タッチ判定はJSで行うため透過させる */
+		    pointer-events: none;
 		}
 		
 		.quick-action-item {
 		    background: white;
 		    border-left: 4px solid #ccc;
 		    padding: 8px 16px;
-		    border-radius: 8px;
 		    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
 		    font-size: 0.9rem;
 		    font-weight: 600;
@@ -610,21 +609,6 @@
 		    color: white;
 		    transform: scale(1.1) translateX(-10px);
 		    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-		}
-		
-		/* 吹き出しの矢印（オプション） */
-		.quick-action-item::after {
-		    content: '';
-		    position: absolute;
-		    right: -6px;
-		    top: 50%;
-		    transform: translateY(-50%);
-		    border-width: 6px 0 6px 6px;
-		    border-style: solid;
-		    border-color: transparent transparent transparent #fff;
-		}
-		.quick-action-item.hovered::after {
-		    border-left-color: #3b82f6;
 		}
 
     </style>
@@ -1083,7 +1067,7 @@
     </div>
     
     <div id="bottom-fab-add-task">
-        <button id="add-task-btn-floating-mobile" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
+        <button id="add-task-btn-floating-mobile" oncontextmenu="return false;" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
             ＋
         </button>
     </div>
@@ -3090,10 +3074,11 @@
         let longPressTimer = null;
         let isLongPressActive = false;
 		fabMobile.addEventListener('contextmenu', (e) => {
-		    e.preventDefault();
-		    e.stopPropagation();
-		    return false;
-		}, { passive: false });
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }, true);
 
         // タッチ開始
         fabMobile.addEventListener('touchstart', (e) => {
