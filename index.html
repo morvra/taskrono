@@ -673,6 +673,7 @@
                                     <option value="monthly">毎月</option>
                                     <option value="yearly">毎年</option>
                                     <option value="interval">○日ごと</option>
+									<option value="template">テンプレート</option>
                                 </select>
                                 
                                 <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
@@ -803,7 +804,7 @@
 
 <div id="add-task-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-md">
-        <h3 class="text-lg font-bold mb-4">タスクを追加</h3>
+        <h3 class="text-lg font-bold mb-2">タスクを追加</h3>
 		<div class="flex gap-3">
 		            <input type="text" id="new-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
 		            <input type="number" id="new-task-time" placeholder="見積時間(分)" class="w-28 p-2 border rounded-lg" value="5">
@@ -919,6 +920,7 @@
                 <option value="monthly">毎月</option>
                 <option value="yearly">毎年</option>
                 <option value="interval">○日ごと</option>
+				<option value="template">テンプレート</option>
             </select>
         </div>
 
@@ -2489,6 +2491,9 @@
                         }
                     }
                     break;
+				case 'template':
+                    shouldAdd = false; 
+                    break;
             }
 
             if (shouldAdd) {
@@ -4016,9 +4021,66 @@
 	    document.getElementById('new-task-time').value = '5';
 	    document.getElementById('new-task-project').value = '';
 	
-	    // 現在のセクションをデフォルトで選択
+	    // 現在のセクションを取得
 	    const currentSection = getCurrentSection();
 	    document.getElementById('new-task-section').value = currentSection ? currentSection.id : '';
+
+        // テンプレート呼び出し用UIの生成
+        const modalContent = document.querySelector('#add-task-modal .modal-content');
+        
+        const existingContainer = document.getElementById('template-chips-container');
+        if (existingContainer) existingContainer.remove();
+
+        const templates = state.repeatTasks.filter(rt => rt.type === 'template');
+
+        if (templates.length > 0) {
+            const container = document.createElement('div');
+            container.id = 'template-chips-container';
+            container.className = 'mb-4';
+
+            const chipsWrapper = document.createElement('div');
+            chipsWrapper.className = 'flex flex-wrap gap-2';
+
+            templates.forEach(tpl => {
+                const project = state.projects.find(p => p.id === tpl.projectId);
+                const btn = document.createElement('button');
+                const borderColor = project ? project.color : '#d1d5db';
+                
+                btn.className = 'text-xs px-3 py-1.5 bg-white border rounded-full hover:bg-blue-50 transition-colors text-gray-700 shadow-sm truncate max-w-full';
+                btn.style.borderColor = borderColor;
+                btn.style.borderLeftWidth = '4px';
+                btn.textContent = tpl.name;
+                btn.title = `見積: ${tpl.estimatedTime}分`;
+
+                btn.addEventListener('click', () => {
+                    const subtasksCopy = tpl.subtasks ? JSON.parse(JSON.stringify(tpl.subtasks)) : [];
+                    subtasksCopy.forEach(st => st.completed = false);
+
+                    addTask(
+                        tpl.name,
+                        tpl.estimatedTime,
+                        tpl.projectId,
+                        // 現在時刻のセクションを使用する
+                        currentSection ? currentSection.id : null, 
+                        false, 
+                        { 
+                            memo: tpl.memo || '',
+                            subtasks: subtasksCopy,
+                            originRepeatId: tpl.id 
+                        }
+                    );
+                    
+                    closeModal('add-task-modal');
+                    showToast(`「${tpl.name}」を追加しました`);
+                });
+                chipsWrapper.appendChild(btn);
+            });
+
+            container.appendChild(chipsWrapper);
+            
+            const modalTitle = modalContent.querySelector('h3');
+            modalTitle.parentNode.insertBefore(container, modalTitle.nextSibling);
+        }
 	
 	    openModal('add-task-modal');
 		const input = document.getElementById('new-task-name');
@@ -4681,6 +4743,9 @@
 	            case 'interval':
 	                repeatText = `${rt.value}日ごと (基準日: ${rt.startDate || '未設定'})`;
 	                break;
+				case 'template':
+                    repeatText = '随時 (テンプレート)';
+                    break;
 	            default:
 	                repeatText = '不明';
 	        }
@@ -4754,6 +4819,9 @@
 	            case 'interval':
 	                repeatText = `${rt.value}日ごと`;
 	                break;
+				case 'template':
+                    repeatText = '随時';
+                    break;
 	            default:
 	                repeatText = '不明';
 	        }
