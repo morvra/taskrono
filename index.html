@@ -106,8 +106,8 @@
         }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
-        .task-row.focused, .subtask-item.focused, tr.repeat-task-row.focused { background-color: #fef9c3; } /* PC版リピートタスク行の背景色 */
-        .task-card.focused, div.repeat-task-row.focused { background-color: #fef9c3; border-color: #eab308; } /* スマホ版リピートタスクカードの背景色とボーダー色 */
+        .task-row.focused, .subtask-item.focused, tr.repeat-task-row.focused { background-color: #fef9c3; }
+        .task-card.focused, div.repeat-task-row.focused { background-color: #fef9c3; }
         ::-webkit-scrollbar { width:8px; height:0px; }
         ::-webkit-scrollbar-track { background:#f1f1f1; border-radius:10px; }
         ::-webkit-scrollbar-thumb { background:#888; border-radius:10px; }
@@ -561,6 +561,40 @@
                 display: none !important;
             }
         }
+
+		/* 実行中タスクカード */
+		.task-card.running-enhanced {
+		    background-color: #eff6ff; /* 薄い青 */
+		    z-index: 20; /* 他より手前に */
+		}
+		.task-card.running-enhanced.focused {
+		    background-color: #fef9c3 !important; /* 黄色 (デフォルトのフォーカス色) */
+		}
+		
+		/* タイマー（少しコンパクトに） */
+		.running-timer {
+		    color: #1d4ed8;
+		    border-radius: 4px;
+		    font-weight: 700;
+		    display: inline-flex;
+		    align-items: center;
+		    justify-content: center;
+		    min-width: 64px;
+		    margin-left: 12px;
+		}
+		
+		/* プログレスバー */
+		.running-progress-bg {
+		    position: absolute;
+		    bottom: 0;
+		    left: 0;
+		    height: 2px;
+		    background: linear-gradient(to right, #3b82f6, #60a5fa);
+		    transition: width 1s linear;
+		    opacity: 0.8;
+		    z-index: 10;
+		    pointer-events: none;
+		}
 
     </style>
 </head>
@@ -2324,24 +2358,26 @@
         if (runningTask) {
             state.activeTaskId = runningTask.id;
             state.activeTimerId = setInterval(() => {
-                const currentTodayStr = getFormattedDate(new Date());
-                const currentTasksToday = state.dailyTasks[currentTodayStr] || [];                
-                // 実行中のタスクの最新の状態を取得
-                const currentTask = currentTasksToday.find(t => t.id === state.activeTaskId);
-                // タスクが存在し、かつ実行中であることを確認
-                if (!currentTask || currentTask.status !== 'running') {
-                    stopActiveTimer(); // 状態が変化していればタイマーを停止
-                    updateTitle();
-                    return;
-                }
-                const currentActualTime = calculateActualTime(currentTask);
-                
-                // DOM更新: もし現在そのタスクが画面上に表示されていれば時間を更新する
-                const timeEl = document.querySelector(`[data-task-id="${currentTask.id}"] .time-actual`);
-                if (timeEl) {
-                    timeEl.textContent = formatTime(currentActualTime);
-                }
-            }, 1000);
+	            // 時間テキストの更新
+	            const currentActualSeconds = calculateActualTime(task);
+	            const timeString = formatTime(currentActualSeconds);
+	
+	            const timeEls = document.querySelectorAll(`[data-task-id="${task.id}"] .time-actual`);
+	            timeEls.forEach(el => el.textContent = timeString);
+	
+	            const floatingTimeEl = document.getElementById('floating-elapsed-time');
+	            if (floatingTimeEl) {
+	                floatingTimeEl.textContent = timeString;
+	            }
+	            
+	            // プログレスバーの更新処理
+	            const progressBar = document.querySelector(`[data-task-id="${task.id}"] .running-progress-bg`);
+	            if (progressBar && task.estimatedTime > 0) {
+	                // 分を秒に変換して計算。最大100%にキャップ
+	                const percentage = Math.min(100, (currentActualSeconds / (task.estimatedTime * 60)) * 100);
+	                progressBar.style.width = `${percentage}%`;
+	            }
+	        }, 1000);
         }
     }
 		
@@ -3583,16 +3619,31 @@
             const allTasks = getTasksForViewDate();
             const index = allTasks.findIndex(t => t.id === task.id);
             const project = state.projects.find(p => p.id === task.projectId) || { name: '', color: '#cccccc' };
-            const card = document.createElement('div');
+            
             const isCompleted = task.status === 'completed';
-            card.className = `task-card bg-white px-3 py-2 border-l-4 ${isCompleted ? 'completed' : ''} ${task.status === 'running' ? 'bg-blue-100' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
-            card.style.borderLeftColor = project.color;
+            const isRunning = task.status === 'running';
+
+            // クラス付与ロジック
+            let cardClasses = `task-card bg-white px-3 py-2 border-l-4 relative overflow-hidden transition-all duration-200`;
+            if (isCompleted) cardClasses += ' completed bg-gray-100';
+            if (isRunning) cardClasses += ' running-enhanced'; // 実行中スタイル
+            if (task.id === state.focusedTaskId) cardClasses += ' focused';
+
+            const card = document.createElement('div');
+            card.className = cardClasses;
+            card.style.borderLeftColor = project.color; // プロジェクト色はここで保持
             card.dataset.taskId = task.id;
             card.dataset.index = index;
             card.dataset.sectionId = task.sectionId || 'null';
             card.draggable = true;
 
-            const isRunning = task.status === 'running';
+            // プログレスバー計算
+            let progressWidth = 0;
+            if (isRunning && task.estimatedTime > 0) {
+                const currentSeconds = calculateActualTime(task);
+                progressWidth = Math.min(100, (currentSeconds / (task.estimatedTime * 60)) * 100);
+            }
+
             let timerButtonHtml = '';
             if (isCompleted) {
                  timerButtonHtml = `
@@ -3600,7 +3651,8 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 </button>`;
             } else {
-                timerButtonHtml = `<button class="timer-btn transition-colors duration-200 flex-shrink-0 ${isRunning ? 'text-red-500 hover:text-red-600' : 'text-green-500 hover:text-green-600'}">
+                // 実行中はボタンを赤く拡大
+                timerButtonHtml = `<button class="timer-btn transition-colors duration-200 flex-shrink-0 ${isRunning ? 'text-red-500 hover:text-red-600 scale-110' : 'text-green-500 hover:text-green-600'}">
                     ${isRunning ? '■' : '▶'}
                 </button>`;
             }
@@ -3619,10 +3671,15 @@
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 mb-0.5 text-gray-400 cursor-pointer hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     <span class="custom-tooltip">${escapeHtml(task.memo)}</span>
                 </span>` : '';
-			
-			const actualTimeHtml = isCompleted ? `<span class="text-gray-600">実績: ${formatTime(calculateActualTime(task))}</span>` : '';
 
-            // リピートアイコンとプロジェクト名を表示するHTMLを定義
+            // 実績時間の表示：実行中ならバッジ、完了済みなら通常テキスト
+            let actualTimeContent = '';
+            if (isRunning) {
+                 actualTimeContent = `<span class="running-timer time-actual">${formatTime(calculateActualTime(task))}</span>`;
+            } else if (isCompleted) {
+                 actualTimeContent = `<span class="text-gray-600 ml-2">実績: ${formatTime(calculateActualTime(task))}</span>`;
+            }
+
             const projectLabelHtml = `
                 <span class="flex items-center text-xs text-gray-500 ml-2 whitespace-nowrap flex-shrink-0 project-label">
                     ${task.originRepeatId ? `
@@ -3633,9 +3690,10 @@
                     ${escapeHtml(project.name)}
                 </span>
             `;
-            
+
+            // ★変更: HTML構造。縦幅を変えないように flex items-center で一行に収める
             card.innerHTML = `
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 relative z-10">
                     <div class="flex flex-col items-center">
                         ${timerButtonHtml}
                     </div>
@@ -3649,65 +3707,49 @@
                                 ${projectLabelHtml}
                             </div>
                         </div>
+                        
                         <div class="flex items-center justify-between text-xs text-gray-600 mt-1">
-                            <div class="flex items-center space-x-3">
-								<div class="min-w-20">
-                                    <span>見積: ${task.estimatedTime || 0}分</span>
-                                </div>
-								${actualTimeHtml}
-                            </div>
-                            <div class="font-mono text-gray-400">
+                            <div class="flex items-center">
+                                 <span class="whitespace-nowrap">見積: ${task.estimatedTime || 0}分</span>
+                                ${actualTimeContent} </div>
+                            <div class="font-mono text-gray-400 self-end">
                                 ${task.startTime ? formatClockTime(new Date(task.startTime)) : ''}
                                 ${task.endTime ? ' - ' + formatClockTime(new Date(task.endTime)) : ''}
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                ${isRunning ? `<div class="running-progress-bg" style="width: ${progressWidth}%"></div>` : ''}
             `;
-
-			const rightShortIconHtml = isRunning 
-                ? `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" />
-                   </svg>`
-                : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-                   </svg>`;
-			
-            // 1. スワイプ背景要素を作成
+            
+            // ... (以降、スワイプ機能のコードは元のまま。省略します) ...
+            // スワイプ背景要素の作成
             const swipeBackground = document.createElement('div');
             swipeBackground.className = 'task-card-swipe-background';
+            
+            // (中略: アイコン定義部分)
+            const rightShortIconHtml = isRunning 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z" /></svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" /></svg>`;
+
             swipeBackground.innerHTML = `
                 <div class="swipe-bg swipe-bg-right">
-                    <div id="swipe-right-short" class="swipe-action-icon">
-                        ${rightShortIconHtml}
-                    </div>
-                    <div id="swipe-right-long" class="swipe-action-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    </div>
-                    <div id="swipe-right-extra-long" class="swipe-action-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                    </div>
+                    <div id="swipe-right-short" class="swipe-action-icon">${rightShortIconHtml}</div>
+                    <div id="swipe-right-long" class="swipe-action-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                    <div id="swipe-right-extra-long" class="swipe-action-icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></div>
                 </div>
                 <div class="swipe-bg swipe-bg-left">
-                    <div id="swipe-left-short" class="swipe-action-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <div id="swipe-left-long" class="swipe-action-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12.578 0c-.275-.046-.55-.09-.826-.13m15.026 0v.117c0 .621-.504 1.125-1.125 1.125H9.824a1.125 1.125 0 01-1.125-1.125V5.841m12.728 0c-.616 0-1.19.014-1.766.042m-1.766-.042L15 4.135A1.875 1.875 0 0013.125 3H10.875A1.875 1.875 0 009 4.135L6.96 5.841m0 0a48.108 48.108 0 013.478-.397m7.5 0v-.117c0-.621.504-1.125 1.125-1.125h.625c.621 0 1.125.504 1.125 1.125v.117m-7.5 0h7.5" /></svg>
-                    </div>
+                    <div id="swipe-left-short" class="swipe-action-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                    <div id="swipe-left-long" class="swipe-action-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12.578 0c-.275-.046-.55-.09-.826-.13m15.026 0v.117c0 .621-.504 1.125-1.125 1.125H9.824a1.125 1.125 0 01-1.125-1.125V5.841m12.728 0c-.616 0-1.19.014-1.766.042m-1.766-.042L15 4.135A1.875 1.875 0 0013.125 3H10.875A1.875 1.875 0 009 4.135L6.96 5.841m0 0a48.108 48.108 0 013.478-.397m7.5 0v-.117c0-.621.504-1.125 1.125-1.125h.625c.621 0 1.125.504 1.125 1.125v.117m-7.5 0h7.5" /></svg></div>
                 </div>
             `;
 
-            // 2. CSSで定義した .task-card-swipe-wrapper を作成
             const swipeWrapper = document.createElement('div');
             swipeWrapper.className = 'task-card-swipe-wrapper shadow';
-            
-            swipeWrapper.appendChild(swipeBackground); // 背景を先に追加
-            swipeWrapper.appendChild(card); // カードを上に追加
-
-            wrapper.appendChild(swipeWrapper); // 最終的にセクションコンテナ `wrapper` に追加
+            swipeWrapper.appendChild(swipeBackground);
+            swipeWrapper.appendChild(card);
+            wrapper.appendChild(swipeWrapper);
             
             if (subtasks.length > 0) {
                 const subtaskContainer = document.createElement('div');
@@ -5190,13 +5232,23 @@
         task.updatedAt = new Date().toISOString();
         
         state.activeTimerId = setInterval(() => {
-            const timeEl = document.querySelector(`[data-task-id="${id}"] .time-actual`);
-            if (timeEl) {
-                timeEl.textContent = formatTime(calculateActualTime(task));
-            }
+            // 時間テキストの更新
+            const currentActualSeconds = calculateActualTime(task);
+            const timeString = formatTime(currentActualSeconds);
+
+            const timeEls = document.querySelectorAll(`[data-task-id="${task.id}"] .time-actual`);
+            timeEls.forEach(el => el.textContent = timeString);
+
             const floatingTimeEl = document.getElementById('floating-elapsed-time');
             if (floatingTimeEl) {
-                floatingTimeEl.textContent = formatTime(calculateActualTime(task));
+                floatingTimeEl.textContent = timeString;
+            }
+            
+            // プログレスバーの更新処理
+            const progressBar = document.querySelector(`[data-task-id="${task.id}"] .running-progress-bg`);
+            if (progressBar && task.estimatedTime > 0) {
+                const percentage = Math.min(100, (currentActualSeconds / (task.estimatedTime * 60)) * 100);
+                progressBar.style.width = `${percentage}%`;
             }
         }, 1000);
 
