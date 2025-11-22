@@ -4446,24 +4446,43 @@
         const startTimeValue = document.getElementById('edit-task-startTime').value;
         const endTimeValue = document.getElementById('edit-task-endTime').value;
 
+        let startDateObj = null;
+        let endDateObj = null;
+
+        // 1. 開始時刻の計算
         if (startTimeValue) {
+            // 既存のstartTimeがあればそれをベースに、なければcreatedDate、それもなければ現在時刻をベースにする
             const baseDate = task.startTime ? new Date(task.startTime) : (task.createdDate ? new Date(task.createdDate) : new Date());
             const [hours, minutes] = startTimeValue.split(':');
             baseDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-            task.startTime = baseDate.toISOString();
-        } else {
-            task.startTime = null;
+            startDateObj = baseDate;
         }
 
+        // 2. 終了時刻の計算
         if (endTimeValue) {
-            const baseDate = task.endTime ? new Date(task.endTime) : (task.startTime ? new Date(task.startTime) : new Date());
+            // ベースとなる日付の決定：
+            // 開始時刻が設定されていれば、まず「開始時刻と同じ日付」をベースにする
+            let baseDate;
+            if (startDateObj) {
+                baseDate = new Date(startDateObj);
+            } else if (task.startTime) {
+                baseDate = new Date(task.startTime);
+            } else {
+                baseDate = task.createdDate ? new Date(task.createdDate) : new Date();
+            }
+
             const [hours, minutes] = endTimeValue.split(':');
             baseDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-            task.endTime = baseDate.toISOString();
-        } else {
-            task.endTime = null;
+            endDateObj = baseDate;
+
+            // 3. 0時またぎ判定 (終了時刻 < 開始時刻 なら日付を翌日に進める)
+            if (startDateObj && endDateObj < startDateObj) {
+                endDateObj.setDate(endDateObj.getDate() + 1);
+            }
         }
-        
+
+        task.startTime = startDateObj ? startDateObj.toISOString() : null;
+        task.endTime = endDateObj ? endDateObj.toISOString() : null;
         task.actualTime = calculateActualTime(task);
         updateTaskStatus(task);
         closeModal('task-edit-modal');
