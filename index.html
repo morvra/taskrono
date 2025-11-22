@@ -2406,56 +2406,71 @@
     }
 
     async function checkDayChange() {
-            const today = getFormattedDate(new Date());
-            if (state.lastDate !== today) {
-                console.log(`Date changed: ${state.lastDate} -> ${today}`);
-                const yesterdaysTasks = state.dailyTasks[state.lastDate];
-                if (yesterdaysTasks && yesterdaysTasks.length > 0) {
-                    // isDeletedでない未完了タスクのみを抽出
-                    const leftoverTasks = yesterdaysTasks.filter(t => t.status !== 'completed' && !t.isDeleted);
-                    if (leftoverTasks.length > 0) {
-                        if (!state.dailyTasks[today]) {
-                            state.dailyTasks[today] = [];
-                        }
-                        state.dailyTasks[today].unshift(...leftoverTasks);
-                        // 昨日分のタスクリストからは、持ち越したタスクと完了済みタスク以外（論理削除済みも含む）を更新
-                        state.dailyTasks[state.lastDate] = yesterdaysTasks.filter(t => t.status === 'completed' || t.isDeleted);
-                    }
-                }
-                archiveCompletedTasks(state.lastDate);
-                
-                // リピートタスクを生成
-                generateTasksFromRepeatAuto(today);
-                generateTomorrowRepeats();
+        const today = getFormattedDate(new Date());
+        
+        // 昨日の日付文字列を計算
+        const yesterdayObj = new Date();
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterdayStr = getFormattedDate(yesterdayObj);
 
-                state.lastDate = today;
-                state.viewDate = today; 
-                
-                // 先送りタスクとリピートタスクを追加後、セクション順でソートする
-                if (state.dailyTasks[today] && state.dailyTasks[today].length > 0) {
-                    const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
-                    const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
-                    
-                    state.dailyTasks[today].sort((a, b) => {
-                        const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
-                        const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
-                        return sectionIndexA - sectionIndexB;
-                    });
+        if (state.lastDate !== today) {
+            console.log(`Date changed: ${state.lastDate} -> ${today}`);
+            
+            // 1. 未完了タスクの持ち越し処理 (前回起動日から今日へ)
+            const yesterdaysTasks = state.dailyTasks[state.lastDate];
+            if (yesterdaysTasks && yesterdaysTasks.length > 0) {
+                // isDeletedでない未完了タスクのみを抽出
+                const leftoverTasks = yesterdaysTasks.filter(t => t.status !== 'completed' && !t.isDeleted);
+                if (leftoverTasks.length > 0) {
+                    if (!state.dailyTasks[today]) {
+                        state.dailyTasks[today] = [];
+                    }
+                    state.dailyTasks[today].unshift(...leftoverTasks);
+                    // 元の日付のリストからは、持ち越したタスク（未完了）を取り除く（完了と削除済みだけ残す）
+                    state.dailyTasks[state.lastDate] = yesterdaysTasks.filter(t => t.status === 'completed' || t.isDeleted);
                 }
-                
-                // 生成したタスクを画面に反映させる
-                const tasksToday = state.dailyTasks[today] || [];
-                const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-                if (firstUncompletedTask) {
-                    state.focusedTaskId = firstUncompletedTask.id;
-                } else if (tasksToday.length > 0) {
-                    state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
-                } else {
-                    state.focusedTaskId = null;
-                }
-                saveAndRender();
             }
+
+            // 2. アーカイブ処理の変更：一昨日以前（昨日より前）の古いデータをアーカイブへ移動
+            // state.dailyTasks のキー（日付）を全走査して判定します
+            Object.keys(state.dailyTasks).forEach(dateKey => {
+                if (dateKey < yesterdayStr) { // 昨日より前の日付ならアーカイブ
+                    archiveCompletedTasks(dateKey);
+                }
+            });
+            
+            // リピートタスクを生成
+            generateTasksFromRepeatAuto(today);
+            generateTomorrowRepeats();
+
+            state.lastDate = today;
+            state.viewDate = today; 
+            
+            // 先送りタスクとリピートタスクを追加後、セクション順でソートする
+            if (state.dailyTasks[today] && state.dailyTasks[today].length > 0) {
+                const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+                const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+                
+                state.dailyTasks[today].sort((a, b) => {
+                    const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
+                    const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
+                    return sectionIndexA - sectionIndexB;
+                });
+            }
+            
+            // 生成したタスクを画面に反映させる
+            const tasksToday = state.dailyTasks[today] || [];
+            const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
+            if (firstUncompletedTask) {
+                state.focusedTaskId = firstUncompletedTask.id;
+            } else if (tasksToday.length > 0) {
+                state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
+            } else {
+                state.focusedTaskId = null;
+            }
+            saveAndRender();
         }
+    }
 
 	function archiveCompletedTasks(dateKey) {
         if (!state.dailyTasks[dateKey]) return;
@@ -3485,144 +3500,150 @@
     }
 
     function renderTodayTasks(options = {}) {
-            const container = document.getElementById('sections-container');
-            container.innerHTML = '';
-            
-            const viewDateObj = new Date(state.viewDate);
-            const todayStr = getFormattedDate(new Date());
+        const container = document.getElementById('sections-container');
+        container.innerHTML = '';
+        
+        const viewDateObj = new Date(state.viewDate);
 
-            const limitDate = new Date();
-            limitDate.setDate(limitDate.getDate() + 2);
-            const limitDateStr = getFormattedDate(limitDate);
+        // ナビゲーション制限用の日付計算
+        const todayObj = new Date();
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + 2);
+        const limitDateStr = getFormattedDate(limitDate);
 
-            let dateLabel = viewDateObj.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
+        const yesterdayObj = new Date();
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterdayStr = getFormattedDate(yesterdayObj);
 
-            document.getElementById('view-date-display').textContent = dateLabel;
+        let dateLabel = viewDateObj.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
 
-            const prevBtn = document.getElementById('prev-day-btn');
-            prevBtn.style.visibility = (state.viewDate <= todayStr) ? 'hidden' : 'visible';
+        document.getElementById('view-date-display').textContent = dateLabel;
 
-            const nextBtn = document.getElementById('next-day-btn');
-            nextBtn.style.visibility = (state.viewDate >= limitDateStr) ? 'hidden' : 'visible';
+        const prevBtn = document.getElementById('prev-day-btn');
+        
+        // 表示中の日付が「昨日」以下であれば、「前へ」ボタンを隠す
+        prevBtn.style.visibility = (state.viewDate <= yesterdayStr) ? 'hidden' : 'visible';
 
-            const tasks = getTasksForViewDate();
-            if (tasks.length === 0 && state.sections.every(s => s.id !== 'null')) {
-                container.innerHTML = `<p class="text-center text-gray-500 py-8">タスクはありません。[N]キーで追加できます。</p>`;
+        const nextBtn = document.getElementById('next-day-btn');
+        nextBtn.style.visibility = (state.viewDate >= limitDateStr) ? 'hidden' : 'visible';
+
+        const tasks = getTasksForViewDate();
+        if (tasks.length === 0 && state.sections.every(s => s.id !== 'null')) {
+            container.innerHTML = `<p class="text-center text-gray-500 py-8">タスクはありません。[N]キーで追加できます。</p>`;
+        }
+
+        const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+        const tasksBySection = { 'null': [] }; 
+        sortedSections.forEach(s => tasksBySection[s.id] = []);
+
+        tasks.forEach(task => {
+            const sectionId = task.sectionId || 'null';
+            if (tasksBySection.hasOwnProperty(sectionId)) {
+                tasksBySection[sectionId].push(task);
+            } else {
+                tasksBySection['null'].push(task); 
             }
+        });
+        
+        const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
 
+        if (isMobile()) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'task-card-wrapper';
+            sectionOrder.forEach(sectionId => {
+                const sectionTasks = tasksBySection[sectionId];
+                if (sectionId === 'null' && sectionTasks.length === 0) return;
+        
+                const { name, range } = getSectionDisplayInfo(sectionId);
+                
+                // セクション毎の残り時間を計算
+                const remainingTimeInSection = sectionTasks
+                    .filter(task => getTaskStatus(task) !== 'completed')
+                    .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
+                const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
 
-            const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
-            const tasksBySection = { 'null': [] }; 
-            sortedSections.forEach(s => tasksBySection[s.id] = []);
-
-            tasks.forEach(task => {
-                const sectionId = task.sectionId || 'null';
-                if (tasksBySection.hasOwnProperty(sectionId)) {
-                    tasksBySection[sectionId].push(task);
-                } else {
-                    tasksBySection['null'].push(task); 
+                const sectionHeader = document.createElement('div');
+                sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500 flex justify-between items-center';
+                sectionHeader.innerHTML = `<span>${name} ${range}</span> ${remainingTimeHtml}`;
+                wrapper.appendChild(sectionHeader);
+        
+                renderTaskCards(wrapper, sectionTasks);
+                
+                if (sectionTasks.length === 0) {
+                    const dropTarget = document.createElement('div');
+                    dropTarget.className = 'empty-section-drop-target text-center text-gray-400 text-xs border-dashed border-gray-300 rounded-lg';
+                    dropTarget.textContent = 'ここにタスクをドロップ';
+                    dropTarget.dataset.sectionId = sectionId;
+                    wrapper.appendChild(dropTarget);
                 }
             });
+            container.appendChild(wrapper);
+        } else {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bg-white shadow-md';
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'overflow-x-auto';
+            const table = document.createElement('table');
+            table.className = 'min-w-full task-table';
+            table.innerHTML = `
+                <thead class="bg-gray-500 text-white">
+                    <tr>
+                        <th class="text-center text-xs uppercase tracking-wider w-8"></th>
+                        <th class="text-center text-xs uppercase tracking-wider w-8"></th>
+                        <th class="text-left text-xs uppercase tracking-wider">タスク</th>
+                        <th class="text-center text-xs uppercase tracking-wider w-20">見積</th>
+                        <th class="text-center text-xs uppercase tracking-wider w-20">実績</th>
+                        <th class="text-center text-xs uppercase tracking-wider w-20">開始</th>
+                        <th class="text-center text-xs uppercase tracking-wider w-20">終了</th>
+                        <th class="text-center text-xs uppercase tracking-wider w-28">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="task-table-body"></tbody>
+            `;
+            const tbody = table.querySelector('tbody');
             
-            const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+            const visibleSections = sectionOrder.filter(id => !(id === 'null' && tasksBySection[id].length === 0));
+            const lastVisibleSectionId = visibleSections.length > 0 ? visibleSections[visibleSections.length - 1] : null;
 
-            if (isMobile()) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'task-card-wrapper';
-                sectionOrder.forEach(sectionId => {
-                    const sectionTasks = tasksBySection[sectionId];
-                    if (sectionId === 'null' && sectionTasks.length === 0) return;
-            
-                    const { name, range } = getSectionDisplayInfo(sectionId);
-                    
-                    // セクション毎の残り時間を計算
-                    const remainingTimeInSection = sectionTasks
-                        .filter(task => getTaskStatus(task) !== 'completed')
-                        .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
-                    const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
-
-                    const sectionHeader = document.createElement('div');
-                    sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500 flex justify-between items-center';
-                    sectionHeader.innerHTML = `<span>${name} ${range}</span> ${remainingTimeHtml}`;
-                    wrapper.appendChild(sectionHeader);
-            
-                    renderTaskCards(wrapper, sectionTasks);
-                    
-                    if (sectionTasks.length === 0) {
-                        const dropTarget = document.createElement('div');
-                        dropTarget.className = 'empty-section-drop-target text-center text-gray-400 text-xs border-dashed border-gray-300 rounded-lg';
-                        dropTarget.textContent = 'ここにタスクをドロップ';
-                        dropTarget.dataset.sectionId = sectionId;
-                        wrapper.appendChild(dropTarget);
-                    }
-                });
-                container.appendChild(wrapper);
-            } else {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'bg-white shadow-md';
-                const tableContainer = document.createElement('div');
-                tableContainer.className = 'overflow-x-auto';
-                const table = document.createElement('table');
-                table.className = 'min-w-full task-table';
-                table.innerHTML = `
-                    <thead class="bg-gray-500 text-white">
-                        <tr>
-                            <th class="text-center text-xs uppercase tracking-wider w-8"></th>
-                            <th class="text-center text-xs uppercase tracking-wider w-8"></th>
-                            <th class="text-left text-xs uppercase tracking-wider">タスク</th>
-                            <th class="text-center text-xs uppercase tracking-wider w-20">見積</th>
-                            <th class="text-center text-xs uppercase tracking-wider w-20">実績</th>
-                            <th class="text-center text-xs uppercase tracking-wider w-20">開始</th>
-                            <th class="text-center text-xs uppercase tracking-wider w-20">終了</th>
-                            <th class="text-center text-xs uppercase tracking-wider w-28">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="task-table-body"></tbody>
-                `;
-                const tbody = table.querySelector('tbody');
+            visibleSections.forEach(sectionId => {
+                const sectionTasks = tasksBySection[sectionId];
                 
-                const visibleSections = sectionOrder.filter(id => !(id === 'null' && tasksBySection[id].length === 0));
-                const lastVisibleSectionId = visibleSections.length > 0 ? visibleSections[visibleSections.length - 1] : null;
+                const { name, range } = getSectionDisplayInfo(sectionId);
 
-                visibleSections.forEach(sectionId => {
-                    const sectionTasks = tasksBySection[sectionId];
-                    
-                    const { name, range } = getSectionDisplayInfo(sectionId);
+                // セクション毎の残り時間を計算
+                const remainingTimeInSection = sectionTasks
+                    .filter(task => getTaskStatus(task) !== 'completed')
+                    .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
+                const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
 
-                    // セクション毎の残り時間を計算
-                    const remainingTimeInSection = sectionTasks
-                        .filter(task => getTaskStatus(task) !== 'completed')
-                        .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
-                    const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
+                const headerRow = document.createElement('tr');
+                headerRow.className = 'bg-gray-100';
+                headerRow.dataset.sectionId = sectionId;
+                headerRow.innerHTML = `
+                    <td colspan="8" class="py-1 px-4 text-xs font-bold text-white bg-gray-400">
+                        <div class="justify-between items-center">
+                            <span>${name} ${range}</span>
+                            ${remainingTimeHtml}
+                        </div>
+                    </td>`;
+                tbody.appendChild(headerRow);
+                
+                renderTaskTable(tbody, sectionTasks, { isLast: sectionId === lastVisibleSectionId });
+            });
 
-                    const headerRow = document.createElement('tr');
-                    headerRow.className = 'bg-gray-100';
-                    headerRow.dataset.sectionId = sectionId;
-                    headerRow.innerHTML = `
-                        <td colspan="8" class="py-1 px-4 text-xs font-bold text-white bg-gray-400">
-                            <div class="justify-between items-center">
-                                <span>${name} ${range}</span>
-                                ${remainingTimeHtml}
-                            </div>
-                        </td>`;
-                    tbody.appendChild(headerRow);
-                    
-                    renderTaskTable(tbody, sectionTasks, { isLast: sectionId === lastVisibleSectionId });
-                });
-    
-                tableContainer.appendChild(table);
-                wrapper.appendChild(tableContainer);
-                container.appendChild(wrapper);
-            }
-
-            attachTaskEventListeners();
-            setupDragAndDrop('.task-row, .task-card', tasks); 
-            
-            const focusedEl = document.querySelector('.task-row.focused, .task-card.focused');
-	        if (focusedEl && options.scroll) {
-	            focusedEl.scrollIntoView({ block:'center', behavior:'smooth' });
-	        }
+            tableContainer.appendChild(table);
+            wrapper.appendChild(tableContainer);
+            container.appendChild(wrapper);
         }
+
+        attachTaskEventListeners();
+        setupDragAndDrop('.task-row, .task-card', tasks); 
+        
+        const focusedEl = document.querySelector('.task-row.focused, .task-card.focused');
+        if (focusedEl && options.scroll) {
+            focusedEl.scrollIntoView({ block:'center', behavior:'smooth' });
+        }
+    }
 
 	function renderTaskTable(tbody, tasksToRender, options = {}) {
 	    if (tasksToRender.length === 0) {
@@ -6166,20 +6187,28 @@
     }
     
     function moveViewDate(direction) {
-        const todayStr = getFormattedDate(new Date());
+        // 制限用の日付計算
         const limitDate = new Date();
         limitDate.setDate(limitDate.getDate() + 2);
         const limitDateStr = getFormattedDate(limitDate);
 
+        const yesterdayObj = new Date();
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterdayStr = getFormattedDate(yesterdayObj);
+
+        // 未来方向の制限 (明後日以降へは行けない)
         if (direction === 1 && state.viewDate >= limitDateStr) {
-            return; // 2日後より先には進めない
+            return; 
         }
-        if (direction === -1 && state.viewDate <= todayStr) {
+        // 過去方向の制限 (昨日より前へは行けない)
+        if (direction === -1 && state.viewDate <= yesterdayStr) {
             return;
         }
+
         const currentDate = new Date(state.viewDate);
         currentDate.setDate(currentDate.getDate() + direction);
         state.viewDate = getFormattedDate(currentDate);
+        
         const tasks = getTasksForViewDate();
         const firstUncompletedTask = tasks.find(t => getTaskStatus(t) !== 'completed');
         if (firstUncompletedTask) {
