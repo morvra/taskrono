@@ -3169,13 +3169,12 @@
                 // --- 長押しモード終了処理 ---
                 e.preventDefault();
                 
-                // 最後に指が乗っていた要素を探す（touchmoveの最終地点）
-                // touchendにはtouchesがないのでchangedTouchesを使う
+                // 最後に指が乗っていた要素を探す
                 const touch = e.changedTouches[0];
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
 
                 if (target && target.classList.contains('quick-action-item')) {
-                    // ★テンプレート登録実行
+                    // テンプレート登録実行
                     const tplId = target.dataset.templateId;
                     const tpl = state.repeatTasks.find(t => t.id === tplId);
                     if (tpl) {
@@ -3192,7 +3191,8 @@
                             { 
                                 memo: tpl.memo || '',
                                 subtasks: subtasksCopy,
-                                originRepeatId: tpl.id
+                                originRepeatId: tpl.id,
+                                isManuallyAddedRepeat: true
                             }
                         );
                         showToast(`「${tpl.name}」を追加しました`);
@@ -4280,7 +4280,8 @@
                         { 
                             memo: tpl.memo || '',
                             subtasks: subtasksCopy,
-                            originRepeatId: tpl.id 
+                            originRepeatId: tpl.id,
+							isManuallyAddedRepeat: true
                         }
                     );
                     
