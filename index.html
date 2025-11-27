@@ -5423,7 +5423,10 @@
             const nextTask = tasks.find(t => t.status !== 'completed');
             state.focusedTaskId = nextTask ? nextTask.id : null;
             task.updatedAt = new Date().toISOString();
-            
+            if (state.openTaskIds.has(id)) {
+                state.openTaskIds.delete(id);
+            }
+
             saveAndRender({ scroll: true });
             return;
         }
@@ -5437,6 +5440,10 @@
                     runningTask.actualTime = calculateActualTime(runningTask);
                     updateTaskStatus(runningTask);
                     runningTask.updatedAt = new Date().toISOString();
+
+                    if (state.openTaskIds.has(runningTask.id)) {
+                        state.openTaskIds.delete(runningTask.id);
+                    }
                 }
                 stopActiveTimer();
             }
@@ -5463,6 +5470,11 @@
                 updateTaskStatus(task);
                 task.updatedAt = new Date().toISOString();
                 
+                // 元のタスクが開いていれば閉じる
+                if (state.openTaskIds.has(task.id)) {
+                    state.openTaskIds.delete(task.id);
+                }
+                
                 toggleTimer(newTask.id); // 新タスクのタイマーを開始 (Case 4/5 へ)
                 return;
             } else {
@@ -5479,6 +5491,9 @@
                 runningTask.actualTime = calculateActualTime(runningTask);
                 updateTaskStatus(runningTask);
                 runningTask.updatedAt = new Date().toISOString();
+                if (state.openTaskIds.has(runningTask.id)) {
+                    state.openTaskIds.delete(runningTask.id);
+                }
             }
             stopActiveTimer();
         }
