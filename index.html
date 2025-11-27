@@ -3345,6 +3345,9 @@
         document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
 		document.getElementById('bottom-nav-inbox')?.addEventListener('click', openInboxModal);
         document.getElementById('bottom-nav-dropbox-import')?.addEventListener('click', dailyTaskListApp.loadStateFromDropbox.bind(dailyTaskListApp));
+		document.getElementById('sync-data-fab')?.addEventListener('click', () => {
+            dailyTaskListApp.loadStateFromDropbox();
+        });
 
         setupModalEvents();
 
