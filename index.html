@@ -736,29 +736,34 @@
                                     </div>
                                 </div>
                                 <div id="repeat-monthly-options" class="hidden p-3 bg-white rounded-lg border space-y-3">
-                                    <div class="flex items-center gap-4">
-                                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
-                                        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
-                                    </div>
-                                    <div id="repeat-monthly-day-options">
-                                        <label class="text-sm">日付: <input type="number" id="repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
-
-                                    </div>
-                                    <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
-                                        <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
-                                            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
-                                        </select>
-                                        <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
-                                            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
-                                        </select>
-                                    </div>
-                                </div>
+								    <div class="flex items-center gap-4">
+								        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+								        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+								    </div>
+								    <div id="repeat-monthly-day-options">
+								        <div class="flex gap-2 mb-2">
+								            <input type="number" id="repeat-monthly-day-input" placeholder="日付 (1～31)" class="p-2 border rounded-lg w-24" min="1" max="31">
+								            <button type="button" id="add-monthly-day-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+								        </div>
+								        <div id="repeat-monthly-days-list" class="flex flex-wrap gap-2"></div>
+								    </div>
+								    <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
+								        <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
+								            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+								        </select>
+								        <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
+								            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+								        </select>
+								    </div>
+								</div>
                                 <div id="repeat-yearly-options" class="hidden p-3 bg-white rounded-lg border">
-                                    <label class="text-sm">日付:
-                                        <input type="number" id="repeat-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
-                                        <input type="number" id="repeat-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
-                                    </label>
-                                </div>
+								    <div class="flex gap-2 mb-2">
+								        <input type="number" id="repeat-yearly-month-input" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12">
+								        <input type="number" id="repeat-yearly-day-input" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31">
+								        <button type="button" id="add-yearly-date-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+								    </div>
+								    <div id="repeat-yearly-dates-list" class="flex flex-wrap gap-2"></div>
+								</div>
                                 <div id="repeat-interval-options" class="hidden p-3 bg-white rounded-lg border space-y-2 md:space-y-0 md:items-center md:space-x-4">
                                     <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
                                     <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
@@ -984,28 +989,34 @@
              </div>
         </div>
         <div id="edit-repeat-monthly-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
-             <div class="flex items-center gap-4">
-                <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
-                <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
-            </div>
-            <div id="edit-repeat-monthly-day-options">
-                <label class="text-sm">日付: <input type="number" id="edit-repeat-monthly-day" placeholder="1～31" class="p-2 border rounded-lg w-24" min="1" max="31"></label>
-            </div>
-            <div id="edit-repeat-monthly-weekday-options" class="hidden items-center gap-2">
-                <select id="edit-monthly-week" class="p-2 border rounded-lg bg-white">
-                    <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
-                </select>
-                <select id="edit-monthly-weekday" class="p-2 border rounded-lg bg-white">
-                    <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
-                </select>
-            </div>
-        </div>
+		    <div class="flex items-center gap-4">
+		        <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+		        <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+		    </div>
+		    <div id="edit-repeat-monthly-day-options">
+		        <div class="flex gap-2 mb-2">
+		            <input type="number" id="edit-repeat-monthly-day-input" placeholder="日付 (1～31)" class="p-2 border rounded-lg w-24" min="1" max="31">
+		            <button type="button" id="edit-add-monthly-day-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+		        </div>
+		        <div id="edit-repeat-monthly-days-list" class="flex flex-wrap gap-2"></div>
+		    </div>
+		    <div id="edit-repeat-monthly-weekday-options" class="hidden items-center gap-2">
+		        <select id="edit-monthly-week" class="p-2 border rounded-lg bg-white">
+		            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+		        </select>
+		        <select id="edit-monthly-weekday" class="p-2 border rounded-lg bg-white">
+		            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+		        </select>
+		    </div>
+		</div>
          <div id="edit-repeat-yearly-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg">
-            <label class="text-sm">日付:
-                <input type="number" id="edit-yearly-month" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12"> 月
-                <input type="number" id="edit-yearly-day" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31"> 日
-            </label>
-        </div>
+		    <div class="flex gap-2 mb-2">
+		        <input type="number" id="edit-repeat-yearly-month-input" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12">
+		        <input type="number" id="edit-repeat-yearly-day-input" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31">
+		        <button type="button" id="edit-add-yearly-date-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+		    </div>
+		    <div id="edit-repeat-yearly-dates-list" class="flex flex-wrap gap-2"></div>
+		</div>
         <div id="edit-repeat-interval-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg space-y-2 md:space-y-0 md:items-center md:space-x-4">
             <label class="text-sm">何日ごと: <input type="number" id="edit-repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
             <label class="text-sm">基準日: <input type="date" id="edit-repeat-interval-start-date" class="p-2 border rounded-lg"></label>
@@ -2532,22 +2543,32 @@
                     }
                     break;
                 case 'monthly':
-                    if (rt.value) {
-                        if (rt.value.type === 'day' && rt.value.day == dayOfMonth) {
-                            shouldAdd = true;
-                        } else if (rt.value.type === 'weekday') {
-                            const targetDay = getNthWeekdayOfMonth(year, month, rt.value.week, rt.value.weekday);
-                            if (targetDay && targetDay === dayOfMonth) {
-                                shouldAdd = true;
-                            }
-                        }
-                    }
-                    break;
-                case 'yearly':
-                     if (rt.value && rt.value.month == (month + 1) && rt.value.day == dayOfMonth) {
-                        shouldAdd = true;
-                    }
-                    break;
+				    if (rt.value) {
+				        if (rt.value.type === 'day') {
+				            // 複数日付に対応
+				            if (Array.isArray(rt.value.days)) {
+				                shouldAdd = rt.value.days.includes(dayOfMonth);
+				            } else if (rt.value.day == dayOfMonth) {
+				                // 旧形式との互換性
+				                shouldAdd = true;
+				            }
+				        } else if (rt.value.type === 'weekday') {
+				            const targetDay = getNthWeekdayOfMonth(year, month, rt.value.week, rt.value.weekday);
+				            if (targetDay && targetDay === dayOfMonth) {
+				                shouldAdd = true;
+				            }
+				        }
+				    }
+				    break;
+				case 'yearly':
+				    // 複数日付に対応
+				    if (Array.isArray(rt.value)) {
+				        shouldAdd = rt.value.some(date => date.month == (month + 1) && date.day == dayOfMonth);
+				    } else if (rt.value && rt.value.month == (month + 1) && rt.value.day == dayOfMonth) {
+				        // 旧形式との互換性
+				        shouldAdd = true;
+				    }
+				    break;
                 case 'interval':
                     if (rt.startDate && rt.value > 0) {
                         const start = new Date(rt.startDate);
@@ -4587,45 +4608,59 @@
         }
         
         // 値のクリアと設定
-        document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => cb.checked = false);
-        document.getElementById('edit-repeat-weekly-interval').value = '1';
-        document.getElementById('edit-repeat-weekly-start-date').value = '';
-        document.getElementById('edit-repeat-monthly-day').value = '';
-        document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
-        document.getElementById('edit-repeat-monthly-day-options').classList.remove('hidden');
-        document.getElementById('edit-repeat-monthly-weekday-options').classList.add('hidden');
-        document.getElementById('edit-yearly-month').value = '';
-        document.getElementById('edit-yearly-day').value = '';
-        document.getElementById('edit-repeat-interval-days').value = '';
-        document.getElementById('edit-repeat-interval-start-date').value = '';
-        
-        // 保存された値の反映
-        if (repeatTask.type === 'weekly') {
-            if (Array.isArray(repeatTask.value)) {
-                document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => {
-                    cb.checked = repeatTask.value.includes(parseInt(cb.value, 10));
-                });
-            }
-            document.getElementById('edit-repeat-weekly-interval').value = repeatTask.weekInterval || '1';
-            document.getElementById('edit-repeat-weekly-start-date').value = repeatTask.startDate || '';
-        } else if (repeatTask.type === 'monthly' && repeatTask.value) {
-            if (repeatTask.value.type === 'day') {
-                document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
-                document.getElementById('edit-repeat-monthly-day').value = repeatTask.value.day || '';
-            } else if (repeatTask.value.type === 'weekday') {
-                document.querySelector('input[name="edit-monthly-type"][value="weekday"]').checked = true;
-                document.getElementById('edit-monthly-week').value = repeatTask.value.week || '1';
-                document.getElementById('edit-monthly-weekday').value = repeatTask.value.weekday || '0';
-                document.getElementById('edit-repeat-monthly-day-options').classList.add('hidden');
-                document.getElementById('edit-repeat-monthly-weekday-options').classList.remove('hidden');
-            }
-        } else if (repeatTask.type === 'yearly' && repeatTask.value) {
-            document.getElementById('edit-yearly-month').value = repeatTask.value.month || '';
-            document.getElementById('edit-yearly-day').value = repeatTask.value.day || '';
-        } else if (repeatTask.type === 'interval') {
-            document.getElementById('edit-repeat-interval-days').value = repeatTask.value || '';
-            document.getElementById('edit-repeat-interval-start-date').value = repeatTask.startDate || '';
-        }
+		document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => cb.checked = false);
+		document.getElementById('edit-repeat-weekly-interval').value = '1';
+		document.getElementById('edit-repeat-weekly-start-date').value = '';
+		document.getElementById('edit-repeat-monthly-days-list').innerHTML = '';
+		document.getElementById('edit-repeat-yearly-dates-list').innerHTML = '';
+		document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
+		document.getElementById('edit-repeat-monthly-day-options').classList.remove('hidden');
+		document.getElementById('edit-repeat-monthly-weekday-options').classList.add('hidden');
+		document.getElementById('edit-repeat-interval-days').value = '';
+		document.getElementById('edit-repeat-interval-start-date').value = '';
+		
+		// 保存された値の反映
+		if (repeatTask.type === 'weekly') {
+		    if (Array.isArray(repeatTask.value)) {
+		        document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => {
+		            cb.checked = repeatTask.value.includes(parseInt(cb.value, 10));
+		        });
+		    }
+		    document.getElementById('edit-repeat-weekly-interval').value = repeatTask.weekInterval || '1';
+		    document.getElementById('edit-repeat-weekly-start-date').value = repeatTask.startDate || '';
+		} else if (repeatTask.type === 'monthly' && repeatTask.value) {
+		    if (repeatTask.value.type === 'day') {
+		        document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
+		        // 複数日付に対応
+		        if (Array.isArray(repeatTask.value.days)) {
+		            repeatTask.value.days.forEach(day => {
+		                addMonthlyDayChip(day, 'edit-repeat-monthly-days-list');
+		            });
+		        } else if (repeatTask.value.day) {
+		            // 旧形式（単一日付）との互換性
+		            addMonthlyDayChip(repeatTask.value.day, 'edit-repeat-monthly-days-list');
+		        }
+		    } else if (repeatTask.value.type === 'weekday') {
+		        document.querySelector('input[name="edit-monthly-type"][value="weekday"]').checked = true;
+		        document.getElementById('edit-monthly-week').value = repeatTask.value.week || '1';
+		        document.getElementById('edit-monthly-weekday').value = repeatTask.value.weekday || '0';
+		        document.getElementById('edit-repeat-monthly-day-options').classList.add('hidden');
+		        document.getElementById('edit-repeat-monthly-weekday-options').classList.remove('hidden');
+		    }
+		} else if (repeatTask.type === 'yearly' && repeatTask.value) {
+		    // 複数日付に対応
+		    if (Array.isArray(repeatTask.value)) {
+		        repeatTask.value.forEach(date => {
+		            addYearlyDateChip(date.month, date.day, 'edit-repeat-yearly-dates-list');
+		        });
+		    } else if (repeatTask.value.month && repeatTask.value.day) {
+		        // 旧形式（単一日付）との互換性
+		        addYearlyDateChip(repeatTask.value.month, repeatTask.value.day, 'edit-repeat-yearly-dates-list');
+		    }
+		} else if (repeatTask.type === 'interval') {
+		    document.getElementById('edit-repeat-interval-days').value = repeatTask.value || '';
+		    document.getElementById('edit-repeat-interval-start-date').value = repeatTask.startDate || '';
+		}
 
         document.getElementById('edit-repeat-weekly-options').classList.toggle('hidden', repeatTask.type !== 'weekly');
         document.getElementById('edit-repeat-monthly-options').classList.toggle('hidden', repeatTask.type !== 'monthly');
@@ -4674,38 +4709,41 @@
         let weekInterval = 1;
 
         if (type === 'weekly') {
-            value = Array.from(document.querySelectorAll('#edit-repeat-weekly-days input:checked')).map(cb => parseInt(cb.value, 10));
-            if (value.length === 0) { alert('曜日を選択してください。'); return; }
-            weekInterval = parseInt(document.getElementById('edit-repeat-weekly-interval').value, 10) || 1;
-            startDate = document.getElementById('edit-repeat-weekly-start-date').value || new Date().toISOString().slice(0,10);
-        } else if (type === 'monthly') {
-            const monthlyType = document.querySelector('input[name="edit-monthly-type"]:checked').value;
-            if (monthlyType === 'day') {
-                const day = parseInt(document.getElementById('edit-repeat-monthly-day').value, 10);
-                if (isNaN(day) || day < 1 || day > 31) { alert('有効な日付を入力してください。'); return; }
-                value = { type: 'day', day: day };
-            } else {
-                const week = parseInt(document.getElementById('edit-monthly-week').value, 10);
-                const weekday = parseInt(document.getElementById('edit-monthly-weekday').value, 10);
-                value = { type: 'weekday', week: week, weekday: weekday };
-            }
-        } else if (type === 'yearly') {
-            const month = parseInt(document.getElementById('edit-yearly-month').value, 10);
-            const day = parseInt(document.getElementById('edit-yearly-day').value, 10);
-            if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
-                alert('有効な月日を入力してください。'); return;
-            }
-            value = { month, day };
-        } else if (type === 'interval') {
-            value = parseInt(document.getElementById('edit-repeat-interval-days').value, 10);
-            if (isNaN(value) || value < 1) { alert('有効な間隔（日数）を入力してください。'); return; }
-            const startDateInput = document.getElementById('edit-repeat-interval-start-date').value;
-            if (startDateInput) {
-                startDate = startDateInput;
-            } else if (!startDate) {
-                startDate = new Date().toISOString().slice(0,10);
-            }
-        }
+		    value = Array.from(document.querySelectorAll('#edit-repeat-weekly-days input:checked')).map(cb => parseInt(cb.value, 10));
+		    if (value.length === 0) { alert('曜日を選択してください。'); return; }
+		    weekInterval = parseInt(document.getElementById('edit-repeat-weekly-interval').value, 10) || 1;
+		    startDate = document.getElementById('edit-repeat-weekly-start-date').value || new Date().toISOString().slice(0,10);
+		} else if (type === 'monthly') {
+		    const monthlyType = document.querySelector('input[name="edit-monthly-type"]:checked').value;
+		    if (monthlyType === 'day') {
+		        const days = getMonthlyDaysFromChips('edit-repeat-monthly-days-list');
+		        if (days.length === 0) {
+		            alert('少なくとも1つの日付を追加してください。');
+		            return;
+		        }
+		        value = { type: 'day', days: days };
+		    } else {
+		        const week = parseInt(document.getElementById('edit-monthly-week').value, 10);
+		        const weekday = parseInt(document.getElementById('edit-monthly-weekday').value, 10);
+		        value = { type: 'weekday', week: week, weekday: weekday };
+		    }
+		} else if (type === 'yearly') {
+		    const dates = getYearlyDatesFromChips('edit-repeat-yearly-dates-list');
+		    if (dates.length === 0) {
+		        alert('少なくとも1つの月日を追加してください。');
+		        return;
+		    }
+		    value = dates;
+		} else if (type === 'interval') {
+		    value = parseInt(document.getElementById('edit-repeat-interval-days').value, 10);
+		    if (isNaN(value) || value < 1) { alert('有効な間隔（日数）を入力してください。'); return; }
+		    const startDateInput = document.getElementById('edit-repeat-interval-start-date').value;
+		    if (startDateInput) {
+		        startDate = startDateInput;
+		    } else if (!startDate) {
+		        startDate = new Date().toISOString().slice(0,10);
+		    }
+		}
 
         repeatTask.name = name;
         repeatTask.estimatedTime = time;
@@ -4962,21 +5000,27 @@
 	                repeatText = `毎週 ${intervalText}(${days})`;
 	                break;
 	            case 'monthly':
-	                if (rt.value) {
-	                    if (rt.value.type === 'day') {
-	                        repeatText = `毎月 ${rt.value.day}日`;
-	                    } else if (rt.value.type === 'weekday') {
-	                        const weekStr = ['第1', '第2', '第3', '第4', '最終'][rt.value.week - 1];
-	                        const dayStr = weekdays[rt.value.weekday];
-	                        repeatText = `毎月 ${weekStr}${dayStr}曜日`;
-	                    }
-	                }
-	                break;
-	            case 'yearly':
-	                if (rt.value) {
-	                    repeatText = `毎年 ${rt.value.month}月${rt.value.day}日`;
-	                }
-	                break;
+				    if (rt.value) {
+				        if (rt.value.type === 'day') {
+				            if (Array.isArray(rt.value.days)) {
+				                repeatText = `毎月 ${rt.value.days.join('日, ')}日`;
+				            } else if (rt.value.day) {
+				                repeatText = `毎月 ${rt.value.day}日`;
+				            }
+				        } else if (rt.value.type === 'weekday') {
+				            const weekStr = ['第1', '第2', '第3', '第4', '最終'][rt.value.week - 1];
+				            const dayStr = weekdays[rt.value.weekday];
+				            repeatText = `毎月 ${weekStr}${dayStr}曜日`;
+				        }
+				    }
+				    break;
+				case 'yearly':
+				    if (Array.isArray(rt.value)) {
+				        repeatText = `毎年 ${rt.value.map(d => `${d.month}月${d.day}日`).join(', ')}`;
+				    } else if (rt.value) {
+				        repeatText = `毎年 ${rt.value.month}月${rt.value.day}日`;
+				    }
+				    break;
 	            case 'interval':
 	                repeatText = `${rt.value}日ごと (基準日: ${rt.startDate || '未設定'})`;
 	                break;
@@ -5038,21 +5082,27 @@
 	                repeatText = `毎週 ${intervalText}(${days})`;
 	                break;
 	            case 'monthly':
-	                if (rt.value) {
-	                    if (rt.value.type === 'day') {
-	                        repeatText = `毎月 ${rt.value.day}日`;
-	                    } else if (rt.value.type === 'weekday') {
-	                        const weekStr = ['第1', '第2', '第3', '第4', '最終'][rt.value.week - 1];
-	                        const dayStr = weekdays[rt.value.weekday];
-	                        repeatText = `毎月 ${weekStr}${dayStr}曜日`;
-	                    }
-	                }
-	                break;
-	            case 'yearly':
-	                if (rt.value) {
-	                    repeatText = `毎年 ${rt.value.month}月${rt.value.day}日`;
-	                }
-	                break;
+					if (rt.value) {
+						if (rt.value.type === 'day') {
+							if (Array.isArray(rt.value.days)) {
+								repeatText = `毎月 ${rt.value.days.join('日, ')}日`;
+							} else if (rt.value.day) {
+								repeatText = `毎月 ${rt.value.day}日`;
+							}
+						} else if (rt.value.type === 'weekday') {
+							const weekStr = ['第1', '第2', '第3', '第4', '最終'][rt.value.week - 1];
+							const dayStr = weekdays[rt.value.weekday];
+							repeatText = `毎月 ${weekStr}${dayStr}曜日`;
+						}
+					}
+					break;
+				case 'yearly':
+					if (Array.isArray(rt.value)) {
+						repeatText = `毎年 ${rt.value.map(d => `${d.month}月${d.day}日`).join(', ')}`;
+					} else if (rt.value) {
+						repeatText = `毎年 ${rt.value.month}月${rt.value.day}日`;
+					}
+					break;
 	            case 'interval':
 	                repeatText = `${rt.value}日ごと`;
 	                break;
@@ -5234,6 +5284,141 @@
 	    // 4. 状態を保存し、画面を再描画する
 	    saveAndRender();
 	}
+
+		// リピートタスク追加フォーム - 毎月の日付追加
+		document.getElementById('add-monthly-day-btn').addEventListener('click', () => {
+		    const input = document.getElementById('repeat-monthly-day-input');
+		    const day = parseInt(input.value, 10);
+		    if (isNaN(day) || day < 1 || day > 31) {
+		        alert('1～31の日付を入力してください。');
+		        return;
+		    }
+		    addMonthlyDayChip(day, 'repeat-monthly-days-list');
+		    input.value = '';
+		});
+		
+		// リピートタスク追加フォーム - 毎年の日付追加
+		document.getElementById('add-yearly-date-btn').addEventListener('click', () => {
+		    const monthInput = document.getElementById('repeat-yearly-month-input');
+		    const dayInput = document.getElementById('repeat-yearly-day-input');
+		    const month = parseInt(monthInput.value, 10);
+		    const day = parseInt(dayInput.value, 10);
+		    if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
+		        alert('有効な月日を入力してください。');
+		        return;
+		    }
+		    addYearlyDateChip(month, day, 'repeat-yearly-dates-list');
+		    monthInput.value = '';
+		    dayInput.value = '';
+		});
+		
+		// リピートタスク編集モーダル - 毎月の日付追加
+		document.getElementById('edit-add-monthly-day-btn').addEventListener('click', () => {
+		    const input = document.getElementById('edit-repeat-monthly-day-input');
+		    const day = parseInt(input.value, 10);
+		    if (isNaN(day) || day < 1 || day > 31) {
+		        alert('1～31の日付を入力してください。');
+		        return;
+		    }
+		    addMonthlyDayChip(day, 'edit-repeat-monthly-days-list');
+		    input.value = '';
+		});
+		
+		// リピートタスク編集モーダル - 毎年の日付追加
+		document.getElementById('edit-add-yearly-date-btn').addEventListener('click', () => {
+		    const monthInput = document.getElementById('edit-repeat-yearly-month-input');
+		    const dayInput = document.getElementById('edit-repeat-yearly-day-input');
+		    const month = parseInt(monthInput.value, 10);
+		    const day = parseInt(dayInput.value, 10);
+		    if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
+		        alert('有効な月日を入力してください。');
+		        return;
+		    }
+		    addYearlyDateChip(month, day, 'edit-repeat-yearly-dates-list');
+		    monthInput.value = '';
+		    dayInput.value = '';
+		});
+
+		// 毎月の日付チップを追加
+		function addMonthlyDayChip(day, containerId) {
+		    const container = document.getElementById(containerId);
+		    
+		    // 重複チェック
+		    const existing = Array.from(container.querySelectorAll('.day-chip')).find(
+		        chip => parseInt(chip.dataset.day) === day
+		    );
+		    if (existing) {
+		        alert('この日付は既に追加されています。');
+		        return;
+		    }
+		    
+		    const chip = document.createElement('div');
+		    chip.className = 'day-chip flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
+		    chip.dataset.day = day;
+		    chip.innerHTML = `
+		        <span>${day}日</span>
+		        <button type="button" class="remove-chip hover:text-red-600">
+		            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+		            </svg>
+		        </button>
+		    `;
+		    
+		    chip.querySelector('.remove-chip').addEventListener('click', () => chip.remove());
+		    container.appendChild(chip);
+		}
+		
+		// 毎年の月日チップを追加
+		function addYearlyDateChip(month, day, containerId) {
+		    const container = document.getElementById(containerId);
+		    
+		    // 重複チェック
+		    const existing = Array.from(container.querySelectorAll('.date-chip')).find(
+		        chip => parseInt(chip.dataset.month) === month && parseInt(chip.dataset.day) === day
+		    );
+		    if (existing) {
+		        alert('この日付は既に追加されています。');
+		        return;
+		    }
+		    
+		    const chip = document.createElement('div');
+		    chip.className = 'date-chip flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
+		    chip.dataset.month = month;
+		    chip.dataset.day = day;
+		    chip.innerHTML = `
+		        <span>${month}月${day}日</span>
+		        <button type="button" class="remove-chip hover:text-red-600">
+		            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+		            </svg>
+		        </button>
+		    `;
+		    
+		    chip.querySelector('.remove-chip').addEventListener('click', () => chip.remove());
+		    container.appendChild(chip);
+		}
+		
+		// 毎月の日付リストを取得
+		function getMonthlyDaysFromChips(containerId) {
+		    const container = document.getElementById(containerId);
+		    return Array.from(container.querySelectorAll('.day-chip'))
+		        .map(chip => parseInt(chip.dataset.day))
+		        .sort((a, b) => a - b);
+		}
+		
+		// 毎年の日付リストを取得
+		function getYearlyDatesFromChips(containerId) {
+		    const container = document.getElementById(containerId);
+		    return Array.from(container.querySelectorAll('.date-chip'))
+		        .map(chip => ({
+		            month: parseInt(chip.dataset.month),
+		            day: parseInt(chip.dataset.day)
+		        }))
+		        .sort((a, b) => {
+		            if (a.month !== b.month) return a.month - b.month;
+		            return a.day - b.day;
+		        });
+		}
 
 	function deleteAllTasksForViewDate() {
         const tasks = getTasksForViewDate(); // これは !isDeleted なタスクのみを返す
@@ -5544,63 +5729,63 @@
     }
 
     function addRepeatTask() {
-        const name = document.getElementById('repeat-task-name').value.trim();
-        const time = parseInt(document.getElementById('repeat-task-time').value, 10);
-        const projectId = document.getElementById('repeat-task-project').value || null;
-		const sectionId = document.getElementById('repeat-task-section').value || null;
-		const memo = '';
-        const type = document.getElementById('repeat-task-type').value;
-
-        if (!name || isNaN(time) || time < 0) return alert('タスク名と見積時間を正しく入力してください。');
-
-        let value = null;
-        let startDate = null;
-        let weekInterval = 1;
-
-        if (type === 'weekly') {
-            value = Array.from(document.querySelectorAll('#repeat-weekly-days input:checked')).map(cb => parseInt(cb.value, 10));
-            if (value.length === 0) return alert('曜日を選択してください。');
-            weekInterval = parseInt(document.getElementById('repeat-weekly-interval').value, 10) || 1;
-            startDate = document.getElementById('repeat-weekly-start-date').value || new Date().toISOString().slice(0,10);
-        } else if (type === 'monthly') {
-            const monthlyType = document.querySelector('input[name="repeat-monthly-type"]:checked').value;
-            if (monthlyType === 'day') {
-                const day = parseInt(document.getElementById('repeat-monthly-day').value, 10);
-                if (isNaN(day) || day < 1 || day > 31) { return alert('有効な日付を入力してください。'); }
-                value = { type: 'day', day: day };
-            } else {
-                const week = parseInt(document.getElementById('repeat-monthly-week').value, 10);
-                const weekday = parseInt(document.getElementById('repeat-monthly-weekday').value, 10);
-                value = { type: 'weekday', week: week, weekday: weekday };
-            }
-        } else if (type === 'yearly') {
-            const month = parseInt(document.getElementById('repeat-yearly-month').value, 10);
-            const day = parseInt(document.getElementById('repeat-yearly-day').value, 10);
-            if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
-                return alert('有効な月日を入力してください。');
-            }
-            value = { month, day };
-        } else if (type === 'interval') {
-            value = parseInt(document.getElementById('repeat-interval-days').value, 10);
-            if (isNaN(value) || value < 1) return alert('有効な間隔（日数）を入力してください。');
-            startDate = document.getElementById('repeat-interval-start-date').value || new Date().toISOString().slice(0,10);
-        }
-
-        state.repeatTasks.push({ id: 'rt' + Date.now(), name, estimatedTime: time, projectId, sectionId, memo, type, value, startDate, weekInterval, subtasks: [] });
-
-        // 入力フォームのリセット
-        document.getElementById('repeat-task-name').value = '';
-        document.getElementById('repeat-task-time').value = '';
-        document.querySelectorAll('#repeat-weekly-days input').forEach(cb => cb.checked = false);
-        document.getElementById('repeat-weekly-interval').value = '1';
-        document.getElementById('repeat-monthly-day').value = '';
-        document.getElementById('repeat-yearly-month').value = '';
-        document.getElementById('repeat-yearly-day').value = '';
-        document.getElementById('repeat-interval-days').value = '';
-        document.getElementById('repeat-interval-start-date').value = '';
-        document.getElementById('repeat-weekly-start-date').value = '';
-        saveAndRender();
-    }
+	    const name = document.getElementById('repeat-task-name').value.trim();
+	    const time = parseInt(document.getElementById('repeat-task-time').value, 10);
+	    const projectId = document.getElementById('repeat-task-project').value || null;
+	    const sectionId = document.getElementById('repeat-task-section').value || null;
+	    const memo = '';
+	    const type = document.getElementById('repeat-task-type').value;
+	
+	    if (!name || isNaN(time) || time < 0) return alert('タスク名と見積時間を正しく入力してください。');
+	
+	    let value = null;
+	    let startDate = null;
+	    let weekInterval = 1;
+	
+	    if (type === 'weekly') {
+	        value = Array.from(document.querySelectorAll('#repeat-weekly-days input:checked')).map(cb => parseInt(cb.value, 10));
+	        if (value.length === 0) return alert('曜日を選択してください。');
+	        weekInterval = parseInt(document.getElementById('repeat-weekly-interval').value, 10) || 1;
+	        startDate = document.getElementById('repeat-weekly-start-date').value || new Date().toISOString().slice(0,10);
+	    } else if (type === 'monthly') {
+	        const monthlyType = document.querySelector('input[name="repeat-monthly-type"]:checked').value;
+	        if (monthlyType === 'day') {
+	            const days = getMonthlyDaysFromChips('repeat-monthly-days-list');
+	            if (days.length === 0) {
+	                return alert('少なくとも1つの日付を追加してください。');
+	            }
+	            value = { type: 'day', days: days };
+	        } else {
+	            const week = parseInt(document.getElementById('repeat-monthly-week').value, 10);
+	            const weekday = parseInt(document.getElementById('repeat-monthly-weekday').value, 10);
+	            value = { type: 'weekday', week: week, weekday: weekday };
+	        }
+	    } else if (type === 'yearly') {
+	        const dates = getYearlyDatesFromChips('repeat-yearly-dates-list');
+	        if (dates.length === 0) {
+	            return alert('少なくとも1つの月日を追加してください。');
+	        }
+	        value = dates;
+	    } else if (type === 'interval') {
+	        value = parseInt(document.getElementById('repeat-interval-days').value, 10);
+	        if (isNaN(value) || value < 1) return alert('有効な間隔（日数）を入力してください。');
+	        startDate = document.getElementById('repeat-interval-start-date').value || new Date().toISOString().slice(0,10);
+	    }
+	
+	    state.repeatTasks.push({ id: 'rt' + Date.now(), name, estimatedTime: time, projectId, sectionId, memo, type, value, startDate, weekInterval, subtasks: [] });
+	
+	    // 入力フォームのリセット
+	    document.getElementById('repeat-task-name').value = '';
+	    document.getElementById('repeat-task-time').value = '';
+	    document.querySelectorAll('#repeat-weekly-days input').forEach(cb => cb.checked = false);
+	    document.getElementById('repeat-weekly-interval').value = '1';
+	    document.getElementById('repeat-monthly-days-list').innerHTML = '';
+	    document.getElementById('repeat-yearly-dates-list').innerHTML = '';
+	    document.getElementById('repeat-interval-days').value = '';
+	    document.getElementById('repeat-interval-start-date').value = '';
+	    document.getElementById('repeat-weekly-start-date').value = '';
+	    saveAndRender();
+	}
 
     function deleteRepeatTask(id) {
         const repeatTask = state.repeatTasks.find(rt => rt.id === id);
