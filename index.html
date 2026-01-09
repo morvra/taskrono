@@ -609,15 +609,6 @@
 		    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
 		}
 
-		/* 同期アイコン回転アニメーション */
-		@keyframes spin {
-		    from { transform: rotate(0deg); }
-		    to { transform: rotate(360deg); }
-		}
-		.animate-spin-custom {
-		    animation: spin 1s linear infinite;
-		}
-		
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -1575,37 +1566,23 @@
 			        console.log('Dropbox not authenticated, skipping cloud save');
 			        return;
 			    }
-			
-			    // --- インジケータ用アイコンの定義 ---
-			    const inboxBtn = document.getElementById('inbox-btn');
-			    const originalIconHtml = `
-			        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-			            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-			        </svg>`;
-			    const loadingIconHtml = `
-			        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 animate-spin-custom" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-			            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2.153m15.357 2.153H15" />
-			        </svg>`;
-			    const successIconHtml = `
-			        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-			            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-			        </svg>`;
-			
-			    // 同期開始：アイコンを回転させる
-			    if (inboxBtn) inboxBtn.innerHTML = loadingIconHtml;
+			    
 			    this.driveStatusEl.textContent = 'Dropboxへ保存準備中...';
-			
 			    const cleanedDailyTasks = {};
 			    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+			
 			    for (const dateKey in state.dailyTasks) {
 			        const filteredTasks = state.dailyTasks[dateKey].filter(task => {
+			            // isDeletedフラグがないか、あっても30日以内のものだけを残す
 			            return !task.isDeleted || (task.updatedAt && task.updatedAt > thirtyDaysAgo);
 			        });
+			        // フィルタリングした結果、タスクが1件以上残っている場合のみその日付のデータを保存する
 			        if (filteredTasks.length > 0) {
 			            cleanedDailyTasks[dateKey] = filteredTasks;
 			        }
 			    }
-			
+			    
+                // メインデータとアーカイブデータを分離
 			    const mainDataToSave = {
 			        dailyTasks: cleanedDailyTasks,
 			        projects: state.projects,
@@ -1614,56 +1591,38 @@
 			        lastDate: state.lastDate,
 			        updatedAt: new Date().toISOString()
 			    };
-			
-			    const archiveDataToSave = {
-			        archivedTasks: state.archivedTasks,
-			        updatedAt: new Date().toISOString()
-			    };
-			
+
+                const archiveDataToSave = {
+                    archivedTasks: state.archivedTasks,
+                    updatedAt: new Date().toISOString()
+                };
+			    
 			    this.driveStatusEl.textContent = 'Dropboxへ保存中...';
-			
 			    try {
-			        const saveMainData = this.dbx.filesUpload({
+                    // 2つの保存処理を並行して実行
+                    const saveMainData = this.dbx.filesUpload({
 			            path: this.dropboxFilePath,
 			            contents: JSON.stringify(mainDataToSave, null, 2),
 			            mode: 'overwrite'
 			        });
-			
-			        const saveArchiveData = this.dbx.filesUpload({
-			            path: this.archiveFilePath,
-			            contents: JSON.stringify(archiveDataToSave, null, 2),
-			            mode: 'overwrite'
-			        });
-			
+
+                    const saveArchiveData = this.dbx.filesUpload({
+                        path: this.archiveFilePath,
+                        contents: JSON.stringify(archiveDataToSave, null, 2),
+                        mode: 'overwrite'
+                    });
+
+                    // 両方の完了を待つ
 			        await Promise.all([saveMainData, saveArchiveData]);
-			
-			        this.driveStatusEl.textContent = `Dropboxへ保存しました (${new Date().toLocaleTimeString()})`;
-			        
-			        // --- 修正箇所: 同期成功時のUI処理 ---
-			        if (inboxBtn) {
-			            inboxBtn.innerHTML = successIconHtml;
-			            setTimeout(() => {
-			                inboxBtn.innerHTML = originalIconHtml;
-			            }, 2000); // 2秒後に元のアイコンに戻す
-			        }
-			
-			        // スマホ(768px以下)の時だけトーストを出す
-			        if (window.innerWidth <= 768) {
-			            showToast('Dropboxへ保存しました。');
-			        }
-			
+
+			        this.driveStatusEl.textContent = `Dropboxに保存しました (${new Date().toLocaleTimeString()})。`;
 			    } catch (error) {
-			        // エラー時はアイコンを元に戻す
-			        if (inboxBtn) inboxBtn.innerHTML = originalIconHtml;
-			        
 			        console.error('Error saving state to Dropbox:', error);
 			        this.driveStatusEl.textContent = `保存エラー: ${error.error?.error_summary || 'Unknown error'}`;
-			        const errorSummary = error.error?.error_summary || '';
-			        if (error.status === 401 || errorSummary.includes('expired_access_token')) {
+			        if (error.status === 401) { // 認証エラー
+			            this.updateAuthUi(false);
+			            this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
 			            this.updateReauthUi(true);
-			            showToast('認証が切れました。再ログインしてください。');
-			        } else {
-			            showToast('Dropboxへの保存に失敗しました。');
 			        }
 			    }
 			}
