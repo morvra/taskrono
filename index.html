@@ -6518,6 +6518,19 @@
 
     init();
 });
+
+// ウィンドウ（タブ）にフォーカスが戻った際に、Dropboxから最新状態を読み込む
+window.addEventListener('focus', () => {
+    if (window.dailyTaskListApp && localStorage.getItem('dropbox_access_token')) {
+        dailyTaskListApp.loadStateFromDropbox().then(() => {
+            if (typeof render === 'function') {
+                render();
+            }
+        }).catch(err => {
+            console.error('Taskrono: Auto-sync failed on focus', err);
+        });
+    }
+});
 </script>
 
 </body>
