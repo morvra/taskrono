@@ -609,6 +609,9 @@
 		    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
 		}
 
+		@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+		
     </style>
 </head>
 <body class="antialiased text-gray-800">
@@ -849,14 +852,16 @@
 
 <div id="sync-button-floating-container" class="hidden">
     <button id="sync-data-fab" class="fab bg-gray-200 hover:bg-gray-300 text-gray-500" title="Dropboxからデータを取り込む (R)">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
+        <span id="pc-sync-icon" class="flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </span>
     </button>
 </div>
 
 <div id="add-task-floating-container" class="hidden">
-	</div>
+</div>
 
 <div id="add-task-modal" class="modal">
     <div class="modal-content p-6 w-full max-w-md">
@@ -1059,19 +1064,21 @@
         </button>
         <button id="bottom-nav-repeat-btn" class="bottom-nav-btn">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
             <span class="text-xs mt-1">リピート</span>
         </button>
-		<button id="bottom-nav-inbox" class="bottom-nav-btn hidden" title="Inboxを開く">
+        <button id="bottom-nav-inbox" class="bottom-nav-btn hidden" title="Inboxを開く">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
         </button>
         <button id="bottom-nav-dropbox-import" class="bottom-nav-btn hidden" title="Dropboxから取り込む">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+            <span id="mobile-sync-icon" class="flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </span>
         </button>
     </div>
     
@@ -1080,7 +1087,7 @@
             ＋
         </button>
     </div>
-    </div>
+</div>
 
 <div id="quick-action-overlay">
     <div id="quick-action-menu"></div>
@@ -1246,6 +1253,48 @@
 		        }
 		    },
 
+			// 同期ボタンのUI状態制御
+            updateSyncUi: function(status) {
+                const iconContainerMobile = document.getElementById('mobile-sync-icon');
+                const iconContainerPc = document.getElementById('pc-sync-icon');
+                const containers = [iconContainerMobile, iconContainerPc];
+
+                // アイコンSVG定義 (Tailwindクラスは既存のデザインに合わせ調整)
+                const syncIconSvgMobile = `<svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
+                const syncIconSvgPc = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
+                
+                // チェックマーク (共通)
+                const checkIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
+
+                containers.forEach(container => {
+                    if (!container) return;
+                    // PCとモバイルでサイズが微妙に違うため元のSVGを使い分ける
+                    const defaultSvg = (container.id === 'mobile-sync-icon') ? syncIconSvgMobile : syncIconSvgPc;
+
+                    if (status === 'loading') {
+                        // 回転アニメーション開始
+                        container.innerHTML = defaultSvg;
+                        container.classList.add('animate-spin');
+                        container.style.animation = "spin 1s linear infinite"; 
+                    } else if (status === 'success') {
+                        // 回転停止＆チェックマーク表示
+                        container.classList.remove('animate-spin');
+                        container.style.animation = "";
+                        container.innerHTML = checkIconSvg;
+                        
+                        // 2秒後に元のアイコンに戻す
+                        setTimeout(() => {
+                            container.innerHTML = defaultSvg;
+                        }, 2000);
+                    } else {
+                        // アイドル状態（エラー時など）
+                        container.classList.remove('animate-spin');
+                        container.style.animation = "";
+                        container.innerHTML = defaultSvg;
+                    }
+                });
+            },
+
             fetchInboxContent: async function() {
                 if (!this.dbx) return '';
                 try {
@@ -1395,6 +1444,7 @@
 			        alert('Dropboxにログインしてください。');
 			        return;
 			    }
+				this.updateSyncUi('loading');
 			    this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
 			    try {
 			        const response = await this.dbx.filesDownload({ path: this.dropboxFilePath });
@@ -1542,13 +1592,15 @@
 			        saveState(); 
 			        render();
 			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
+					this.updateSyncUi('success');
 			        
-                    // 修正: 引数フラグに応じてトーストを表示
+                    // 引数フラグに応じてトーストを表示
                     if (showNotification) {
 			            showToast('Dropboxからデータを読み込みました。');
                     }
 			
 			    } catch (error) {
+					this.updateSyncUi('idle');
 			        if (error.status === 409) { // 409: path not found
 			             this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
 			             await this.saveStateToDropbox(); // 初回保存
@@ -3369,10 +3421,22 @@
         document.getElementById('import-data-btn').addEventListener('click', importData);
         document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
 		document.getElementById('bottom-nav-inbox')?.addEventListener('click', openInboxModal);
-        document.getElementById('bottom-nav-dropbox-import')?.addEventListener('click', dailyTaskListApp.loadStateFromDropbox.bind(dailyTaskListApp));
-		document.getElementById('sync-data-fab')?.addEventListener('click', () => {
-            dailyTaskListApp.loadStateFromDropbox();
-        });
+
+		// PC用ボタン (ID: sync-data-fab)
+        const pcSyncBtn = document.getElementById('sync-data-fab');
+        if (pcSyncBtn) {
+            pcSyncBtn.addEventListener('click', () => {
+                dailyTaskListApp.loadStateFromDropbox(true);
+            });
+        }
+
+        // モバイル用ボタン (ID: bottom-nav-dropbox-import)
+        const mobileSyncBtn = document.getElementById('bottom-nav-dropbox-import');
+        if (mobileSyncBtn) {
+            mobileSyncBtn.addEventListener('click', () => {
+                dailyTaskListApp.loadStateFromDropbox(true);
+            });
+        }
 
         setupModalEvents();
 
