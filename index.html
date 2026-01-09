@@ -1390,7 +1390,7 @@
 			    }
 			},
 
-			loadStateFromDropbox: async function() {
+			loadStateFromDropbox: async function(showNotification = true) {
 			    if (!this.dbx) {
 			        alert('Dropboxにログインしてください。');
 			        return;
@@ -1542,7 +1542,11 @@
 			        saveState(); 
 			        render();
 			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-			        showToast('Dropboxからデータを読み込みました。');
+			        
+                    // 修正: 引数フラグに応じてトーストを表示
+                    if (showNotification) {
+			            showToast('Dropboxからデータを読み込みました。');
+                    }
 			
 			    } catch (error) {
 			        if (error.status === 409) { // 409: path not found
@@ -6522,7 +6526,7 @@
 // ウィンドウ（タブ）にフォーカスが戻った際に、Dropboxから最新状態を読み込む
 window.addEventListener('focus', () => {
     if (window.dailyTaskListApp && localStorage.getItem('dropbox_access_token')) {
-        dailyTaskListApp.loadStateFromDropbox().then(() => {
+        dailyTaskListApp.loadStateFromDropbox(false).then(() => {
             if (typeof render === 'function') {
                 render();
             }
