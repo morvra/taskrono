@@ -709,7 +709,7 @@
                             <div class="space-y-3">
                                 <div class="flex gap-3">
                                     <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
-                                    <input type="number" id="repeat-task-time" placeholder="見積(分)" class="w-28 p-2 border rounded-lg bg-white">
+                                    <input type="number" id="repeat-task-time" placeholder="見積(分)" value="20" class="w-28 p-2 border rounded-lg bg-white">
                                 </div>
                                 <div class="flex gap-3">
                                     <select id="repeat-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
@@ -4256,7 +4256,7 @@
 
 	function openAddTaskModal() {
 	    document.getElementById('new-task-name').value = '';
-	    document.getElementById('new-task-time').value = '5';
+	    document.getElementById('new-task-time').value = '20';
 	    document.getElementById('new-task-project').value = '';
 	
 	    // 現在のセクションを取得
