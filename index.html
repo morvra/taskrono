@@ -140,7 +140,7 @@
             border-radius: 50%;
             display: flex;
             align-items: center;
-            justify-content: center;f
+            justify-content: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.2s ease-in-out;
         }
@@ -262,9 +262,6 @@
 
         @media (max-width: 768px) {
             .tab-content.active { padding-bottom:160px; }
-            .task-card-wrapper {
-                space-y: 0.5rem; 
-            }
             .task-card { border-radius: 0; }
             .task-card.completed { background-color: #e5e7eb; }
             .task-card.completed.focused { background-color: #fef9c3; }
@@ -1184,11 +1181,12 @@
         // DROPBOX SYNC START
         const dailyTaskListApp = window.dailyTaskListApp = {
             dropboxFilePath: '/DailyTaskListData.json', // Dropbox App Folder内のパス
-			inboxFilePath: '/inbox.txt', // Inboxファイルのパス
-			archiveFilePath: '/ArchiveData.json', // アーカイブデータ用のパス
+			      inboxFilePath: '/inbox.txt', // Inboxファイルのパス
+			      archiveFilePath: '/ArchiveData.json', // アーカイブデータ用のパス
             dbx: null,
             saveTimeout: null,
-			// favicon
+            lastSyncTime: 0,
+			      // favicon
             defaultFavicon: './taskrono.ico',
             runningFavicon: './taskrono_running.ico',
             // DOM Elements
@@ -1595,12 +1593,13 @@
 			        saveState(); 
 			        render();
 			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-					this.updateSyncUi('success');
+					    this.updateSyncUi('success');
+              this.lastSyncTime = Date.now();
 			        
-                    // 引数フラグに応じてトーストを表示
-                    if (showNotification) {
-			            showToast('Dropboxからデータを読み込みました。');
-                    }
+              // 引数フラグに応じてトーストを表示
+              if (showNotification) {
+			          showToast('Dropboxからデータを読み込みました。');
+              }
 			
 			    } catch (error) {
 					this.updateSyncUi('idle');
@@ -1671,11 +1670,13 @@
                         mode: 'overwrite'
                     });
 
-                    // 両方の完了を待つ
+              // 両方の完了を待つ
 			        await Promise.all([saveMainData, saveArchiveData]);
 
 			        this.driveStatusEl.textContent = `Dropboxに保存しました (${new Date().toLocaleTimeString()})。`;
-			    } catch (error) {
+              this.lastSyncTime = Date.now();
+
+			      } catch (error) {
 			        console.error('Error saving state to Dropbox:', error);
 			        this.driveStatusEl.textContent = `保存エラー: ${error.error?.error_summary || 'Unknown error'}`;
 			        if (error.status === 401) { // 認証エラー
@@ -1685,7 +1686,7 @@
 			        }
 			    }
 			}
-        };
+    };
         
 		// Dropbox 同期機能の初期化
 		async function initializeDropboxSync() {
@@ -6592,7 +6593,20 @@
 
 // ウィンドウ（タブ）にフォーカスが戻った際に、Dropboxから最新状態を読み込む
 window.addEventListener('focus', () => {
+    // Dropboxトークンがあり、かつアプリが初期化されている場合
     if (window.dailyTaskListApp && localStorage.getItem('dropbox_access_token')) {
+        
+        // 前回同期から5分（300,000ミリ秒）経過しているかチェック
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        // 前回の同期から5分経っていなければ、読み込みをスキップしてログを出す
+        if (window.dailyTaskListApp.lastSyncTime && (now - window.dailyTaskListApp.lastSyncTime < fiveMinutes)) {
+            console.log('Taskrono: Auto-sync skipped (synced within last 5 minutes).');
+            return;
+        }
+
+        console.log('Taskrono: Starting auto-sync on focus.');
         dailyTaskListApp.loadStateFromDropbox(false).then(() => {
             if (typeof render === 'function') {
                 render();
