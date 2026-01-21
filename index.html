@@ -1455,13 +1455,13 @@
 			        const fileContent = await response.result.fileBlob.text();
 			        const importedData = JSON.parse(fileContent);
 			
-			        // セクション情報の復元（タスク復元より前に実行）
+			        // セクション情報の復元
 			        if (importedData.sections && Array.isArray(importedData.sections)) {
 			            state.sections = importedData.sections;
 			            state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
 			        }
 			
-			        // Custom Merge Logic for dailyTasks
+			        // Custom Merge Logic
 			        const driveDailyTasks = importedData.dailyTasks || {};
 			        const localDailyTasks = state.dailyTasks;
 			        const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
@@ -1473,9 +1473,9 @@
 			            const taskMap = new Map();
 			        
 			            for (const task of combinedTasks) {
-			                const key = (task.originRepeatId && !task.isManuallyAddedRepeat) // 自動生成リピートタスク
-			                    ? `repeat-${task.originRepeatId}-${task.createdDate || date}` // 従来通り (IDと日付でマージ)
-			                    : `task-${task.id}`; // 通常タスクまたは手動生成リピートタスク (task.idでユニーク)
+			                const key = (task.originRepeatId && !task.isManuallyAddedRepeat)
+			                    ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
+			                    : `task-${task.id}`;
 			        
 			                if (!taskMap.has(key)) {
 			                    taskMap.set(key, task);
@@ -1491,7 +1491,7 @@
 			                    if (newIsCompleted && !existingIsCompleted) {
 			                        taskToKeep = newTask;
 			                    } else if (!newIsCompleted && existingIsCompleted) {
-			                        // Do nothing, keep existing
+			                        // Do nothing
 			                    } else {
 			                        const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
 			                        const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
@@ -1505,33 +1505,27 @@
 			            
 			            let mergedTasks = Array.from(taskMap.values());
 			            
-			            // タスクをセクション順にソート
 			            const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
 			            const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
 			            
 			            mergedTasks.sort((a, b) => {
 			                const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
 			                const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
-			                
-			                // セクションが異なる場合はセクション順
-			                if (sectionIndexA !== sectionIndexB) {
-			                    return sectionIndexA - sectionIndexB;
-			                }
-			                
-			                // 同じセクション内ではsortOrder順
+			                if (sectionIndexA !== sectionIndexB) return sectionIndexA - sectionIndexB;
 			                return (a.sortOrder || 0) - (b.sortOrder || 0);
 			            });
 			            
 			            state.dailyTasks[date] = mergedTasks;
 			        });
-			        // End of dailyTasks Merge Logic
+					
+                    let restoredActiveDate = null;
                     if (preSyncRunningTaskId) {
-                        // 全日付から探す（通常は今日だが、日付またぎの可能性もあるため）
                         for (const dateKey in state.dailyTasks) {
                             const foundTask = state.dailyTasks[dateKey].find(t => t.id === preSyncRunningTaskId);
                             if (foundTask) {
                                 foundTask.status = 'running';
                                 state.activeTaskId = preSyncRunningTaskId;
+                                restoredActiveDate = dateKey; // 日付を記録
                                 break;
                             }
                         }
@@ -1543,7 +1537,6 @@
 			        ])).sort();
 			        const repeatTaskCompletionMap = new Map();
 			
-			        // 最初にすべての完了情報を集める (dailyTasks と archivedTasks の両方から)
 			        sortedDates.forEach(date => {
 			            const allTasksForDate = [
 			                ...(state.dailyTasks[date] || []),
@@ -1559,39 +1552,45 @@
 			            });
 			        });
 			        
-			        // 集めた完了情報をもとに、不要な未完了タスクを一度だけ削除する
+			        // 不要な未完了タスク削除処理
 			        sortedDates.forEach(date => {
 			            const tasks = state.dailyTasks[date] || [];
 			            state.dailyTasks[date] = tasks.filter(task => {
-			                if (!task.originRepeatId) return true; // リピート由来でなければ保持
+			                if (!task.originRepeatId) return true;
+			                
                             if (task.status === 'running') return true;
 
 			                const completedDate = repeatTaskCompletionMap.get(task.originRepeatId);
-			                if (!completedDate) return true; // 完了記録がなければ保持
+			                if (!completedDate) return true;
 			                
 			                const taskCreatedDate = task.createdDate || date;
+                            
 			                if (taskCreatedDate >= completedDate) {
 			                    return true;
 			                }
 			                
 			                if (getTaskStatus(task) === 'completed') {
-			                    // 完了済みのタスクは保持
 			                    return true;
 			                }
 			                return false;
 			            });
 			        });
-			        // End of リピートタスク重複削除処理
 			
 			        if (importedData.projects) state.projects = importedData.projects;
 			        if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
 			        state.lastDate = importedData.lastDate || state.lastDate;
 			        
-                    // Inboxからのインポート処理を呼び出す
                     await this.importTasksFromInbox();
 
 			        stopActiveTimer();
-			        state.viewDate = getFormattedDate(new Date());
+
+                    // 実行中のタスクがあるならその日付を表示、なければ今日を表示
+                    if (restoredActiveDate) {
+                        state.viewDate = restoredActiveDate;
+                    } else {
+                        state.viewDate = getFormattedDate(new Date());
+                    }
+
 			        const tasksToday = getTasksForViewDate();
 			        const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
 			        if (firstUncompletedTask) {
@@ -1603,23 +1602,23 @@
 			        }
 			        Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
 			        
-			        restoreRunningTaskState();
-			        saveState(); 
+                    saveState();
 			        render();
+                    restoreRunningTaskState();
+
 			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-					    this.updateSyncUi('success');
-              this.lastSyncTime = Date.now();
+					this.updateSyncUi('success');
+                    this.lastSyncTime = Date.now();
 			        
-              // 引数フラグに応じてトーストを表示
-              if (showNotification) {
-			          showToast('Dropboxからデータを読み込みました。');
-              }
+                    if (showNotification) {
+			            showToast('Dropboxからデータを読み込みました。');
+                    }
 			
 			    } catch (error) {
 					this.updateSyncUi('idle');
-			        if (error.status === 409) { // 409: path not found
+			        if (error.status === 409) {
 			             this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
-			             await this.saveStateToDropbox(); // 初回保存
+			             await this.saveStateToDropbox();
 			        } else {
 			            console.error('Error loading state from Dropbox:', error);
 			            this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
@@ -2453,18 +2452,26 @@
         // 既に動いているタイマーがあれば止める
         stopActiveTimer();
 		
-        const todayStr = getFormattedDate(new Date());
-        const tasksToday = (state.dailyTasks[todayStr] || []).filter(task => !task.isDeleted);
-        const runningTask = tasksToday.find(t => t.status === 'running');
+        const tasksView = (state.dailyTasks[state.viewDate] || []).filter(task => !task.isDeleted);
+        let runningTask = tasksView.find(t => t.status === 'running');
+        
+        if (!runningTask && state.activeTaskId) {
+             for (const dateKey in state.dailyTasks) {
+                 const found = state.dailyTasks[dateKey].find(t => t.id === state.activeTaskId);
+                 if (found && found.status === 'running') {
+                     runningTask = found;
+                     break;
+                 }
+             }
+        }
         
         if (runningTask) {
             state.activeTaskId = runningTask.id;
             state.activeTimerId = setInterval(() => {
 	            // 時間テキストの更新
-	            const currentActualSeconds = calculateActualTime(task);
+	            const currentActualSeconds = calculateActualTime(runningTask);
 	            const timeString = formatTime(currentActualSeconds);
-	
-	            const timeEls = document.querySelectorAll(`[data-task-id="${task.id}"] .time-actual`);
+	            const timeEls = document.querySelectorAll(`[data-task-id="${runningTask.id}"] .time-actual`);
 	            timeEls.forEach(el => el.textContent = timeString);
 	
 	            const floatingTimeEl = document.getElementById('floating-elapsed-time');
@@ -2473,10 +2480,9 @@
 	            }
 	            
 	            // プログレスバーの更新処理
-	            const progressBar = document.querySelector(`[data-task-id="${task.id}"] .running-progress-bg`);
-	            if (progressBar && task.estimatedTime > 0) {
-	                // 分を秒に変換して計算。最大100%にキャップ
-	                const percentage = Math.min(100, (currentActualSeconds / (task.estimatedTime * 60)) * 100);
+	            const progressBar = document.querySelector(`[data-task-id="${runningTask.id}"] .running-progress-bg`);
+	            if (progressBar && runningTask.estimatedTime > 0) {
+	                const percentage = Math.min(100, (currentActualSeconds / (runningTask.estimatedTime * 60)) * 100);
 	                progressBar.style.width = `${percentage}%`;
 	            }
 	        }, 1000);
