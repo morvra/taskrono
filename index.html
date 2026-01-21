@@ -1445,6 +1445,9 @@
 			        alert('Dropboxにログインしてください。');
 			        return;
 			    }
+
+                const preSyncRunningTaskId = state.activeTaskId;
+
 				this.updateSyncUi('loading');
 			    this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
 			    try {
@@ -1522,6 +1525,17 @@
 			            state.dailyTasks[date] = mergedTasks;
 			        });
 			        // End of dailyTasks Merge Logic
+                    if (preSyncRunningTaskId) {
+                        // 全日付から探す（通常は今日だが、日付またぎの可能性もあるため）
+                        for (const dateKey in state.dailyTasks) {
+                            const foundTask = state.dailyTasks[dateKey].find(t => t.id === preSyncRunningTaskId);
+                            if (foundTask) {
+                                foundTask.status = 'running';
+                                state.activeTaskId = preSyncRunningTaskId;
+                                break;
+                            }
+                        }
+                    }
 					
 			        const sortedDates = Array.from(new Set([
 			            ...Object.keys(state.dailyTasks), 
@@ -1550,13 +1564,13 @@
 			            const tasks = state.dailyTasks[date] || [];
 			            state.dailyTasks[date] = tasks.filter(task => {
 			                if (!task.originRepeatId) return true; // リピート由来でなければ保持
-			                
+                            if (task.status === 'running') return true;
+
 			                const completedDate = repeatTaskCompletionMap.get(task.originRepeatId);
 			                if (!completedDate) return true; // 完了記録がなければ保持
 			                
 			                const taskCreatedDate = task.createdDate || date;
-			                if (taskCreatedDate > completedDate) {
-			                    // 完了日より後に正規に作られたタスクは保持
+			                if (taskCreatedDate >= completedDate) {
 			                    return true;
 			                }
 			                
