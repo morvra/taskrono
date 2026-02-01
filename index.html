@@ -5,33 +5,31 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Taskrono</title>
     <script src="https://cdn.tailwindcss.com"></script>
-	<link href='./taskrono.ico' rel='icon' type='image/x-icon'/>
-	<link href='./taskronoicon.png' rel='shortcut icon'/>
-	<link href='./taskronoicon.png' rel='apple-touch-icon'/>
-	
-	<link rel="manifest" href="./manifest.json">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="default">
-	<meta name="theme-color" content="#ffffff">
+    <link href='./taskrono.ico' rel='icon' type='image/x-icon'/>
+    <link href='./taskronoicon.png' rel='shortcut icon'/>
+    <link href='./taskronoicon.png' rel='apple-touch-icon'/>
+
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
 	
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
 		html, body { overscroll-behavior-y: contain; }
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
 
-		/* header for desktop (TABLET / 769px - 1200px) */
-        @media (min-width: 769px) {
-            .header {
-                background: white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
+    /* header for desktop (TABLET / 769px - 1200px) */
+    @media (min-width: 769px) {
+      .header {
+          background: white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
 			.sections-wrapper { padding-bottom: 88px; }
 			main { max-width: 900px; margin: 0 auto; }
 			.task-row { height: 37px; }
-            #desktop-sidebar {
-                display: none;
-            }
-        }
+      #desktop-sidebar { display: none; }
+    }
 
         /* PC 2-Column Layout (1200px+) */
         @media (min-width: 1200px) {
@@ -115,7 +113,7 @@
         ::-webkit-scrollbar-thumb:hover { background:#555; }
 
         .timer-btn {
-			min-width: 24px;
+		      	min-width: 24px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -173,12 +171,12 @@
             }
         }
 		.small-btn { min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center; }
-        .inline-input, .inline-select { width:100%; box-sizing:border-box; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db; }
-        .small-btn { padding:6px 8px; border-radius:6px; font-size:0.9rem; }
+    .inline-input, .inline-select { width:100%; box-sizing:border-box; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db; }
+    .small-btn { padding:6px 8px; border-radius:6px; font-size:0.9rem; }
 
-        .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
-        .modal.active { display:flex; align-items:center; justify-content:center; }
-        .modal-content { background:white; border-radius:8px; max-width:90vw; max-height:90vh; overflow-y:auto; }
+    .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
+    .modal.active { display:flex; align-items:center; justify-content:center; }
+    .modal-content { background:white; border-radius:8px; max-width:90vw; max-height:90vh; overflow-y:auto; }
 		
 		.tooltip-container { position: relative; display: inline-block; vertical-align: middle; }
 		.custom-tooltip { visibility: hidden; opacity: 0; background-color: #2d3748; color: #fff; text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 10; bottom: 150%; left: 50%; transform: translateX(-50%); transition: opacity 0.1s, visibility 0.1s; width: max-content; max-width: 300px; font-size: 0.875rem; font-weight: normal; line-height: 1.4; white-space: pre-wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.1); pointer-events: none; }
@@ -186,33 +184,33 @@
 		.dragging .custom-tooltip { position: static; transform: none; }
 		.custom-tooltip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #2d3748 transparent transparent transparent; }
         
-        .tooltip-container:hover .custom-tooltip { 
-            visibility: visible; 
-            opacity: 1; 
-            transition-delay: 0.1s; 
-        }
-        .tooltip-container:hover .custom-tooltip.tooltip-top { 
-            bottom: 150%; 
-            top: auto; 
-        }
-        .tooltip-container:hover .custom-tooltip.tooltip-bottom { 
-            top: 150%; 
-            bottom: auto; 
-        }
-        .custom-tooltip.tooltip-bottom::after { 
-            top: -10px; 
-            bottom: auto; 
-            border-color: transparent transparent #2d3748 transparent; 
-        }
+    .tooltip-container:hover .custom-tooltip { 
+        visibility: visible; 
+        opacity: 1; 
+        transition-delay: 0.1s; 
+    }
+    .tooltip-container:hover .custom-tooltip.tooltip-top { 
+        bottom: 150%; 
+        top: auto; 
+    }
+    .tooltip-container:hover .custom-tooltip.tooltip-bottom { 
+        top: 150%; 
+        bottom: auto; 
+    }
+    .custom-tooltip.tooltip-bottom::after { 
+        top: -10px; 
+        bottom: auto; 
+        border-color: transparent transparent #2d3748 transparent; 
+    }
 
-        .dragging { opacity: 0.5; background-color: #fef9c3; transform: translate(0, 0); }
-		.dragging .custom-tooltip,
-		.dragging .tooltip-container:hover .custom-tooltip {
-		    visibility: hidden !important;
-		    opacity: 0 !important;
-		    display: none !important;
-		}
-        .drag-over { background-color: #e0f2fe; }
+    .dragging { opacity: 0.5; background-color: #fef9c3; transform: translate(0, 0); }
+    .dragging .custom-tooltip,
+    .dragging .tooltip-container:hover .custom-tooltip {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        display: none !important;
+    }
+    .drag-over { background-color: #e0f2fe; }
 
 		/* ドロップターゲットの表示/非表示制御 */
 		.empty-section-drop-target {
@@ -610,7 +608,7 @@
 		}
 
 		@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.animate-spin { animation: spin 1s linear infinite; }
+    .animate-spin { animation: spin 1s linear infinite; }
 		
     </style>
 </head>
@@ -637,9 +635,9 @@
         <nav class="mobile-nav flex space-x-0 overflow-x-auto" id="header-nav-mobile">
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="today">当日のタスク</button>
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="repeat">リピートタスク</button>
-			<button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="sections">セクション</button>
+			      <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="sections">セクション</button>
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="projects">プロジェクト</button>
-			<button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" onclick="location.href='./analysis'">分析</button>
+		      	<button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" onclick="location.href='./analysis'">分析</button>
             <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="data">データ管理</button>
         </nav>
     </div>
@@ -727,7 +725,7 @@
                                     <option value="monthly">毎月</option>
                                     <option value="yearly">毎年</option>
                                     <option value="interval">○日ごと</option>
-									<option value="template">テンプレート</option>
+				                  					<option value="template">テンプレート</option>
                                 </select>
                                 
                                 <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
@@ -1196,9 +1194,9 @@
             signoutContainer: null,
             authStatusEl: null,
             driveStatusEl: null,
-			syncDataFab: null,
-		    reauthNotification: null,
-		    reauthButton: null,
+            syncDataFab: null,
+            reauthNotification: null,
+	    	    reauthButton: null,
             
             // DOM要素を初期化するメソッド
             initDomElements: function() {
@@ -1487,21 +1485,21 @@
 			        
 			                    let taskToKeep = existingTask;
 			        
-                                // 1. 完了状態を最優先 (Completed > Running/Pending)
+                          // 1. 完了状態を最優先 (Completed > Running/Pending)
 			                    if (newStatus === 'completed' && existingStatus !== 'completed') {
 			                        taskToKeep = newTask;
 			                    } else if (existingStatus === 'completed' && newStatus !== 'completed') {
 			                        taskToKeep = existingTask;
 			                    } 
-                                // 2. 実行中状態を優先 (Running > Pending)
-                                else if (existingStatus === 'running' && newStatus === 'pending') {
-                                    taskToKeep = existingTask;
-                                }
-                                else if (newStatus === 'running' && existingStatus === 'pending') {
-                                    taskToKeep = newTask;
-                                }
-                                // 3. 状態が同じ、または判断がつかない場合は更新日時で比較
-                                else {
+                          // 2. 実行中状態を優先 (Running > Pending)
+                          else if (existingStatus === 'running' && newStatus === 'pending') {
+                              taskToKeep = existingTask;
+                          }
+                          else if (newStatus === 'running' && existingStatus === 'pending') {
+                              taskToKeep = newTask;
+                          }
+                          // 3. 状態が同じ、または判断がつかない場合は更新日時で比較
+                          else {
 			                        const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
 			                        const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
 			                        if (newTimestamp >= existingTimestamp) {
@@ -1589,16 +1587,16 @@
 			        if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
 			        state.lastDate = importedData.lastDate || state.lastDate;
 			        
-                    await this.importTasksFromInbox();
+              await this.importTasksFromInbox();
 
 			        stopActiveTimer();
 
-                    // 実行中のタスクがあるならその日付を表示、なければ今日を表示
-                    if (restoredActiveDate) {
-                        state.viewDate = restoredActiveDate;
-                    } else {
-                        state.viewDate = getFormattedDate(new Date());
-                    }
+              // 実行中のタスクがあるならその日付を表示、なければ今日を表示
+              if (restoredActiveDate) {
+                  state.viewDate = restoredActiveDate;
+              } else {
+                  state.viewDate = getFormattedDate(new Date());
+              }
 
 			        const tasksToday = getTasksForViewDate();
 			        const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
@@ -1611,17 +1609,16 @@
 			        }
 			        Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
 			        
-                    saveState();
+              saveState();
 			        render();
-                    restoreRunningTaskState();
+              restoreRunningTaskState();
 
 			        this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-					this.updateSyncUi('success');
-                    this.lastSyncTime = Date.now();
-			        
-                    if (showNotification) {
-			            showToast('Dropboxからデータを読み込みました。');
-                    }
+					    this.updateSyncUi('success');
+              this.lastSyncTime = Date.now();
+              if (showNotification) {
+                  showToast('Dropboxからデータを読み込みました。');
+              }
 			
 			    } catch (error) {
 					this.updateSyncUi('idle');
@@ -1662,7 +1659,7 @@
 			        }
 			    }
 			    
-                // メインデータとアーカイブデータを分離
+          // メインデータとアーカイブデータを分離
 			    const mainDataToSave = {
 			        dailyTasks: cleanedDailyTasks,
 			        projects: state.projects,
@@ -1672,25 +1669,25 @@
 			        updatedAt: new Date().toISOString()
 			    };
 
-                const archiveDataToSave = {
-                    archivedTasks: state.archivedTasks,
-                    updatedAt: new Date().toISOString()
-                };
+          const archiveDataToSave = {
+              archivedTasks: state.archivedTasks,
+              updatedAt: new Date().toISOString()
+          };
 			    
 			    this.driveStatusEl.textContent = 'Dropboxへ保存中...';
 			    try {
-                    // 2つの保存処理を並行して実行
-                    const saveMainData = this.dbx.filesUpload({
-			            path: this.dropboxFilePath,
-			            contents: JSON.stringify(mainDataToSave, null, 2),
-			            mode: 'overwrite'
-			        });
+              // 2つの保存処理を並行して実行
+              const saveMainData = this.dbx.filesUpload({
+                path: this.dropboxFilePath,
+                contents: JSON.stringify(mainDataToSave, null, 2),
+                mode: 'overwrite'
+              });
 
-                    const saveArchiveData = this.dbx.filesUpload({
-                        path: this.archiveFilePath,
-                        contents: JSON.stringify(archiveDataToSave, null, 2),
-                        mode: 'overwrite'
-                    });
+              const saveArchiveData = this.dbx.filesUpload({
+                  path: this.archiveFilePath,
+                  contents: JSON.stringify(archiveDataToSave, null, 2),
+                  mode: 'overwrite'
+              });
 
               // 両方の完了を待つ
 			        await Promise.all([saveMainData, saveArchiveData]);
@@ -1875,7 +1872,7 @@
             dailyTasks: {}, 
             projects: [],
             repeatTasks: [],
-			sections: [],
+		      	sections: [],
             archivedTasks: {},
             viewDate: null, 
             lastDate: null,
@@ -1885,9 +1882,9 @@
             activeTimerId: null,
             activeTaskId: null,
             focusedTaskId: null,
-			focusedRepeatTaskId: null,
-			focusedSubtaskId: null,
-			openTaskIds: new Set(),
+	      		focusedRepeatTaskId: null,
+	      		focusedSubtaskId: null,
+	      		openTaskIds: new Set(),
             editingTaskId: null,
             editingTaskDateKey: null, 
             editingRepeatId: null,
@@ -2122,7 +2119,7 @@
         function init() {
             state.viewDate = getFormattedDate(new Date());
             loadState();
-			handleUrlScheme();
+		      	handleUrlScheme();
             restoreRunningTaskState();
             // DOM要素の初期化を先に行う
             dailyTaskListApp.initDomElements();
@@ -2130,9 +2127,9 @@
             
             // DOM要素とイベントリスナーが設定された後にDropboxの初期化を行う
             initializeDropboxSync();
-			renderPcAddTaskButton();
+	      		renderPcAddTaskButton();
             checkDayChange();
-			generateTomorrowRepeats();
+	        	generateTomorrowRepeats();
             setInterval(checkDayChange, 1000 * 60); 
             updateTitle();
             
@@ -2669,7 +2666,7 @@
                         }
                     }
                     break;
-				case 'template':
+		        		case 'template':
                     shouldAdd = false; 
                     break;
             }
@@ -2681,19 +2678,19 @@
 
                 // 重複していない場合、または強制モード（isManualForce）の場合に追加
                 if (!isAlreadyAdded || isManualForce) {
-					const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
+			          		const newSubtasks = (rt.subtasks || []).map(st => ({...st, completed: false}));
 					
                     state.dailyTasks[dateStr].push({
                         id: 't' + Date.now() + Math.random(),
                         name: rt.name,
                         projectId: rt.projectId || null,
-						sectionId: rt.sectionId || null,
+			            			sectionId: rt.sectionId || null,
                         estimatedTime: rt.estimatedTime || 0,
                         actualTime: 0,
                         status: 'pending',
                         isInterrupt: false,
                         memo: rt.memo || '',
-						subtasks: newSubtasks,
+			            			subtasks: newSubtasks,
                         originRepeatId: rt.id,
                         createdDate: dateStr,
                         startTime: null,
@@ -3196,7 +3193,7 @@
         const quickMenu = document.getElementById('quick-action-menu');
         let longPressTimer = null;
         let isLongPressActive = false;
-		fabMobile.addEventListener('contextmenu', (e) => {
+    		fabMobile.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -3337,7 +3334,7 @@
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
                 if (!tabName) return;
-				if (['repeat', 'sections', 'projects', 'archive', 'data'].includes(tabName)) {
+			        	if (['repeat', 'sections', 'projects', 'archive', 'data'].includes(tabName)) {
                     window.scrollTo(0, 0);
                 }
 
@@ -3405,9 +3402,9 @@
         }
 
         document.getElementById('add-project-btn').addEventListener('click', addProject);
-		document.getElementById('add-section-btn').addEventListener('click', addSection);
-		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
-		document.getElementById('delete-all-tasks-btn').addEventListener('click', deleteAllTasksForViewDate);
+	    	document.getElementById('add-section-btn').addEventListener('click', addSection);
+	    	document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
+	    	document.getElementById('delete-all-tasks-btn').addEventListener('click', deleteAllTasksForViewDate);
         document.getElementById('save-inbox-btn').addEventListener('click', async () => {
             const textarea = document.getElementById('inbox-textarea');
             textarea.disabled = true; // 保存中は無効化
@@ -3453,7 +3450,7 @@
         document.getElementById('export-data-btn').addEventListener('click', exportData);
         document.getElementById('import-data-btn').addEventListener('click', importData);
         document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
-		document.getElementById('bottom-nav-inbox')?.addEventListener('click', openInboxModal);
+	    	document.getElementById('bottom-nav-inbox')?.addEventListener('click', openInboxModal);
 
 		// PC用ボタン (ID: sync-data-fab)
         const pcSyncBtn = document.getElementById('sync-data-fab');
@@ -3480,10 +3477,7 @@
         }
         document.getElementById('edit-task-memo').addEventListener('input', autoHeightListener);
         document.getElementById('edit-repeat-memo').addEventListener('input', autoHeightListener);
-
-
         document.addEventListener('keydown', handleKeyboardShortcuts);
-        
         document.addEventListener('mouseover', (e) => {
             const tooltipContainer = e.target.closest('.tooltip-container');
             if (tooltipContainer) {
@@ -3543,7 +3537,7 @@
                 }
             }
         });
-		document.getElementById('new-task-time').addEventListener('keydown', (e) => {
+    		document.getElementById('new-task-time').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 if (document.getElementById('new-task-name').value.trim() === '') {
@@ -3574,7 +3568,7 @@
             if (e.key === 'Enter') { e.preventDefault(); saveRepeatEdit(); }
         });
 
-		document.getElementById('inbox-textarea').addEventListener('keydown', (e) => {
+    		document.getElementById('inbox-textarea').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 document.getElementById('save-inbox-btn').click();
@@ -3616,12 +3610,12 @@
         const activeTab = document.querySelector('.tab-link.active').dataset.tab;
         if (activeTab === 'today') renderTodayTasks(options);
         else if (activeTab === 'repeat') renderRepeatTasks();
-		else if (activeTab === 'sections') renderSections();
+    		else if (activeTab === 'sections') renderSections();
         else if (activeTab === 'projects') renderProjects();
         updateProjectDropdowns();
-		updateSectionDropdowns();
+	    	updateSectionDropdowns();
         calculateAllEstimates();
-		updateTitle();
+	    	updateTitle();
     }
 
     function renderTodayTasks(options = {}) {
@@ -3895,7 +3889,7 @@
 	            subtasks.forEach(st => {
 	                const item = document.createElement('div');
 	                item.className = `subtask-item ${st.completed ? 'completed' : ''} ${st.id === state.focusedSubtaskId ? 'focused' : ''}`;
-					item.dataset.subtaskId = st.id;
+		        			item.dataset.subtaskId = st.id;
 	                item.innerHTML = `
 	                    <input type="checkbox" class="subtask-checkbox form-checkbox h-4 w-4 text-blue-600" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''}>
 	                    <span class="ml-3 text-sm flex-1">${formatTaskName(st.name)}</span>
@@ -3997,7 +3991,7 @@
                 </span>
             `;
 
-            // ★変更: HTML構造。縦幅を変えないように flex items-center で一行に収める
+            // HTML構造。縦幅を変えないように flex items-center で一行に収める
             card.innerHTML = `
                 <div class="flex items-center gap-3 relative z-10">
                     <div class="flex flex-col items-center">
@@ -4064,19 +4058,19 @@
                 subtasks.forEach(st => {
                     const item = document.createElement('div');
                     item.className = `subtask-item ${st.completed ? 'completed' : ''} ${st.id === state.focusedSubtaskId ? 'focused' : ''}`;
-					item.dataset.subtaskId = st.id;
+					          item.dataset.subtaskId = st.id;
                     item.innerHTML = `
                         <input type="checkbox" class="subtask-checkbox form-checkbox h-4 w-4 text-blue-600" data-subtask-id="${st.id}" ${st.completed ? 'checked' : ''}>
                         <span class="ml-3 flex-1">${formatTaskName(st.name)}</span>
                     `;
                     item.addEventListener('click', (e) => {
-						if (e.target.matches('.subtask-checkbox')) {
+                        if (e.target.matches('.subtask-checkbox')) {
                             return;
                         }
                         e.stopPropagation();
                         updateFocus({ taskId: task.id, subtaskId: st.id });
                     });
-					item.addEventListener('dblclick', (e) => {
+                    item.addEventListener('dblclick', (e) => {
                         e.preventDefault();
                         toggleSubtaskCompletion(task.id, st.id, !st.completed);
                     });
@@ -4406,7 +4400,7 @@
                             memo: tpl.memo || '',
                             subtasks: subtasksCopy,
                             originRepeatId: tpl.id,
-							isManuallyAddedRepeat: true
+              							isManuallyAddedRepeat: true
                         }
                     );
                     
@@ -4423,7 +4417,7 @@
         }
 	
 	    openModal('add-task-modal');
-		const input = document.getElementById('new-task-name');
+	  	const input = document.getElementById('new-task-name');
 	    input.focus();
 	}
     
@@ -4436,9 +4430,9 @@
         document.getElementById('edit-task-name').value = task.name || '';
         document.getElementById('edit-task-time').value = task.estimatedTime || 0;
         updateProjectDropdowns();
-		updateSectionDropdowns();
+		    updateSectionDropdowns();
         document.getElementById('edit-task-project').value = task.projectId || '';
-		document.getElementById('edit-task-section').value = task.sectionId || '';
+    		document.getElementById('edit-task-section').value = task.sectionId || '';
         document.getElementById('edit-task-memo').value = task.memo || '';
 		
         setTimeout(() => {
@@ -4489,7 +4483,7 @@
         
         document.getElementById('create-repeat-from-task').style.display = 'block';
         openModal('task-edit-modal');
-		const input = document.getElementById('edit-task-name');
+		    const input = document.getElementById('edit-task-name');
         input.focus();
     }
 
