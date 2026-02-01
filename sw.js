@@ -1,5 +1,5 @@
 // キャッシュ名（バージョン管理用。更新時はここを変更する）
-const CACHE_NAME = 'taskrono-v1.2';
+const CACHE_NAME = 'taskrono-v1.3';
 
 // キャッシュするリソースのリスト
 const ASSETS_TO_CACHE = [

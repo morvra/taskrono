@@ -1480,19 +1480,28 @@
 			                if (!taskMap.has(key)) {
 			                    taskMap.set(key, task);
 			                } else {
-			                    const existingTask = taskMap.get(key);
-			                    const newTask = task;
-			        
-			                    const existingIsCompleted = getTaskStatus(existingTask) === 'completed';
-			                    const newIsCompleted = getTaskStatus(newTask) === 'completed';
+			                    const existingTask = taskMap.get(key); // マップにあるタスク（先に処理された方、基本はローカル）
+			                    const newTask = task; // 比較対象のタスク（後から来た方、基本はクラウド）
+                          const existingStatus = getTaskStatus(existingTask);
+                          const newStatus = getTaskStatus(newTask);
 			        
 			                    let taskToKeep = existingTask;
 			        
-			                    if (newIsCompleted && !existingIsCompleted) {
+                                // 1. 完了状態を最優先 (Completed > Running/Pending)
+			                    if (newStatus === 'completed' && existingStatus !== 'completed') {
 			                        taskToKeep = newTask;
-			                    } else if (!newIsCompleted && existingIsCompleted) {
-			                        // Do nothing
-			                    } else {
+			                    } else if (existingStatus === 'completed' && newStatus !== 'completed') {
+			                        taskToKeep = existingTask;
+			                    } 
+                                // 2. 実行中状態を優先 (Running > Pending)
+                                else if (existingStatus === 'running' && newStatus === 'pending') {
+                                    taskToKeep = existingTask;
+                                }
+                                else if (newStatus === 'running' && existingStatus === 'pending') {
+                                    taskToKeep = newTask;
+                                }
+                                // 3. 状態が同じ、または判断がつかない場合は更新日時で比較
+                                else {
 			                        const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
 			                        const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
 			                        if (newTimestamp >= existingTimestamp) {
