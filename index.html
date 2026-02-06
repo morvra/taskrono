@@ -2502,7 +2502,7 @@
         generateTasksFromRepeatAuto(tomorrowStr);
     }
 
-    async function checkDayChange() {
+async function checkDayChange() {
         const today = getFormattedDate(new Date());
         
         // 昨日の日付文字列を計算
@@ -2536,8 +2536,7 @@
                 }
             });
             
-            // リピートタスクを生成
-            generateTasksFromRepeatAuto(today);
+            // 翌日分のリピートタスクを生成
             generateTomorrowRepeats();
 
             state.lastDate = today;
