@@ -1042,7 +1042,7 @@
     <div class="modal-content p-6 w-full max-w-2xl">
         <h3 class="text-lg font-bold mb-4">Dropbox Inbox</h3>
         <p class="text-sm text-gray-600 mb-3">
-            `[ ] タスク名 YYYY-MM-DD :10`の形式で記述してください。未来の日付を指定したタスクはその日になるまで残ります。日付と見積は省略可（デフォルトは今日・5分）。
+            行ごとにタスクを入力してください（例: `タスク名 YYYY-MM-DD :10`）。日付と見積は省略可。
         </p>
         <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-48 font-mono text-base"></textarea>
         <div class="flex gap-3 mt-6">
@@ -1325,7 +1325,7 @@
                 }
             },
 
-			importTasksFromInbox: async function() {
+      importTasksFromInbox: async function() {
 			    if (!this.dbx) return;
 			
 			    try {
@@ -1335,22 +1335,25 @@
 			        const newTasks = [];
 			        const remainingLines = [];
 			        let processed = false; // inbox.txtを更新する必要があるかどうかのフラグ
-			
-			        const taskRegex = /^\s*\[\s*\]\s*(.+)/;
 			        const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
 			        const timeRegex = /:(\d+)/;
 			        const todayStr = getFormattedDate(new Date());
 
-                    // 翌日の日付文字列を取得
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowStr = getFormattedDate(tomorrow);
-                    const tasksToAddByDate = {};
+              // 翌日の日付文字列を取得
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              const tomorrowStr = getFormattedDate(tomorrow);
+              const tasksToAddByDate = {};
 			
 			        lines.forEach(line => {
-			            const match = line.match(taskRegex);
-			            if (match) {
-			                let taskName = match[1].trim();
+                      // 前後の空白を削除
+                      let content = line.trim();
+
+                      if (content.length > 0) {
+                          // もしユーザーが癖で "[ ] " や "[]" を付けていたら削除
+                          content = content.replace(/^\s*\[\s*\]\s*/, '');
+                            
+			                let taskName = content;
 			                let estimatedTime = 5;
 			                let targetDate = todayStr;
 			                let hasDate = false;
@@ -1378,6 +1381,12 @@
 			                    estimatedTime = parseInt(timeMatch[1], 10);
 			                    taskName = taskName.replace(timeRegex, '').trim();
 			                }
+                            
+                      // タスク名が空になってしまった場合（日付や時間だけの行など）は無視
+                      if (!taskName) {
+                          remainingLines.push(line);
+                          return;
+                      }
 			
 			                const newTask = {
 			                    id: 't' + Date.now() + Math.random(),
@@ -1394,27 +1403,25 @@
 			                    updatedAt: new Date().toISOString()
 			                };
 			                
-                            if (!tasksToAddByDate[targetDate]) {
-                                tasksToAddByDate[targetDate] = [];
-                            }
-                            tasksToAddByDate[targetDate].push(newTask);
+                      if (!tasksToAddByDate[targetDate]) {
+                          tasksToAddByDate[targetDate] = [];
+                      }
+                      tasksToAddByDate[targetDate].push(newTask);
 
 			                newTasks.push(newTask);
-			                processed = true; // 1行でも処理したらフラグを立てる
+			                processed = true;
 			
-			            } else {
-			                remainingLines.push(line);
 			            }
 			        });
 			
-                    // 各日付ごとに、既存のタスクリストの「先頭」に新規タスクを追加する
-                    Object.keys(tasksToAddByDate).forEach(date => {
-                        if (!state.dailyTasks[date]) {
-                            state.dailyTasks[date] = [];
-                        }
-                        // 新規タスク(Inbox順) + 既存タスク の順で結合
-                        state.dailyTasks[date] = [...tasksToAddByDate[date], ...state.dailyTasks[date]];
-                    });
+              // 各日付ごとに、既存のタスクリストの「先頭」に新規タスクを追加する
+              Object.keys(tasksToAddByDate).forEach(date => {
+                  if (!state.dailyTasks[date]) {
+                      state.dailyTasks[date] = [];
+                  }
+                  // 新規タスク(Inbox順) + 既存タスク の順で結合
+                  state.dailyTasks[date] = [...tasksToAddByDate[date], ...state.dailyTasks[date]];
+              });
 
 			        // 処理されたタスクがある（＝inbox.txtの内容に変更があった）場合のみファイルを更新
 			        if (processed) {
