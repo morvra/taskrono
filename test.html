@@ -1,62 +1,518 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="utf-8"><title>Utils Test</title></head>
-<body>
-<pre id="output"></pre>
-<script type="module">
-import { escapeHtml, formatTime, formatClockTime, calculateActualTime, getPlainTaskName, formatTaskName, getFormattedDate } from './js/utils.js';
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Taskrono</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='./taskrono.ico' rel='icon' type='image/x-icon'/>
+    <link href='./taskronoicon.png' rel='shortcut icon'/>
+    <link href='./taskronoicon.png' rel='apple-touch-icon'/>
 
-const results = [];
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
+	
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link href="./css/main.css" rel="stylesheet">
+	
+</head>
+<body class="antialiased text-gray-800">
 
-function test(name, actual, expected) {
-    const pass = JSON.stringify(actual) === JSON.stringify(expected);
-    results.push(`${pass ? '✅' : '❌'} ${name}`);
-    if (!pass) {
-        results.push(`   期待値: ${JSON.stringify(expected)}`);
-        results.push(`   実際値: ${JSON.stringify(actual)}`);
+<div class="header">
+    <div class="container mx-auto">
+		<header class="mobile-compact-header bg-white p-4 pb-1 flex flex-col md:flex-row justify-between items-center header-content">
+            <div class="flex-1">
+                <h1 class="text-xl font-bold text-gray-700">Taskrono</h1>
+                <p id="current-date" class="text-sm text-gray-500"></p>
+            </div>
+            <div class="flex items-center gap-6" id="header-stats-container-mobile"> <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
+                    <p class="text-gray-600">完了タスク</p>
+                    <p id="completed-tasks-stats" class="text-2xl font-semibold text-green-600">--/--</p>
+                </div>
+                <div class="mt-2 md:mt-0 text-center md:text-right header-stats">
+                    <p class="text-gray-600">全体の終了予測</p>
+                    <p id="total-estimated-end-time" class="text-2xl font-semibold text-blue-600">--:--</p>
+                </div>
+            </div>
+        </header>
+
+        <nav class="mobile-nav flex space-x-0 overflow-x-auto" id="header-nav-mobile">
+            <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="today">当日のタスク</button>
+            <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="repeat">リピートタスク</button>
+			      <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="sections">セクション</button>
+            <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="projects">プロジェクト</button>
+		      	<button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" onclick="location.href='./analysis'">分析</button>
+            <button class="tab-link text-sm md:text-base py-1 px-4 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 flex-shrink-0" data-tab="data">データ管理</button>
+        </nav>
+    </div>
+</div>
+
+<div class="container mx-auto p-4 max-w-7xl" id="main-grid-container">
+
+    <aside id="desktop-sidebar" class="hidden">
+        <div class="space-y-6">
+            <div class="text-left header-stats-desktop text-sm">
+                <span class="text-gray-600">完了: </span>
+                <span id="completed-tasks-stats-desktop" class="font-semibold text-green-600">--/--</span>
+            </div>
+            <div class="text-left header-stats-desktop text-sm">
+                <span class="text-gray-600">終了予測:</span>
+                <span id="total-estimated-end-time-desktop" class="font-semibold text-blue-600">--:--</span>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <nav class="flex flex-col space-y-1">
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="today">当日のタスク</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="repeat">リピートタスク</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="sections">セクション</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="projects">プロジェクト</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200 " onclick="location.href='./analysis'">分析</button>
+            <button class="tab-link text-left text-sm py-2 px-3 text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-colors duration-200" data-tab="data">データ管理</button>
+        </nav>
+    </aside>
+
+    <main>
+        <div id="today" class="tab-content space-y-4">
+            <div class="flex justify-between items-center">
+				
+				<div id="today-date-nav" class="flex items-center gap-2">
+				    <button id="prev-day-btn" class="px-2 py-1 rounded-md bg-white hover:bg-gray-100 shadow-sm">&lt;</button>
+				    <h2 id="view-date-display" class="font-bold text-lg"></h2>
+				    <button id="next-day-btn" class="px-2 py-1 rounded-md bg-white hover:bg-gray-100 shadow-sm">&gt;</button>
+					<button id="inbox-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm" title="Inboxを開く (I)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                    </button>
+					<button id="delete-all-tasks-btn" class="px-2 py-1.5 rounded-md bg-white hover:bg-gray-100 shadow-sm hidden" title="表示中の日のタスクをすべて削除">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+				</div>
+                <p class="text-xs text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
+            </div>
+            <div id="sections-container" class="sections-wrapper"></div>
+        </div>
+
+        <div id="repeat" class="tab-content">
+            <div class="py-4">
+                <h2 class="text-xl font-bold mb-4">リピートタスク管理</h2>
+
+				<div class="border rounded-lg bg-white mb-4">
+                    <div id="repeat-form-toggle" class="flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-md text-gray-700">＋ 新規リピートタスク</h3>
+                        <svg id="repeat-form-chevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    
+                    <div id="repeat-form-content" class="hidden p-4 border-t border-gray-200">
+                        <div class="space-y-4 mb-6">
+                            <div class="space-y-3">
+                                <div class="flex gap-3">
+                                    <input type="text" id="repeat-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg bg-white" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                                    <input type="number" id="repeat-task-time" placeholder="見積(分)" value="20" class="w-28 p-2 border rounded-lg bg-white">
+                                </div>
+                                <div class="flex gap-3">
+                                    <select id="repeat-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                                    <select id="repeat-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <select id="repeat-task-type" class="w-full p-2 border rounded-lg bg-white">
+                                    <option value="daily">毎日</option>
+                                    <option value="weekly">毎週</option>
+                                    <option value="monthly">毎月</option>
+                                    <option value="yearly">毎年</option>
+                                    <option value="interval">○日ごと</option>
+				                  					<option value="template">テンプレート</option>
+                                </select>
+                                
+                                <div id="repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 p-3 bg-white rounded-lg border">
+                                    <div id="repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
+                                    <div class="w-full border-t my-2"></div>
+                                    <div class="flex items-center gap-x-4">
+                                        <label class="text-sm">間隔: <input type="number" id="repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
+                                        <label class="text-sm">基準日: <input type="date" id="repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
+                                    </div>
+                                </div>
+                                <div id="repeat-monthly-options" class="hidden p-3 bg-white rounded-lg border space-y-3">
+								    <div class="flex items-center gap-4">
+								        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+								        <label class="inline-flex items-center"><input type="radio" name="repeat-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+								    </div>
+								    <div id="repeat-monthly-day-options">
+								        <div class="flex gap-2 mb-2">
+								            <input type="number" id="repeat-monthly-day-input" placeholder="日付 (1～31)" class="p-2 border rounded-lg w-24" min="1" max="31">
+								            <button type="button" id="add-monthly-day-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+								        </div>
+								        <div id="repeat-monthly-days-list" class="flex flex-wrap gap-2"></div>
+								    </div>
+								    <div id="repeat-monthly-weekday-options" class="hidden items-center gap-2">
+								        <select id="repeat-monthly-week" class="p-2 border rounded-lg bg-white">
+								            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+								        </select>
+								        <select id="repeat-monthly-weekday" class="p-2 border rounded-lg bg-white">
+								            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+								        </select>
+								    </div>
+								</div>
+                                <div id="repeat-yearly-options" class="hidden p-3 bg-white rounded-lg border">
+								    <div class="flex gap-2 mb-2">
+								        <input type="number" id="repeat-yearly-month-input" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12">
+								        <input type="number" id="repeat-yearly-day-input" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31">
+								        <button type="button" id="add-yearly-date-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+								    </div>
+								    <div id="repeat-yearly-dates-list" class="flex flex-wrap gap-2"></div>
+								</div>
+                                <div id="repeat-interval-options" class="hidden p-3 bg-white rounded-lg border space-y-2 md:space-y-0 md:items-center md:space-x-4">
+                                    <label class="text-sm">何日ごと: <input type="number" id="repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
+                                    <label class="text-sm">基準日: <input type="date" id="repeat-interval-start-date" class="p-2 border rounded-lg"></label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="add-repeat-task-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ リピートタスクを追加</button>
+                            <button id="generate-from-repeat-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">▶ 今日のタスクを生成</button>
+                        </div>
+                    </div>
+				</div>
+				<div id="repeat-tasks-container" class="mt-4"></div>
+            </div>
+        </div>
+
+		<div id="sections" class="tab-content">
+            <div class="py-4">
+                <h2 class="text-xl font-bold mb-4">セクション管理</h2>
+                <div class="flex flex-wrap gap-4 items-center mb-6 pb-6">
+                    <input type="text" id="section-name" placeholder="セクション名 (例: 午前)" class="flex-grow p-2 border rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <label for="section-time" class="text-sm">開始時刻:</label>
+                        <input type="time" id="section-time" value="09:00" class="p-2 border rounded-lg">
+                    </div>
+                    <button id="add-section-btn" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ セクションを追加</button>
+                </div>
+                <div id="sections-container-list" class="mt-6">
+                    </div>
+            </div>
+        </div>
+
+        <div id="projects" class="tab-content">
+            <div class="py-4">
+                <h2 class="text-xl font-bold mb-4">プロジェクト管理</h2>
+                <div class="flex flex-wrap gap-4 items-center mb-4">
+                    <input type="text" id="project-name" placeholder="プロジェクト名" class="flex-grow p-2 border rounded-lg">
+                    <input type="color" id="project-color" value="#4a90e2" class="p-1 h-10 w-12 border rounded-lg">
+                    <button id="add-project-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow">＋ プロジェクトを追加</button>
+                </div>
+                <div id="projects-container" class="mt-6"></div>
+            </div>
+        </div>
+		
+        <div id="data" class="tab-content">
+            <div class="py-4">
+                <h2 class="text-xl font-bold mb-4">データ管理</h2>
+                <div class="space-y-6">
+                    <div class="border p-4 bg-white rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">Dropbox</h3>
+                        <p class="text-sm text-gray-600 mb-3">タスクデータをDropboxに保存し、他のデバイスと同期します。</p>
+                        <div id="auth-container">
+                            <button id="authorize_button" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg">Dropbox ログイン</button>
+                        </div>
+                        <div id="signout_container" class="hidden">
+                            <p id="auth-status" class="text-sm text-green-600 mb-2"></p>
+                            <button id="signout_button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">ログアウト</button>
+                        </div>
+                        <p id="drive-status" class="text-sm text-gray-500 mt-2"></p>
+                    </div>
+ 
+                    <div class="border p-4 bg-white rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">データエクスポート</h3>
+                        <p class="text-sm text-gray-600 mb-3">現在のデータをJSONファイルとしてダウンロードします。</p>
+                        <button id="export-data-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">データをエクスポート</button>
+                    </div>
+                    <div class="border p-4 bg-white rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">データインポート</h3>
+                        <p class="text-sm text-gray-600 mb-3">JSONファイルからデータを復元します。IDが重複するデータは上書きされ、存在しないデータは追加されます。</p>
+                        <input type="file" id="import-file" accept=".json" class="mb-3 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <button id="import-data-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">データをインポート</button>
+                    </div>
+                    <div class="border p-4 bg-white rounded-lg border-red-200">
+                        <h3 class="text-lg font-semibold mb-3 text-red-700">データ削除</h3>
+                        <p class="text-sm text-gray-600 mb-3">全てのデータを削除します。この操作は元に戻せません。</p>
+                        <button id="clear-data-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">全データを削除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="sync-button-floating-container" class="hidden">
+    <button id="sync-data-fab" class="fab bg-gray-200 hover:bg-gray-300 text-gray-500" title="Dropboxからデータを取り込む (R)">
+        <span id="pc-sync-icon" class="flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </span>
+    </button>
+</div>
+
+<div id="add-task-floating-container" class="hidden">
+</div>
+
+<div id="add-task-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-md">
+        <h3 class="text-lg font-bold mb-2">タスクを追加</h3>
+		<div class="flex gap-3">
+		            <input type="text" id="new-task-name" placeholder="タスク名" class="flex-grow min-w-0 p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+		            <input type="number" id="new-task-time" placeholder="見積時間(分)" class="w-28 p-2 border rounded-lg" value="5">
+		</div>
+		
+		<div class="flex gap-3 mt-4">
+		            <select id="new-task-project" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+					<select id="new-task-section" class="flex-grow min-w-0 p-2 border rounded-lg bg-white"></select>
+		</div>
+        <div class="flex gap-3 mt-6">
+            <button id="save-new-task-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">追加</button>
+            <button id="cancel-add-task-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="task-edit-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-md">
+        <div class="space-y-4">
+            <input type="text" id="edit-task-name" placeholder="タスク名" class="w-full p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+            <div class="grid grid-cols-2 gap-4">
+                 <input type="number" id="edit-task-time" placeholder="見積時間(分)" class="w-full p-2 border rounded-lg">
+                 <select id="edit-task-project" class="w-full p-2 border rounded-lg bg-white"></select>
+            </div>
+			<div>
+	            <label for="edit-task-section" class="text-sm font-medium text-gray-700">セクション</label>
+	            <select id="edit-task-section" class="w-full p-2 border rounded-lg bg-white mt-1"></select>
+	        </div>
+            <textarea id="edit-task-memo" placeholder="メモ" class="w-full p-2 border rounded-lg" rows="1"></textarea>
+			
+            <div class="mt-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700">サブタスク</label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="task-subtask-toggle" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                <div id="task-subtask-content" class="hidden mt-2">
+                    <div id="edit-task-subtasks" class="space-y-2 p-2 border rounded-lg bg-gray-50"></div>
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" id="new-subtask-name" placeholder="新しいサブタスク名" class="flex-1 p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                        <button id="add-subtask-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg">追加</button>
+                    </div>
+                </div>
+            </div>
+			
+            <div class="grid grid-cols-2 gap-4">
+                 <div>
+                    <label for="edit-task-startTime" class="text-sm font-medium text-gray-700">開始時刻</label>
+                    <input type="time" id="edit-task-startTime" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label for="edit-task-endTime" class="text-sm font-medium text-gray-700">終了時刻</label>
+                    <input type="time" id="edit-task-endTime" class="w-full p-2 border rounded-lg">
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button id="save-task-edit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存</button>
+            <button id="cancel-task-edit" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+            <button id="create-repeat-from-task" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-2 rounded-lg">リピート作成</button>
+        </div>
+    </div>
+</div>
+
+<div id="memo-edit-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-md">
+        <h3 class="text-lg font-bold mb-4">メモを編集</h3>
+        <textarea id="edit-memo-text" placeholder="メモを入力..." class="w-full p-2 border rounded-lg h-32"></textarea>
+        <div class="flex gap-3 mt-6">
+            <button id="save-memo-edit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存</button>
+            <button id="cancel-memo-edit" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div id="repeat-edit-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-lg">
+        <div class="space-y-4">
+            <input type="text" id="edit-repeat-name" placeholder="タスク名" class="w-full p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+             <div class="grid grid-cols-2 gap-4">
+                <input type="number" id="edit-repeat-time" placeholder="見積時間(分)" class="w-full p-2 border rounded-lg">
+                <select id="edit-repeat-project" class="w-full p-2 border rounded-lg bg-white"></select>
+            </div>
+	        <div>
+	            <label for="edit-repeat-section" class="text-sm font-medium text-gray-700">セクション</label>
+	            <select id="edit-repeat-section" class="w-full p-2 border rounded-lg bg-white mt-1"></select>
+	        </div>
+            <textarea id="edit-repeat-memo" placeholder="メモ" class="w-full p-2 border rounded-lg" rows="1"></textarea>
+			
+            <div class="mt-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-700">サブタスク</label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="repeat-subtask-toggle" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                <div id="repeat-subtask-content" class="hidden mt-2">
+                    <div id="edit-repeat-subtasks" class="space-y-2 mt-1 p-2 border rounded-lg bg-gray-50"></div>
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" id="new-repeat-subtask-name" placeholder="新しいサブタスク名" class="flex-1 p-2 border rounded-lg" autocomplete="one-time-code" data-form-type="other" data-lpignore="true">
+                        <button id="add-repeat-subtask-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg">追加</button>
+                    </div>
+                </div>
+            </div>
+			
+            <select id="edit-repeat-type" class="w-full p-2 border rounded-lg bg-white">
+                <option value="daily">毎日</option>
+                <option value="weekly">毎週</option>
+                <option value="monthly">毎月</option>
+                <option value="yearly">毎年</option>
+                <option value="interval">○日ごと</option>
+				<option value="template">テンプレート</option>
+            </select>
+        </div>
+
+        <div id="edit-repeat-weekly-options" class="hidden items-center flex-wrap gap-x-4 gap-y-2 mt-4 p-3 bg-gray-50 rounded-lg">
+             <div id="edit-repeat-weekly-days" class="flex flex-wrap gap-x-4 gap-y-2 w-full"></div>
+             <div class="w-full border-t my-2"></div>
+             <div class="flex items-center gap-x-4">
+                <label class="text-sm">間隔: <input type="number" id="edit-repeat-weekly-interval" value="1" class="p-2 border rounded-lg w-20" min="1"> 週ごと</label>
+                <label class="text-sm">基準日: <input type="date" id="edit-repeat-weekly-start-date" class="p-2 border rounded-lg"></label>
+             </div>
+        </div>
+        <div id="edit-repeat-monthly-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
+		    <div class="flex items-center gap-4">
+		        <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="day" checked class="form-radio"><span class="ml-2 text-sm">日付指定</span></label>
+		        <label class="inline-flex items-center"><input type="radio" name="edit-monthly-type" value="weekday" class="form-radio"><span class="ml-2 text-sm">曜日指定</span></label>
+		    </div>
+		    <div id="edit-repeat-monthly-day-options">
+		        <div class="flex gap-2 mb-2">
+		            <input type="number" id="edit-repeat-monthly-day-input" placeholder="日付 (1～31)" class="p-2 border rounded-lg w-24" min="1" max="31">
+		            <button type="button" id="edit-add-monthly-day-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+		        </div>
+		        <div id="edit-repeat-monthly-days-list" class="flex flex-wrap gap-2"></div>
+		    </div>
+		    <div id="edit-repeat-monthly-weekday-options" class="hidden items-center gap-2">
+		        <select id="edit-monthly-week" class="p-2 border rounded-lg bg-white">
+		            <option value="1">第1</option><option value="2">第2</option><option value="3">第3</option><option value="4">第4</option><option value="5">最終</option>
+		        </select>
+		        <select id="edit-monthly-weekday" class="p-2 border rounded-lg bg-white">
+		            <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+		        </select>
+		    </div>
+		</div>
+         <div id="edit-repeat-yearly-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg">
+		    <div class="flex gap-2 mb-2">
+		        <input type="number" id="edit-repeat-yearly-month-input" placeholder="月" class="p-2 border rounded-lg w-20" min="1" max="12">
+		        <input type="number" id="edit-repeat-yearly-day-input" placeholder="日" class="p-2 border rounded-lg w-20" min="1" max="31">
+		        <button type="button" id="edit-add-yearly-date-btn" class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600">追加</button>
+		    </div>
+		    <div id="edit-repeat-yearly-dates-list" class="flex flex-wrap gap-2"></div>
+		</div>
+        <div id="edit-repeat-interval-options" class="hidden mt-4 p-3 bg-gray-50 rounded-lg space-y-2 md:space-y-0 md:items-center md:space-x-4">
+            <label class="text-sm">何日ごと: <input type="number" id="edit-repeat-interval-days" placeholder="例: 3" class="p-2 border rounded-lg w-24" min="1"></label>
+            <label class="text-sm">基準日: <input type="date" id="edit-repeat-interval-start-date" class="p-2 border rounded-lg"></label>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="save-repeat-edit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存</button>
+            <button id="cancel-repeat-edit" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-notification" class="fixed top-5 right-1 bg-green-600 text-white mx-2 py-2 px-4 rounded-lg shadow-md transition-all duration-500 ease-in-out transform -translate-y-20 opacity-0 z-[2000]"></div>
+<div id="reauth-notification" class="fixed top-5 right-1 bg-yellow-500 text-white mx-2 py-2 px-4 rounded-lg shadow-md transition-all duration-500 ease-in-out transform -translate-y-20 opacity-0 z-[2000] items-center gap-3 hidden">
+    <span>Dbに再ログインが必要です</span>
+    <button id="reauth-button" class="bg-white text-yellow-600 font-bold py-1 px-3 rounded-lg hover:bg-yellow-100">ログイン</button>
+</div>
+
+<div id="inbox-modal" class="modal">
+    <div class="modal-content p-6 w-full max-w-2xl">
+        <h3 class="text-lg font-bold mb-4">Dropbox Inbox</h3>
+        <p class="text-sm text-gray-600 mb-3">
+            行ごとにタスクを入力してください（例: `タスク名 YYYY-MM-DD :10`）。日付と見積は省略可。
+        </p>
+        <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-48 font-mono text-base"></textarea>
+        <div class="flex gap-3 mt-6">
+            <button id="save-inbox-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存して閉じる</button>
+            <button id="cancel-inbox-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div id="bottom-ui-container"> 
+    <div id="bottom-nav-bar">
+        <button id="bottom-nav-today-btn" class="bottom-nav-btn active">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span class="text-xs mt-1">当日</span>
+        </button>
+        <button id="bottom-nav-repeat-btn" class="bottom-nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <span class="text-xs mt-1">リピート</span>
+        </button>
+        <button id="bottom-nav-inbox" class="bottom-nav-btn hidden" title="Inboxを開く">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+        </button>
+        <button id="bottom-nav-dropbox-import" class="bottom-nav-btn hidden" title="Dropboxから取り込む">
+            <span id="mobile-sync-icon" class="flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </span>
+        </button>
+    </div>
+    
+    <div id="bottom-fab-add-task">
+        <button id="add-task-btn-floating-mobile" oncontextmenu="return false;" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
+            ＋
+        </button>
+    </div>
+</div>
+
+<div id="quick-action-overlay">
+    <div id="quick-action-menu"></div>
+</div>
+
+<script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
+
+<script type="module" src="./js/main.js"></script>	
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, (err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
     }
-}
-
-// escapeHtml
-test('escapeHtml: 基本', escapeHtml('<b>hello</b>'), '&lt;b&gt;hello&lt;/b&gt;');
-test('escapeHtml: nullは空文字', escapeHtml(null), '');
-
-// formatTime
-test('formatTime: 90秒', formatTime(90), '01:30');
-test('formatTime: 0秒', formatTime(0), '00:00');
-test('formatTime: 3600秒', formatTime(3600), '60:00');
-
-// calculateActualTime
-test('calculateActualTime: startTimeとendTimeから計算',
-    calculateActualTime({
-        startTime: '2024-01-01T00:00:00.000Z',
-        endTime:   '2024-01-01T00:01:30.000Z',
-        status: 'completed'
-    }),
-    90
-);
-test('calculateActualTime: どちらもなければ0',
-    calculateActualTime({ status: 'pending' }),
-    0
-);
-
-// getPlainTaskName
-test('getPlainTaskName: markdownリンクをテキストに',
-    getPlainTaskName('[Google](https://google.com)'),
-    'Google'
-);
-test('getPlainTaskName: 普通のテキストはそのまま',
-    getPlainTaskName('普通のタスク'),
-    '普通のタスク'
-);
-
-// getFormattedDate
-test('getFormattedDate: 日付フォーマット',
-    getFormattedDate(new Date('2024-03-15T10:00:00'), 4),
-    '2024-03-15'
-);
-
-document.getElementById('output').textContent = results.join('\n');
 </script>
+
 </body>
 </html>
