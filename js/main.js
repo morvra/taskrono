@@ -781,29 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}, duration);
 	}
 
-	// State
-	const state = {
-		dailyTasks: {}, 
-		projects: [],
-		repeatTasks: [],
-		sections: [],
-		archivedTasks: {},
-		viewDate: null, 
-		lastDate: null,
-		settings: {
-			dayChangeHour: 4, 
-		},
-		activeTimerId: null,
-		activeTaskId: null,
-		focusedTaskId: null,
-		focusedRepeatTaskId: null,
-		focusedSubtaskId: null,
-		openTaskIds: new Set(),
-		editingTaskId: null,
-		editingTaskDateKey: null, 
-		editingRepeatId: null,
-		editingMemoTaskId: null
-	};
+  import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
 
 	// DOM refs
 	const tabs = document.querySelectorAll('.tab-link');
@@ -1281,85 +1259,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function loadState() {
-		const defaults = {
-			dailyTasks: {},
-			projects: [
-				{ id: 'p' + Date.now(), name: '仕事', color: '#4a90e2' },
-				{ id: 'p' + (Date.now()+1), name: '学習', color: '#50e3c2' },
-				{ id: 'p' + (Date.now()+2), name: 'プライベート', color: '#f5a623' },
-			],
-			repeatTasks: [],
-			sections: [
-				{ id: 's' + (Date.now()+0), name: 'セクションA', startTime: '04:00' },
-				{ id: 's' + (Date.now()+1), name: 'セクションB', startTime: '09:00' },
-				{ id: 's' + (Date.now()+2), name: 'セクションC', startTime: '12:00' },
-				{ id: 's' + (Date.now()+3), name: 'セクションD', startTime: '16:00' },
-				{ id: 's' + (Date.now()+4), name: 'セクションE', startTime: '19:00' },
-				{ id: 's' + (Date.now()+5), name: 'セクションF', startTime: '23:00' }
-			],
-			archivedTasks: {},
-			lastDate: getFormattedDate(new Date()),
-		};
-
-		const oldTasks = localStorage.getItem('dtl_tasks');
-		const newTasks = localStorage.getItem('dtl_dailyTasks');
-		if (oldTasks && !newTasks) {
-			const parsedOldTasks = JSON.parse(oldTasks);
-			if (Array.isArray(parsedOldTasks) && parsedOldTasks.length > 0) {
-				const today = getFormattedDate(new Date());
-				state.dailyTasks[today] = parsedOldTasks;
-				localStorage.removeItem('dtl_tasks');
-			}
-		}
-
-		Object.keys(defaults).forEach(k => {
-			const saved = localStorage.getItem(`dtl_${k}`);
-			if ((k === 'archivedTasks' || k === 'dailyTasks') && !saved) {
-				state[k] = defaults[k];
-			} else {
-				state[k] = saved ? JSON.parse(saved) : defaults[k];
-			}
-		});
-
-		// プロジェクトデータにisArchivedプロパティがない場合にデフォルト値を設定
-		if (state.projects) {
-			state.projects.forEach(p => {
-				if (p.isArchived === undefined) {
-					p.isArchived = false;
-				}
-			});
-		}
-
-		// セクションを開始時刻でソート
-		state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-		Object.values(state.dailyTasks).flat().forEach(task => {
-			updateTaskStatus(task);
-		});
+	    loadStateFromStorage();
+	    // updateTaskStatus はまだ main.js にあるのでここで呼ぶ
+	    Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
 	}
-
+	
 	function saveState() {
-		Object.keys(state).forEach(k => {
-			if (k !== 'settings' && k !== 'archiveView' && k !== 'selectedArchiveProject') {
-				if (k === 'openTaskIds') {
-					localStorage.setItem(`dtl_${k}`, JSON.stringify(Array.from(state[k])));
-				} else {
-					localStorage.setItem(`dtl_${k}`, JSON.stringify(state[k]));
-				}
-			}
-		});
-
-		const savedOpenTaskIds = localStorage.getItem('dtl_openTaskIds');
-		if (savedOpenTaskIds) {
-			state.openTaskIds = new Set(JSON.parse(savedOpenTaskIds));
-		}
-
-		const app = window.dailyTaskListApp;
-		const accessToken = localStorage.getItem('dropbox_access_token');
-		if (app.dbx && accessToken) { // Dropboxインスタンスとトークンの両方が存在する場合のみ
-			if (app.saveTimeout) clearTimeout(app.saveTimeout);
-			app.saveTimeout = setTimeout(() => app.saveStateToDropbox(), 2000);
-		}
+	    saveStateToStorage();
+	    // Dropbox保存はここに残す
+	    const app = window.dailyTaskListApp;
+	    const accessToken = localStorage.getItem('dropbox_access_token');
+	    if (app.dbx && accessToken) {
+	        if (app.saveTimeout) clearTimeout(app.saveTimeout);
+	        app.saveTimeout = setTimeout(() => app.saveStateToDropbox(), 2000);
+	    }
 	}
 
 	function restoreRunningTaskState() {
