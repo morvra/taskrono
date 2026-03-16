@@ -1,6 +1,8 @@
 // js/main.js
 
 import { escapeHtml, formatTime, formatClockTime, calculateActualTime, getPlainTaskName, formatTaskName, getFormattedDate } from './utils.js';
+import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
+import { dailyTaskListApp } from './dropbox.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 	// フローティング要素のキーボード追従と滑らかスクロール対策
@@ -82,544 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			window.visualViewport.addEventListener('scroll', requestTick);
 		}
 	}
-
-	// DROPBOX SYNC START
-	const dailyTaskListApp = window.dailyTaskListApp = {
-		dropboxFilePath: '/DailyTaskListData.json', // Dropbox App Folder内のパス
-		inboxFilePath: '/inbox.txt', // Inboxファイルのパス
-		archiveFilePath: '/ArchiveData.json', // アーカイブデータ用のパス
-		dbx: null,
-		saveTimeout: null,
-		lastSyncTime: 0,
-		// favicon
-		defaultFavicon: './taskrono.ico',
-		runningFavicon: './taskrono_running.ico',
-		// DOM Elements
-		authorizeButton: null,
-		signoutButton: null,
-		authContainer: null,
-		signoutContainer: null,
-		authStatusEl: null,
-		driveStatusEl: null,
-		syncDataFab: null,
-		reauthNotification: null,
-		reauthButton: null,
-
-		// DOM要素を初期化するメソッド
-		initDomElements: function() {
-			this.authorizeButton = document.getElementById('authorize_button');
-			this.signoutButton = document.getElementById('signout_button');
-			this.authContainer = document.getElementById('auth-container');
-			this.signoutContainer = document.getElementById('signout_container');
-			this.authStatusEl = document.getElementById('auth-status');
-			this.driveStatusEl = document.getElementById('drive-status');
-			this.syncDataFab = document.getElementById('sync-button-floating-container');
-			this.reauthNotification = document.getElementById('reauth-notification');
-			this.reauthButton = document.getElementById('reauth-button');
-		},
-
-		updateReauthUi: function(show) {
-			if (show) {
-				this.reauthNotification.classList.remove('hidden');
-			} else {
-				this.reauthNotification.classList.add('hidden');
-			}
-		},
-
-		updateAuthUi: function(isAuthenticated) {
-			const dataTabLinks = document.querySelectorAll('.tab-link[data-tab="data"]');
-			const syncFab = document.getElementById('sync-button-floating-container');
-			const inboxBtn = document.getElementById('inbox-btn');
-			const bottomNavInbox = document.getElementById('bottom-nav-inbox');
-			const bottomNavDropboxImport = document.getElementById('bottom-nav-dropbox-import');
-
-			if (isAuthenticated) {
-				// Dropbox連携済み
-				this.authContainer?.classList.add('hidden');
-				this.signoutContainer?.classList.remove('hidden');
-				this.authStatusEl.textContent = 'Dropboxにログイン済みです。';
-
-				syncFab?.classList.remove('hidden');
-				inboxBtn?.classList.remove('hidden');
-				bottomNavDropboxImport?.classList.remove('hidden');
-				bottomNavInbox?.classList.remove('hidden');		
-			} else {
-				// Dropbox未連携
-				this.authContainer?.classList.remove('hidden');
-				this.signoutContainer?.classList.add('hidden');
-				this.authStatusEl.textContent = 'Dropboxにログインしていません。';
-
-				dataTabLinks.forEach(el => {
-					el.textContent = 'データ管理';
-				});
-				syncFab?.classList.add('hidden');
-				inboxBtn?.classList.add('hidden'); 
-				bottomNavDropboxImport?.classList.add('hidden'); 
-				bottomNavInbox?.classList.add('hidden');
-			}
-		},
-
-		// 同期ボタンのUI状態制御
-		updateSyncUi: function(status) {
-			const iconContainerMobile = document.getElementById('mobile-sync-icon');
-			const iconContainerPc = document.getElementById('pc-sync-icon');
-			const containers = [iconContainerMobile, iconContainerPc];
-
-			// アイコンSVG定義 (Tailwindクラスは既存のデザインに合わせ調整)
-			const syncIconSvgMobile = `<svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
-			const syncIconSvgPc = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
-
-			// チェックマーク (共通)
-			const checkIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
-
-			containers.forEach(container => {
-				if (!container) return;
-				// PCとモバイルでサイズが微妙に違うため元のSVGを使い分ける
-				const defaultSvg = (container.id === 'mobile-sync-icon') ? syncIconSvgMobile : syncIconSvgPc;
-
-				if (status === 'loading') {
-					// 回転アニメーション開始
-					container.innerHTML = defaultSvg;
-					container.classList.add('animate-spin');
-					container.style.animation = "spin 1s linear infinite"; 
-				} else if (status === 'success') {
-					// 回転停止＆チェックマーク表示
-					container.classList.remove('animate-spin');
-					container.style.animation = "";
-					container.innerHTML = checkIconSvg;
-
-					// 2秒後に元のアイコンに戻す
-					setTimeout(() => {
-						container.innerHTML = defaultSvg;
-					}, 2000);
-				} else {
-					// アイドル状態（エラー時など）
-					container.classList.remove('animate-spin');
-					container.style.animation = "";
-					container.innerHTML = defaultSvg;
-				}
-			});
-		},
-
-		fetchInboxContent: async function() {
-			if (!this.dbx) return '';
-			try {
-				const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
-				return await response.result.fileBlob.text();
-			} catch (error) {
-				if (error.status === 409) { // Not found
-					return ''; // ファイルが存在しない場合は空文字を返す
-				}
-				console.error('Error fetching inbox content:', error);
-				alert('Inboxの読み込みに失敗しました。');
-				return null; // エラーを示すためにnullを返す
-			}
-		},
-
-		saveInboxContent: async function(content) {
-			if (!this.dbx) return false;
-			try {
-				await this.dbx.filesUpload({
-					path: this.inboxFilePath,
-					contents: content,
-					mode: 'overwrite'
-				});
-				return true;
-			} catch (error) {
-				console.error('Error saving inbox content:', error);
-				alert('Inboxの保存に失敗しました。');
-				return false;
-			}
-		},
-
-		importTasksFromInbox: async function() {
-			if (!this.dbx) return;
-
-			try {
-				const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
-				const fileContent = await response.result.fileBlob.text();
-				const lines = fileContent.split('\n');
-				const newTasks = [];
-				const remainingLines = [];
-				let processed = false; // inbox.txtを更新する必要があるかどうかのフラグ
-				const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
-				const timeRegex = /:(\d+)/;
-				const todayStr = getFormattedDate(new Date());
-
-				// 翌日の日付文字列を取得
-				const tomorrow = new Date();
-				tomorrow.setDate(tomorrow.getDate() + 1);
-				const tomorrowStr = getFormattedDate(tomorrow);
-				const tasksToAddByDate = {};
-
-				lines.forEach(line => {
-					// 前後の空白を削除
-					let content = line.trim();
-
-					if (content.length > 0) {
-						// もしユーザーが癖で "[ ] " や "[]" を付けていたら削除
-						content = content.replace(/^\s*\[\s*\]\s*/, '');
-
-						let taskName = content;
-						let estimatedTime = 5;
-						let targetDate = todayStr;
-						let hasDate = false;
-
-						// 日付の抽出
-						const dateMatch = taskName.match(dateRegex);
-						if (dateMatch) {
-							const parsedDate = new Date(dateMatch[1]);
-							if (!isNaN(parsedDate.getTime())) {
-								targetDate = getFormattedDate(parsedDate);
-								taskName = taskName.replace(dateRegex, '').trim();
-								hasDate = true;
-							}
-						}
-
-						// 未来の日付判定：明日までは取り込み、明後日以降は残す
-						if (hasDate && targetDate > tomorrowStr) {
-							remainingLines.push(line);
-							return; // この行の処理をスキップして次の行へ
-						}
-
-						// 見積時間の抽出
-						const timeMatch = taskName.match(timeRegex);
-						if (timeMatch) {
-							estimatedTime = parseInt(timeMatch[1], 10);
-							taskName = taskName.replace(timeRegex, '').trim();
-						}
-
-						// タスク名が空になってしまった場合（日付や時間だけの行など）は無視
-						if (!taskName) {
-							remainingLines.push(line);
-							return;
-						}
-
-						const newTask = {
-							id: 't' + Date.now() + Math.random(),
-							name: taskName,
-							estimatedTime: estimatedTime,
-							projectId: null,
-							sectionId: null,
-							status: 'pending',
-							createdDate: targetDate,
-							startTime: null,
-							endTime: null,
-							memo: '',
-							subtasks: [],
-							updatedAt: new Date().toISOString()
-						};
-
-						if (!tasksToAddByDate[targetDate]) {
-							tasksToAddByDate[targetDate] = [];
-						}
-						tasksToAddByDate[targetDate].push(newTask);
-
-						newTasks.push(newTask);
-						processed = true;
-
-					}
-				});
-
-				// 各日付ごとに、既存のタスクリストの「先頭」に新規タスクを追加する
-				Object.keys(tasksToAddByDate).forEach(date => {
-					if (!state.dailyTasks[date]) {
-						state.dailyTasks[date] = [];
-					}
-					// 新規タスク(Inbox順) + 既存タスク の順で結合
-					state.dailyTasks[date] = [...tasksToAddByDate[date], ...state.dailyTasks[date]];
-				});
-
-				// 処理されたタスクがある（＝inbox.txtの内容に変更があった）場合のみファイルを更新
-				if (processed) {
-					const newContent = remainingLines.join('\n').trim();
-					await this.dbx.filesUpload({
-						path: this.inboxFilePath,
-						contents: newContent,
-						mode: 'overwrite'
-					});
-					if (newTasks.length > 0) {
-						showToast(`${newTasks.length}件のタスクをInboxからインポートしました。`);
-					}
-				}
-			} catch (error) {
-				if (error.status === 409) {
-					console.log('inbox.txt not found, skipping import.');
-				} else {
-					console.error('Error importing from inbox.txt:', error);
-					this.driveStatusEl.textContent += ' (Inboxの読込エラー)';
-				}
-			}
-		},
-
-		loadStateFromDropbox: async function(showNotification = true) {
-			if (!this.dbx) {
-				alert('Dropboxにログインしてください。');
-				return;
-			}
-
-			const preSyncRunningTaskId = state.activeTaskId;
-
-			this.updateSyncUi('loading');
-			this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
-			try {
-				const response = await this.dbx.filesDownload({ path: this.dropboxFilePath });
-				const fileContent = await response.result.fileBlob.text();
-				const importedData = JSON.parse(fileContent);
-
-				// セクション情報の復元
-				if (importedData.sections && Array.isArray(importedData.sections)) {
-					state.sections = importedData.sections;
-					state.sections.sort((a, b) => a.startTime.localeCompare(b.startTime));
-				}
-
-				// Custom Merge Logic
-				const driveDailyTasks = importedData.dailyTasks || {};
-				const localDailyTasks = state.dailyTasks;
-				const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
-
-				allDailyDates.forEach(date => {
-					const localTasksForDate = localDailyTasks[date] || [];
-					const driveTasksForDate = driveDailyTasks[date] || [];
-					const combinedTasks = [...localTasksForDate, ...driveTasksForDate];
-					const taskMap = new Map();
-
-					for (const task of combinedTasks) {
-						const key = (task.originRepeatId && !task.isManuallyAddedRepeat)
-							? `repeat-${task.originRepeatId}-${task.createdDate || date}`
-							: `task-${task.id}`;
-
-						if (!taskMap.has(key)) {
-							taskMap.set(key, task);
-						} else {
-							const existingTask = taskMap.get(key); // マップにあるタスク（先に処理された方、基本はローカル）
-							const newTask = task; // 比較対象のタスク（後から来た方、基本はクラウド）
-							const existingStatus = getTaskStatus(existingTask);
-							const newStatus = getTaskStatus(newTask);
-
-							let taskToKeep = existingTask;
-
-							// 1. 完了状態を最優先 (Completed > Running/Pending)
-							if (newStatus === 'completed' && existingStatus !== 'completed') {
-								taskToKeep = newTask;
-							} else if (existingStatus === 'completed' && newStatus !== 'completed') {
-								taskToKeep = existingTask;
-							} 
-								// 2. 実行中状態を優先 (Running > Pending)
-							else if (existingStatus === 'running' && newStatus === 'pending') {
-								taskToKeep = existingTask;
-							}
-							else if (newStatus === 'running' && existingStatus === 'pending') {
-								taskToKeep = newTask;
-							}
-								// 3. 状態が同じ、または判断がつかない場合は更新日時で比較
-							else {
-								const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
-								const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
-								if (newTimestamp >= existingTimestamp) {
-									taskToKeep = newTask;
-								}
-							}
-							taskMap.set(key, taskToKeep);
-						}
-					}
-
-					let mergedTasks = Array.from(taskMap.values());
-
-					const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
-					const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
-
-					mergedTasks.sort((a, b) => {
-						const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
-						const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
-						if (sectionIndexA !== sectionIndexB) return sectionIndexA - sectionIndexB;
-						return (a.sortOrder || 0) - (b.sortOrder || 0);
-					});
-
-					state.dailyTasks[date] = mergedTasks;
-				});
-
-				let restoredActiveDate = null;
-				if (preSyncRunningTaskId) {
-					for (const dateKey in state.dailyTasks) {
-						const foundTask = state.dailyTasks[dateKey].find(t => t.id === preSyncRunningTaskId);
-						if (foundTask) {
-							foundTask.status = 'running';
-							state.activeTaskId = preSyncRunningTaskId;
-							restoredActiveDate = dateKey; // 日付を記録
-							break;
-						}
-					}
-				}
-
-				const sortedDates = Array.from(new Set([
-					...Object.keys(state.dailyTasks), 
-					...Object.keys(state.archivedTasks)
-				])).sort();
-				const repeatTaskCompletionMap = new Map();
-
-				sortedDates.forEach(date => {
-					const allTasksForDate = [
-						...(state.dailyTasks[date] || []),
-						...(state.archivedTasks[date] || [])
-					];
-					allTasksForDate.forEach(task => {
-						if (task.originRepeatId && getTaskStatus(task) === 'completed') {
-							const existing = repeatTaskCompletionMap.get(task.originRepeatId);
-							if (!existing || date > existing) {
-								repeatTaskCompletionMap.set(task.originRepeatId, date);
-							}
-						}
-					});
-				});
-
-				// 不要な未完了タスク削除処理
-				sortedDates.forEach(date => {
-					const tasks = state.dailyTasks[date] || [];
-					state.dailyTasks[date] = tasks.filter(task => {
-						if (!task.originRepeatId) return true;
-
-						if (task.status === 'running') return true;
-
-						const completedDate = repeatTaskCompletionMap.get(task.originRepeatId);
-						if (!completedDate) return true;
-
-						const taskCreatedDate = task.createdDate || date;
-
-						if (taskCreatedDate >= completedDate) {
-							return true;
-						}
-
-						if (getTaskStatus(task) === 'completed') {
-							return true;
-						}
-						return false;
-					});
-				});
-
-				if (importedData.projects) state.projects = importedData.projects;
-				if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
-				state.lastDate = importedData.lastDate || state.lastDate;
-
-				await this.importTasksFromInbox();
-
-				stopActiveTimer();
-
-				// 実行中のタスクがあるならその日付を表示、なければ今日を表示
-				if (restoredActiveDate) {
-					state.viewDate = restoredActiveDate;
-				} else {
-					state.viewDate = getFormattedDate(new Date());
-				}
-
-				const tasksToday = getTasksForViewDate();
-				const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-				if (firstUncompletedTask) {
-					state.focusedTaskId = firstUncompletedTask.id;
-				} else if (tasksToday.length > 0) {
-					state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
-				} else {
-					state.focusedTaskId = null;
-				}
-				Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
-
-				saveState();
-				render();
-				restoreRunningTaskState();
-
-				this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
-				this.updateSyncUi('success');
-				this.lastSyncTime = Date.now();
-				if (showNotification) {
-					showToast('Dropboxからデータを読み込みました。');
-				}
-
-			} catch (error) {
-				this.updateSyncUi('idle');
-				if (error.status === 409) {
-					this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
-					await this.saveStateToDropbox();
-				} else {
-					console.error('Error loading state from Dropbox:', error);
-					this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
-					const errorSummary = error.error?.error_summary || '';
-					if (error.status === 401 || errorSummary.includes('expired_access_token')) {
-						this.updateReauthUi(true);
-						this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
-					}
-				}
-			}
-		},
-
-		saveStateToDropbox: async function() {
-			const accessToken = localStorage.getItem('dropbox_access_token');
-			if (!this.dbx || !accessToken) {
-				console.log('Dropbox not authenticated, skipping cloud save');
-				return;
-			}
-
-			this.driveStatusEl.textContent = 'Dropboxへ保存準備中...';
-			const cleanedDailyTasks = {};
-			const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-			for (const dateKey in state.dailyTasks) {
-				const filteredTasks = state.dailyTasks[dateKey].filter(task => {
-					// isDeletedフラグがないか、あっても30日以内のものだけを残す
-					return !task.isDeleted || (task.updatedAt && task.updatedAt > thirtyDaysAgo);
-				});
-				// フィルタリングした結果、タスクが1件以上残っている場合のみその日付のデータを保存する
-				if (filteredTasks.length > 0) {
-					cleanedDailyTasks[dateKey] = filteredTasks;
-				}
-			}
-
-			// メインデータとアーカイブデータを分離
-			const mainDataToSave = {
-				dailyTasks: cleanedDailyTasks,
-				projects: state.projects,
-				repeatTasks: state.repeatTasks,
-				sections: state.sections,
-				lastDate: state.lastDate,
-				updatedAt: new Date().toISOString()
-			};
-
-			const archiveDataToSave = {
-				archivedTasks: state.archivedTasks,
-				updatedAt: new Date().toISOString()
-			};
-
-			this.driveStatusEl.textContent = 'Dropboxへ保存中...';
-			try {
-				// 2つの保存処理を並行して実行
-				const saveMainData = this.dbx.filesUpload({
-					path: this.dropboxFilePath,
-					contents: JSON.stringify(mainDataToSave, null, 2),
-					mode: 'overwrite'
-				});
-
-				const saveArchiveData = this.dbx.filesUpload({
-					path: this.archiveFilePath,
-					contents: JSON.stringify(archiveDataToSave, null, 2),
-					mode: 'overwrite'
-				});
-
-				// 両方の完了を待つ
-				await Promise.all([saveMainData, saveArchiveData]);
-
-				this.driveStatusEl.textContent = `Dropboxに保存しました (${new Date().toLocaleTimeString()})。`;
-				this.lastSyncTime = Date.now();
-
-			} catch (error) {
-				console.error('Error saving state to Dropbox:', error);
-				this.driveStatusEl.textContent = `保存エラー: ${error.error?.error_summary || 'Unknown error'}`;
-				if (error.status === 401) { // 認証エラー
-					this.updateAuthUi(false);
-					this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
-					this.updateReauthUi(true);
-				}
-			}
-		}
-	};
 
 	// Dropbox 同期機能の初期化
 	async function initializeDropboxSync() {
@@ -780,8 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			toast.classList.add('-translate-y-20', 'opacity-0');
 		}, duration);
 	}
-
-  import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
 
 	// DOM refs
 	const tabs = document.querySelectorAll('.tab-link');
@@ -1009,44 +471,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// Init
 	function init() {
-		state.viewDate = getFormattedDate(new Date());
-		loadState();
-		handleUrlScheme();
-		restoreRunningTaskState();
-		// DOM要素の初期化を先に行う
-		dailyTaskListApp.initDomElements();
-		setupEventListeners();
-
-		// DOM要素とイベントリスナーが設定された後にDropboxの初期化を行う
-		initializeDropboxSync();
-		renderPcAddTaskButton();
-		checkDayChange();
-		generateTomorrowRepeats();
-		setInterval(checkDayChange, 1000 * 60); 
-		updateTitle();
-
-		render();
-		updateTimeDisplays();
-		setInterval(updateTimeDisplays, 1000*30);
-		// 分析ページなどからブラウザバックで戻ってきた際に「当日のタスク」を表示する
-		window.addEventListener('pageshow', function(event) {
-			// event.persistedがtrueの場合、ページはキャッシュ(bfcache)から読み込まれている
-			if (event.persisted) {
-				const todayTab = document.querySelector('.tab-link[data-tab="today"]');
-				if (todayTab && !todayTab.classList.contains('active')) {
-					todayTab.click();
-				}
-			}
-		});
-
-		window.addEventListener('resize', () => {
-			const activeTab = document.querySelector('.tab-link.active').dataset.tab;
-			if (['today', 'repeat', 'projects', 'archive'].includes(activeTab)) {
-				render();
-			}
-		});
-
-		setupFloatingElementsStick(); 
+	    state.viewDate = getFormattedDate(new Date());
+	    loadState();
+	    handleUrlScheme();
+	    restoreRunningTaskState();
+	    // コールバックを渡す
+	    dailyTaskListApp.callbacks = {
+	        getTaskStatus,
+	        showToast,
+	        stopActiveTimer,
+	        getTasksForViewDate,
+	        updateTaskStatus,
+	        saveState,
+	        render,
+	        restoreRunningTaskState,
+	    };
+	    window.dailyTaskListApp = dailyTaskListApp;
+	    // DOM要素の初期化を先に行う
+	    dailyTaskListApp.initDomElements();
+	    setupEventListeners();
+	    // DOM要素とイベントリスナーが設定された後にDropboxの初期化を行う
+	    initializeDropboxSync();
+	    renderPcAddTaskButton();
+	    checkDayChange();
+	    generateTomorrowRepeats();
+	    setInterval(checkDayChange, 1000 * 60); 
+	    updateTitle();
+	    render();
+	    updateTimeDisplays();
+	    setInterval(updateTimeDisplays, 1000*30);
+	    window.addEventListener('pageshow', function(event) {
+	        if (event.persisted) {
+	            const todayTab = document.querySelector('.tab-link[data-tab="today"]');
+	            if (todayTab && !todayTab.classList.contains('active')) {
+	                todayTab.click();
+	            }
+	        }
+	    });
+	    window.addEventListener('resize', () => {
+	        const activeTab = document.querySelector('.tab-link.active').dataset.tab;
+	        if (['today', 'repeat', 'projects', 'archive'].includes(activeTab)) {
+	            render();
+	        }
+	    });
+	    setupFloatingElementsStick(); 
 	}
 
 	function handleUrlScheme() {
