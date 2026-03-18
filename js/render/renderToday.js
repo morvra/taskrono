@@ -1,11 +1,11 @@
 // js/render/renderToday.js
 import { state } from '../state.js';
 import { getFormattedDate, escapeHtml, formatTime, formatClockTime, calculateActualTime, formatTaskName } from '../utils.js';
+import { getSectionDisplayInfo } from '../sections.js';
 
 export const renderTodayCallbacks = {
     getTasksForViewDate: null,
     isMobile: null,
-    getSectionDisplayInfo: null,
     getTaskStatus: null,
     setupDragAndDrop: null,
     updateFocus: null,
@@ -70,7 +70,7 @@ export function renderTodayTasks(options = {}) {
             const sectionTasks = tasksBySection[sectionId];
             if (sectionId === 'null' && sectionTasks.length === 0) return;
 
-            const { name, range } = renderTodayCallbacks.getSectionDisplayInfo(sectionId);
+            const { name, range } = getSectionDisplayInfo(sectionId);
 
             const remainingTimeInSection = sectionTasks
                 .filter(task => renderTodayCallbacks.getTaskStatus(task) !== 'completed')
@@ -122,7 +122,7 @@ export function renderTodayTasks(options = {}) {
 
         visibleSections.forEach(sectionId => {
             const sectionTasks = tasksBySection[sectionId];
-            const { name, range } = renderTodayCallbacks.getSectionDisplayInfo(sectionId);
+            const { name, range } = getSectionDisplayInfo(sectionId);
 
             const remainingTimeInSection = sectionTasks
                 .filter(task => renderTodayCallbacks.getTaskStatus(task) !== 'completed')

@@ -1,10 +1,10 @@
 // js/render/renderRepeat.js
+import { getSectionDisplayInfo } from '../sections.js';
 import { state } from '../state.js';
 import { escapeHtml, formatTaskName } from '../utils.js';
 
 export const renderRepeatCallbacks = {
     isMobile: null,
-    getSectionDisplayInfo: null,
     setupDragAndDrop: null,
     generateSingleRepeatTask: null,
     saveAndRender: null,
@@ -107,7 +107,7 @@ export function renderRepeatTasks() {
             const sectionTasks = tasksBySection[sectionId];
             if (sectionId === 'null' && sectionTasks.length === 0) return;
 
-            const { name, range } = renderRepeatCallbacks.getSectionDisplayInfo(sectionId);
+            const { name, range } = getSectionDisplayInfo(sectionId);
             const sectionHeader = document.createElement('div');
             sectionHeader.className = 'text-sm font-bold text-gray-500 pt-4 pb-1 px-2';
             sectionHeader.textContent = name + ' ' + range;
@@ -148,7 +148,7 @@ export function renderRepeatTasks() {
             const sectionTasks = tasksBySection[sectionId];
             if (sectionId === 'null' && sectionTasks.length === 0) return;
 
-            const { name, range } = renderRepeatCallbacks.getSectionDisplayInfo(sectionId);
+            const { name, range } = getSectionDisplayInfo(sectionId);
             const headerRow = document.createElement('tr');
             headerRow.dataset.sectionId = sectionId;
             headerRow.innerHTML = `<td colspan="6" class="py-1 px-3 text-xs font-bold bg-gray-400 text-white">${name} ${range}</td>`;

@@ -1,4 +1,5 @@
 // js/tasks.js
+import { getCurrentSection } from './sections.js';
 import { state } from './state.js';
 import { getFormattedDate, getPlainTaskName, calculateActualTime, formatTime } from './utils.js';
 
@@ -8,7 +9,6 @@ export const taskCallbacks = {
     saveAndRender: null,
     showToast: null,
     updateTaskStatus: null,
-    getCurrentSection: null,
 };
 
 export function addTask(name = null, time = null, projectId = null, sectionId = null, isInterrupt = false, options = {}) {
@@ -338,7 +338,7 @@ export function toggleTimer(id, forceStop = false) {
     // [Case 5] (id)のタスクを開始する
     task.startTime = task.startTime || new Date().toISOString();
     task.endTime = null;
-    const currentSection = taskCallbacks.getCurrentSection();
+    const currentSection = getCurrentSection();
     const targetSectionId = currentSection ? currentSection.id : null;
     task.sectionId = targetSectionId;
 
