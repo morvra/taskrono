@@ -10,6 +10,7 @@ import { renderProjectsCallbacks, renderProjects } from './render/renderProjects
 import { renderTodayCallbacks, renderTodayTasks, renderTaskTable, renderTaskCards, attachTaskEventListeners } from './render/renderToday.js';
 import { repeatCallbacks, addRepeatTask, deleteRepeatTask, generateSingleRepeatTask, generateTasksFromRepeatAuto, generateTasksFromRepeatManual, generateTomorrowRepeats } from './repeat.js';
 import { renderRepeatCallbacks, renderRepeatTasks, renderRepeatTaskTable, renderRepeatTaskCards } from './render/renderRepeat.js';
+import { modalCallbacks, openModal, closeModal, openAddTaskModal, openTaskEditModal, saveTaskEdit, createRepeatFromTask, openMemoEditModal, saveMemoEdit, openRepeatEditModal, saveRepeatEdit, renderSubtasksInModal, addSubtaskToModal, getSubtasksFromModal, addMonthlyDayChip, addYearlyDateChip, getMonthlyDaysFromChips, getYearlyDatesFromChips } from './modals.js';
 import { keyboardCallbacks, handleKeyboardShortcuts } from './keyboard.js';
 
 document.addEventListener('DOMContentLoaded', () => {
