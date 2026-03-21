@@ -1,593 +1,705 @@
 html, body { overscroll-behavior-y: contain; }
 body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
 
-/* header for desktop (TABLET / 769px - 1200px) */
+/* ============================================================
+   ヘッダー・レイアウト
+   ============================================================ */
+
+/* タブレット (769px - 1199px) */
 @media (min-width: 769px) {
-	.header {
-		background: white;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-	}
-	.sections-wrapper { padding-bottom: 88px; }
-	main { max-width: 900px; margin: 0 auto; }
-	.task-row { height: 37px; }
-	#desktop-sidebar { display: none; }
+    .header {
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .sections-wrapper { padding-bottom: 88px; }
+    main { max-width: 900px; margin: 0 auto; }
+    .task-row { height: 37px; }
+    #desktop-sidebar { display: none; }
 }
 
-/* PC 2-Column Layout (1200px+) */
+/* PC 2カラムレイアウト (1200px+) */
 @media (min-width: 1200px) {
-	/* グリッドコンテナ設定 */
-	#main-grid-container {
-		display: grid;
-		grid-template-columns: 160px minmax(0, 960px);
-		gap: 1rem;
-		justify-content: center;
-		max-width: none;
-		padding: 1rem 2rem;
-	}
-
-	main {
-		max-width: 960px;
-		margin: 0;
-		grid-column: 2 / 3;
-	}
-
-	/* PC用サイドバーの表示と追従 */
-	#desktop-sidebar {
-		display: block;
-		position: sticky;
-		top: 24px;
-		align-self: start;
-		height: calc(100vh - 48px); 
-		overflow-y: auto;
-		grid-column: 1 / 2;
-	}
-
-	/* ヘッダー内のモバイル用要素を非表示 */
-	#header-nav-mobile, #header-stats-container-mobile {
-		display: none;
-	}
-
-	.header {
-		box-shadow: none;
-		border-bottom: 1px solid #e5e7eb;
-	}
-	.header > .container {
-		max-width: none;
-		padding: 0 2rem;
-	}
+    #main-grid-container {
+        display: grid;
+        grid-template-columns: 160px minmax(0, 960px);
+        gap: 1rem;
+        justify-content: center;
+        max-width: none;
+        padding: 1rem 2rem;
+    }
+    main {
+        max-width: 960px;
+        margin: 0;
+        grid-column: 2 / 3;
+    }
+    #desktop-sidebar {
+        display: block;
+        position: sticky;
+        top: 24px;
+        align-self: start;
+        height: calc(100vh - 48px);
+        overflow-y: auto;
+        grid-column: 1 / 2;
+    }
+    #header-nav-mobile,
+    #header-stats-container-mobile {
+        display: none;
+    }
+    .header {
+        box-shadow: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .header > .container {
+        max-width: none;
+        padding: 0 2rem;
+    }
 }
 
-/* Compact header for mobile */
+/* モバイル (〜768px) */
 @media (max-width: 768px) {
-	.header {
-		background: white;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-		text-align: center;
-	}
-	#desktop-sidebar {
-		display: none;
-	}
+    .header {
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    #desktop-sidebar { display: none; }
 }
 
-/* タブの .active スタイル (基本) */
-.tab-link.active { border-color: #3b82f6; background-color:#3b82f6; color:white; }
+/* ============================================================
+   タブ
+   ============================================================ */
+
+.tab-link.active {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+    color: white;
+}
 
 @media (min-width: 1200px) {
-	#desktop-sidebar .tab-link {
-		border-bottom: none;
-	}
-	#desktop-sidebar .tab-link.active {
-		border-color: #3b82f6;
-		background: none;
-		color: #2563eb;
-		font-weight: 600;
-		border-left-width: 4px;
-		padding-left: 0.75rem; 
-	}
+    #desktop-sidebar .tab-link { border-bottom: none; }
+    #desktop-sidebar .tab-link.active {
+        border-color: #3b82f6;
+        background: none;
+        color: #2563eb;
+        font-weight: 600;
+        border-left-width: 4px;
+        padding-left: 0.75rem;
+    }
 }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
-.task-row.focused, .subtask-item.focused, tr.repeat-task-row.focused { background-color: #fef9c3; }
-.task-card.focused, div.repeat-task-row.focused { background-color: #fef9c3; }
-::-webkit-scrollbar { width:8px; height:0px; }
-::-webkit-scrollbar-track { background:#f1f1f1; border-radius:10px; }
-::-webkit-scrollbar-thumb { background:#888; border-radius:10px; }
-::-webkit-scrollbar-thumb:hover { background:#555; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ============================================================
+   フォーカス・スクロールバー
+   ============================================================ */
+
+.task-row.focused,
+.subtask-item.focused,
+tr.repeat-task-row.focused { background-color: #fef9c3; }
+
+.task-card.focused,
+div.repeat-task-row.focused { background-color: #fef9c3; }
+
+::-webkit-scrollbar { width: 8px; height: 0; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ============================================================
+   タスクテーブル
+   ============================================================ */
 
 .timer-btn {
-	min-width: 24px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 0.8rem;
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
 }
-.task-table th, .task-table td {
-	max-width: 320px;
-	padding-top: 0.25rem;
-	padding-bottom: 0.25rem;
-	padding-left: 0.5rem;
-	padding-right: 0.5rem;
-	vertical-align: middle;
+
+.task-table th,
+.task-table td {
+    max-width: 320px;
+    padding: 0.25rem 0.5rem;
+    vertical-align: middle;
 }
+
 .task-table td.font-mono,
 .task-table td .font-mono {
-	position: relative;
-	top: 1px;
+    position: relative;
+    top: 1px;
 }
+
+/* ============================================================
+   FAB (フローティングアクションボタン)
+   ============================================================ */
+
 .fab {
-	height: 56px;
-	width: 56px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-	transition: all 0.2s ease-in-out;
+    height: 56px;
+    width: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease-in-out;
 }
 .fab:hover {
-	background-color: #ddd;
-	box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    background-color: #ddd;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* タスク追加ボタンコンテナのスタイル (スマホでは非表示) */
 #add-task-floating-container {
-	display: none;
-	position: fixed;
-	z-index: 40;
+    display: none;
+    position: fixed;
+    z-index: 40;
 }
 
-/* PC表示用の調整 (画面幅が769px以上の場合) */
 @media (min-width: 769px) {
-	#sync-button-floating-container {
-		position: fixed;
-		transform: none !important;
-		top: auto;
-		bottom: 24px;
-		left: 24px;
-	}
-
-	#add-task-floating-container {
-		display: block;
-		bottom: 24px;
-		right: 24px;
-	}
+    #sync-button-floating-container {
+        position: fixed;
+        transform: none !important;
+        top: auto;
+        bottom: 24px;
+        left: 24px;
+    }
+    #add-task-floating-container {
+        display: block;
+        bottom: 24px;
+        right: 24px;
+    }
 }
-.small-btn { min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center; }
-.inline-input, .inline-select { width:100%; box-sizing:border-box; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db; }
-.small-btn { padding:6px 8px; border-radius:6px; font-size:0.9rem; }
 
-.modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
-.modal.active { display:flex; align-items:center; justify-content:center; }
-.modal-content { background:white; border-radius:8px; max-width:90vw; max-height:95vh; overflow-y:auto; }
+/* ============================================================
+   汎用ボタン・インプット
+   ============================================================ */
 
-.tooltip-container { position: relative; display: inline-block; vertical-align: middle; }
-.custom-tooltip { visibility: hidden; opacity: 0; background-color: #2d3748; color: #fff; text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 10; bottom: 150%; left: 50%; transform: translateX(-50%); transition: opacity 0.1s, visibility 0.1s; width: max-content; max-width: 300px; font-size: 0.875rem; font-weight: normal; line-height: 1.4; white-space: pre-wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.1); pointer-events: none; }
+.small-btn {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+.inline-input,
+.inline-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
 
+/* ============================================================
+   モーダル
+   ============================================================ */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* PC: 中央表示 */
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 95vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 769px) {
+    .modal-content {
+        animation: modalFadeIn 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    @keyframes modalFadeIn {
+        from { transform: scale(0.96); opacity: 0; }
+        to   { transform: scale(1);    opacity: 1; }
+    }
+}
+
+/* スマホ: ボトムシート */
+@media (max-width: 768px) {
+    .modal.active {
+        align-items: flex-end;
+        justify-content: stretch;
+    }
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 20px 20px 0 0;
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+        animation: modalSlideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    /* ドラッグインジケーター */
+    .modal-content::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: #d1d5db;
+        border-radius: 2px;
+        margin: 0 auto 1rem;
+    }
+    @keyframes modalSlideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+}
+
+/* ============================================================
+   ツールチップ
+   ============================================================ */
+
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+}
+.custom-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    background-color: #2d3748;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 8px 12px;
+    position: absolute;
+    z-index: 10;
+    bottom: 150%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.1s, visibility 0.1s;
+    width: max-content;
+    max-width: 300px;
+    font-size: 0.875rem;
+    font-weight: normal;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+.custom-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: #2d3748;
+}
 .dragging .custom-tooltip { position: static; transform: none; }
-.custom-tooltip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #2d3748 transparent transparent transparent; }
-
-.tooltip-container:hover .custom-tooltip { 
-	visibility: visible; 
-	opacity: 1; 
-	transition-delay: 0.1s; 
-}
-.tooltip-container:hover .custom-tooltip.tooltip-top { 
-	bottom: 150%; 
-	top: auto; 
-}
-.tooltip-container:hover .custom-tooltip.tooltip-bottom { 
-	top: 150%; 
-	bottom: auto; 
-}
-.custom-tooltip.tooltip-bottom::after { 
-	top: -10px; 
-	bottom: auto; 
-	border-color: transparent transparent #2d3748 transparent; 
+.tooltip-container:hover .custom-tooltip          { visibility: visible; opacity: 1; transition-delay: 0.1s; }
+.tooltip-container:hover .custom-tooltip.tooltip-top    { bottom: 150%; top: auto; }
+.tooltip-container:hover .custom-tooltip.tooltip-bottom { top: 150%; bottom: auto; }
+.custom-tooltip.tooltip-bottom::after {
+    top: -10px;
+    bottom: auto;
+    border-color: transparent transparent #2d3748 transparent;
 }
 
-.dragging { opacity: 0.5; background-color: #fef9c3; transform: translate(0, 0); }
+/* ============================================================
+   ドラッグ＆ドロップ
+   ============================================================ */
+
+.dragging {
+    opacity: 0.5;
+    background-color: #fef9c3;
+    transform: translate(0, 0);
+}
 .dragging .custom-tooltip,
 .dragging .tooltip-container:hover .custom-tooltip {
-	visibility: hidden !important;
-	opacity: 0 !important;
-	display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    display: none !important;
 }
 .drag-over { background-color: #e0f2fe; }
-
-/* ドロップターゲットの表示/非表示制御 */
-.empty-section-drop-target {
-	display: none;
-}
-.dragging-active .empty-section-drop-target {
-	display: table-row;
-}
-
-/* テーブル内の空セクション用 */
-.empty-section-drop-target td {
-	padding: 0;
-	border-width: 0;
-	line-height: 0;
-}
-
-.dragging-active .empty-section-drop-target td {
-	padding: 0.5rem 1rem !important;
-	line-height: 1rem;
-}
-
-/* モバイル表示用 */
-@media (max-width: 768px) {
-	.empty-section-drop-target {
-		display: none;
-	}
-	.dragging-active .empty-section-drop-target {
-		display: block;
-		height: auto;
-		padding: 1rem !important;
-		margin-top: 0.5rem !important;
-		margin-bottom: 0.5rem !important;
-		border-width: 2px !important;
-	}
-}
 .drag-handle { cursor: move; color: #9ca3af; }
 .drag-handle:hover { color: #6b7280; }
+
+/* 空セクションのドロップターゲット */
+.empty-section-drop-target { display: none; }
+.dragging-active .empty-section-drop-target { display: table-row; }
+
+.empty-section-drop-target td {
+    padding: 0;
+    border-width: 0;
+    line-height: 0;
+}
+.dragging-active .empty-section-drop-target td {
+    padding: 0.5rem 1rem !important;
+    line-height: 1rem;
+}
+
+@media (max-width: 768px) {
+    .empty-section-drop-target { display: none; }
+    .dragging-active .empty-section-drop-target {
+        display: block;
+        height: auto;
+        padding: 1rem !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        border-width: 2px !important;
+    }
+}
+
+/* ============================================================
+   アーカイブ
+   ============================================================ */
+
 .archive-tabs { border-bottom: 1px solid #e5e7eb; }
 .archive-tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; }
 .archive-tab.active { border-bottom-color: #3b82f6; color: #3b82f6; }
 .time-input { width: 80px; text-align: center; border: 1px solid #d1d5db; border-radius: 4px; padding: 2px 4px; }
-.archive-search-box { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
-.archive-search-input { flex:1; padding:8px 10px; max-width: 50%; border-radius:6px; border:1px solid #d1d5db; background:white; }
-.archive-search-btn { padding:8px 12px; border-radius:6px; background:#3b82f6; color:white; border:none; cursor:pointer; }
-.archive-clear-btn { padding:8px 10px; border-radius:6px; background:#e5e7eb; color:#374151; border:none; cursor:pointer; }
-.search-result-meta { font-size:0.85rem; color:#6b7280; }
+.archive-search-box { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.archive-search-input { flex: 1; padding: 8px 10px; max-width: 50%; border-radius: 6px; border: 1px solid #d1d5db; background: white; }
+.archive-search-btn { padding: 8px 12px; border-radius: 6px; background: #3b82f6; color: white; border: none; cursor: pointer; }
+.archive-clear-btn { padding: 8px 10px; border-radius: 6px; background: #e5e7eb; color: #374151; border: none; cursor: pointer; }
+.search-result-meta { font-size: 0.85rem; color: #6b7280; }
 
 @media (max-width: 768px) {
-	.tab-content.active { padding-bottom:160px; }
-	.task-card { border-radius: 0; }
-	.task-card.completed { background-color: #e5e7eb; }
-	.task-card.completed.focused { background-color: #fef9c3; }
-	.archive-table-wrapper {
-		overflow-x: auto;
-		-webkit-overflow-scrolling: touch;
-	}
-	.archive-table-wrapper > table { min-width: 640px; }
-	.archive-table-wrapper td, .archive-table-wrapper th { white-space: nowrap; }
-	.archive-table-wrapper .task-memo-cell {
-		white-space: normal;
-		min-width: 250px;
-	}
+    .archive-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .archive-table-wrapper > table { min-width: 640px; }
+    .archive-table-wrapper td,
+    .archive-table-wrapper th { white-space: nowrap; }
+    .archive-table-wrapper .task-memo-cell {
+        white-space: normal;
+        min-width: 250px;
+    }
 }
-/* サブタスク */
+
+/* ============================================================
+   タスクカード (モバイル)
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .tab-content.active { padding-bottom: 104px; }
+    .task-card { border-radius: 0; }
+    .task-card.completed { background-color: #e5e7eb; }
+    .task-card.completed.focused { background-color: #fef9c3; }
+}
+
+/* ============================================================
+   サブタスク
+   ============================================================ */
+
 .subtask-toggle-icon {
-	cursor: pointer;
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-	font-size: 0.75rem;
-	color: #9ca3af;
-	padding: 0px 4px 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    padding: 0 4px 2px;
 }
 .subtask-toggle-icon:hover { color: #4b5563; }
+
 .subtask-container {
-	display: none;
-	padding-left: 3.5rem;
-	background-color: #f9fafb;
+    display: none;
+    padding-left: 3.5rem;
+    background-color: #f9fafb;
 }
+.subtask-container.open { display: block; }
+
 .task-row.dragging + .subtask-container-row { display: none; }
 .subtask-container-row td { padding: 0; }
-.subtask-container.open { display: block; }
+
 .subtask-item {
-	display: flex;
-	align-items: center;
-	padding: 0.3rem 0.5rem;
-	border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
 }
-.subtask-item:last-child {
-	border-bottom: none;
-}
-.subtask-item.completed span {
-	text-decoration: line-through;
-	color: #9ca3af;
-}
-.subtask-item .drag-handle {
-	margin-right: 0.5rem;
-}
+.subtask-item:last-child { border-bottom: none; }
+.subtask-item.completed span { text-decoration: line-through; color: #9ca3af; }
+.subtask-item .drag-handle { margin-right: 0.5rem; }
 
-/* スマホ表示用の調整 */
 @media (max-width: 768px) {
-	.subtask-container {
-		padding-left: 0rem;
-		margin-left: .75rem;
-		margin-top: 2px;
-		box-shadow: 0px 3px 4px #ccc;
-	}
+    .subtask-container {
+        padding-left: 0;
+        margin-left: 0.75rem;
+        margin-top: 2px;
+        box-shadow: 0 3px 4px #ccc;
+    }
 }
 
-/* 編集モーダル内のサブタスク */
-#edit-task-subtasks, #edit-repeat-subtasks { max-height: 200px; overflow-y: auto; }
+/* モーダル内サブタスク */
+#edit-task-subtasks,
+#edit-repeat-subtasks { max-height: 200px; overflow-y: auto; }
+
 .subtask-edit-item {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.5rem;
-	background-color: #f9fafb;
-	border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-radius: 6px;
 }
-/* スワイプ機能用CSS */
+
+/* ============================================================
+   スワイプ (モバイル)
+   ============================================================ */
+
 @media (max-width: 768px) {
-	.task-card-swipe-wrapper {
-		position: relative;
-		overflow: hidden;
-		margin-top: 0.5rem;
-		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-	}
-	.task-card {
-		margin-top: 0 !important;
-		position: relative;
-		z-index: 10;
-		transition: transform 0.2s ease-out;
-		touch-action: pan-y;
-	}
-	.task-card.swiping {
-		transition: none;
-	}
-	.task-card-swipe-background {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		display: flex;
-		justify-content: stretch;
-		align-items: center;
-		z-index: 1;
-		color: white;
-		font-weight: bold;
-		overflow: hidden;
-	}
+    .task-card-swipe-wrapper {
+        position: relative;
+        overflow: hidden;
+        margin-top: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+    .task-card {
+        margin-top: 0 !important;
+        position: relative;
+        z-index: 10;
+        transition: transform 0.2s ease-out;
+        touch-action: pan-y;
+    }
+    .task-card.swiping { transition: none; }
 
-	/* 背景色を保持するコンテナ */
-	.swipe-bg {
-		position: absolute;
-		top: 0;
-		bottom: 0;
-		width: 100%;
-		display: flex;
-		align-items: center;
-		transition: background-color 0.1s;
-	}
-	.swipe-bg-right {
-		left: 0;
-		background-color: #22c55e; /* デフォルト: 短（緑） */
-		justify-content: flex-start;
-		display: none; /* JSで制御 */
-	}
-	.swipe-bg-left {
-		right: 0;
-		background-color: #f59e0b; /* デフォルト: 短（黄） */
-		justify-content: flex-end;
-		display: none; /* JSで制御 */
-	}
+    .task-card-swipe-background {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        justify-content: stretch;
+        align-items: center;
+        z-index: 1;
+        color: white;
+        font-weight: bold;
+        overflow: hidden;
+    }
 
-	/* アイコンのラッパー */
-	.swipe-action-icon {
-		display: none;
-		padding: 0 20px;
-	}
-	.swipe-action-icon.visible {
-		display: flex;
-	}
-	.swipe-action-icon svg {
-		width: 24px;
-		height: 24px;
-	}
+    .swipe-bg {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        transition: background-color 0.1s;
+    }
+    .swipe-bg-right {
+        left: 0;
+        background-color: #22c55e;
+        justify-content: flex-start;
+        display: none;
+    }
+    .swipe-bg-left {
+        right: 0;
+        background-color: #f59e0b;
+        justify-content: flex-end;
+        display: none;
+    }
+
+    .swipe-action-icon { display: none; padding: 0 20px; }
+    .swipe-action-icon.visible { display: flex; }
+    .swipe-action-icon svg { width: 24px; height: 24px; }
 }
 
-/* 同期ボタンコンテナはPCでは使うが、スマホでは非表示 */
+/* ============================================================
+   同期ボタン・ボトムUI
+   ============================================================ */
+
 @media (max-width: 768px) {
-	#sync-button-floating-container {
-		display: none !important;
-	}
+    #sync-button-floating-container { display: none !important; }
 }
 
-/* ボトムUIコンテナ */
 #bottom-ui-container {
-	display: none; /* スマホ以外では非表示 */
-	position: absolute; /* JSで制御 */
-	left: 0;
-	right: 0;
-	bottom: 0;
-	height: 104px; /* コンテナ全体の高さ (カプセル + 上下マージン) */
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 8px 16px; /* 左右マージン16px, 上下マージン8px */
-	box-sizing: border-box;
-	z-index: 50;
-	will-change: transform;
-	transition: transform 80ms linear, opacity 0.25s ease-in-out;
-	background: transparent;
-	pointer-events: none;
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 104px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    box-sizing: border-box;
+    z-index: 50;
+    will-change: transform;
+    transition: transform 80ms linear, opacity 0.25s ease-in-out;
+    background: transparent;
+    pointer-events: none;
 }
 
-/* ボトムナビゲーションバー (左側カプセル) */
 #bottom-nav-bar {
-	display: flex;
-	position: static; /* absoluteを解除 */
-	height: 56px; /* カプセルの高さ */
-	align-items: center; 
-	justify-content: flex-start;
-	padding: 0 8px;
-	gap: 8px;
-	border-radius: 9999px;
-	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
-	background-color: rgba(249, 249, 249, 0.85);
-	-webkit-backdrop-filter: blur(10px);
-	backdrop-filter: blur(10px);
-	border: 0.5px solid rgba(0, 0, 0, 0.1);
-	will-change: auto;
-	transition: none;
-	pointer-events: auto;
+    display: flex;
+    position: static;
+    height: 56px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 8px;
+    gap: 8px;
+    border-radius: 9999px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+    background-color: rgba(249, 249, 249, 0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 0.5px solid rgba(0, 0, 0, 0.1);
+    will-change: auto;
+    transition: none;
+    pointer-events: auto;
 }
 
 .bottom-nav-btn {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	flex-basis: auto;
-	flex-grow: 0;
-	width: 56px;
-	height: 56px;
-	padding: 0;
-	color: #333;
-	background: none;
-	border: none;
-	border-radius: 50%;
-	cursor: pointer;
-	-webkit-tap-highlight-color: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-basis: auto;
+    flex-grow: 0;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    color: #333;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
+.bottom-nav-btn svg { width: 28px; height: 28px; }
+.bottom-nav-btn .text-xs { display: none; }
+.bottom-nav-btn.active { color: #007aff; }
 
 @media (prefers-color-scheme: dark) {
-	.bottom-nav-btn {
-		color: #eee;
-	}
+    .bottom-nav-btn { color: #eee; }
 }
-.bottom-nav-btn.active {
-	color: #007aff;
-}
-.bottom-nav-btn svg {
-	width: 28px;
-	height: 28px;
-}
-/* テキストラベルを非表示 */
-.bottom-nav-btn .text-xs {
-	display: none;
-}
-/* スマホ用 追加FAB (右側) */
+
 #bottom-fab-add-task {
-	display: block;
-	position: static;
-	z-index: auto;
-	will-change: auto;
-	transition: none;
-	pointer-events: auto;
+    display: block;
+    position: static;
+    z-index: auto;
+    will-change: auto;
+    transition: none;
+    pointer-events: auto;
 }
 
 #add-task-btn-floating-mobile {
-	height: 56px;
-	width: 56px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
-	transition: all 0.2s ease-in-out;
-	-webkit-touch-callout: none;
-	-webkit-user-select: none;
-	user-select: none;
-	touch-action: none;
+    height: 56px;
+    width: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease-in-out;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
 }
-#add-task-btn-floating-mobile:hover {
-	box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-}
-#add-task-btn-floating-mobile:active {
-	transform: scale(0.95);
-}
+#add-task-btn-floating-mobile:hover  { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+#add-task-btn-floating-mobile:active { transform: scale(0.95); }
 
-/* スマホ表示時の切り替え */
 @media (max-width: 768px) {
-	#bottom-ui-container {
-		display: flex; /* 親コンテナを表示 */
-	}
-	/* スマホではメインコンテンツの下部に余白を追加して、ボトムUIに隠れないようにする */
-	.tab-content.active { padding-bottom: 104px; }
+    #bottom-ui-container { display: flex; }
 }
-
-/* PC表示時はボトムUI非表示 */
 @media (min-width: 769px) {
-	#bottom-ui-container {
-		display: none !important;
-	}
+    #bottom-ui-container { display: none !important; }
 }
 
-/* 実行中タスクカード */
-.task-card.running-enhanced {
-	background-color: #eff6ff;
-}
-.task-card.running-enhanced.focused {
-	background-color: #fef9c3 !important;
-}		
-/* タイマー */
+/* ============================================================
+   実行中タスク・タイマー・プログレスバー
+   ============================================================ */
+
+.task-card.running-enhanced { background-color: #eff6ff; }
+.task-card.running-enhanced.focused { background-color: #fef9c3 !important; }
+
 .running-timer {
-	color: #1d4ed8;
-	border-radius: 4px;
-	font-weight: 700;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 64px;
-	margin-left: 12px;
-}
-/* プログレスバー */
-.running-progress-bg {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	height: 2px;
-	background: linear-gradient(to right, #3b82f6, #60a5fa);
-	transition: width 1s linear;
-	opacity: 0.8;
-	z-index: 10;
-	pointer-events: none;
+    color: #1d4ed8;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    margin-left: 12px;
 }
 
-/* クイックアクション（長押しスライド） */
+.running-progress-bg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    transition: width 1s linear;
+    opacity: 0.8;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ============================================================
+   クイックアクション（長押しメニュー）
+   ============================================================ */
+
 #quick-action-overlay {
-	display: none;
-	position: fixed;
-	top: 0; left: 0; width: 100%; height: 100%;
-	background: rgba(0, 0, 0, 0.3); /* 背景を少し暗く */
-	z-index: 2000;
-	touch-action: none; /* スクロール防止 */
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+    touch-action: none;
 }
 
 #quick-action-menu {
-	position: absolute;
-	bottom: 90px;
-	right: 24px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	align-items: flex-end;
-	pointer-events: none;
+    position: absolute;
+    bottom: 90px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+    pointer-events: none;
 }
 
 .quick-action-item {
-	background: white;
-	border-left: 4px solid #ccc;
-	padding: 8px 16px;
-	box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-	font-weight: 600;
-	color: #374151;
-	transform: translateX(20px);
-	opacity: 0;
-	transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-	pointer-events: auto; /* 個別の要素は判定対象にする */
+    background: white;
+    border-left: 4px solid #ccc;
+    padding: 8px 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+    color: #374151;
+    transform: translateX(20px);
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: auto;
 }
 
-/* メニュー表示時のアニメーション */
 #quick-action-overlay.active .quick-action-item {
-	transform: translateX(0);
-	opacity: 1;
+    transform: translateX(0);
+    opacity: 1;
 }
 
-/* 指が乗っている時のハイライト */
 .quick-action-item.hovered {
-	background-color: #3b82f6;
-	color: white;
-	transform: scale(1.1) translateX(-10px);
-	box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    background-color: #3b82f6;
+    color: white;
+    transform: scale(1.1) translateX(-10px);
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
 }
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .animate-spin { animation: spin 1s linear infinite; }
