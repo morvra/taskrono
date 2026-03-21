@@ -158,7 +158,7 @@ body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
 
 .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); }
 .modal.active { display:flex; align-items:center; justify-content:center; }
-.modal-content { background:white; border-radius:8px; max-width:90vw; max-height:90vh; overflow-y:auto; }
+.modal-content { background:white; border-radius:8px; max-width:90vw; max-height:95vh; overflow-y:auto; }
 
 .tooltip-container { position: relative; display: inline-block; vertical-align: middle; }
 .custom-tooltip { visibility: hidden; opacity: 0; background-color: #2d3748; color: #fff; text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 10; bottom: 150%; left: 50%; transform: translateX(-50%); transition: opacity 0.1s, visibility 0.1s; width: max-content; max-width: 300px; font-size: 0.875rem; font-weight: normal; line-height: 1.4; white-space: pre-wrap; box-shadow: 0 4px 6px rgba(0,0,0,0.1); pointer-events: none; }
