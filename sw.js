@@ -1,62 +1,81 @@
-// キャッシュ名（バージョン管理用。更新時はここを変更する）
-const CACHE_NAME = 'taskrono-v1.5';
+const CACHE_NAME = 'taskrono-v2.0';
 
-// キャッシュするリソースのリスト
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './taskrono.ico',
-  './taskronoicon.png',
-  // 外部リソース (CDN)
-  'https://cdn.tailwindcss.com',
-  'https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+const STATIC_ASSETS = [
+    './',
+    './index.html',
+    './manifest.json',
+    './taskrono.ico',
+    './taskronoicon.png',
+    './css/main.css',
+    'https://cdn.tailwindcss.com',
+    'https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
 ];
 
-// インストール時の処理: キャッシュを開いてリソースを追加
+const JS_MODULES = [
+    './js/main.js',
+    './js/utils.js',
+    './js/state.js',
+    './js/dropbox.js',
+    './js/tasks.js',
+    './js/repeat.js',
+    './js/sections.js',
+    './js/projects.js',
+    './js/modals.js',
+    './js/keyboard.js',
+    './js/render/renderToday.js',
+    './js/render/renderRepeat.js',
+    './js/render/renderProjects.js',
+];
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(ASSETS_TO_CACHE);
-      })
-  );
-});
-
-// アクティベート時の処理: 古いキャッシュを削除
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(STATIC_ASSETS);
         })
-      );
-    })
-  );
+    );
+    // 新しいSWをすぐ有効化
+    self.skipWaiting();
 });
 
-// フェッチ時の処理: キャッシュがあればそれを返し、なければネットワークへ
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // キャッシュが見つかった場合
-        if (response) {
-          return response;
-        }
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+    // 既存のページにも新しいSWをすぐ適用
+    self.clients.claim();
+});
 
-        // キャッシュがない場合はネットワークリクエスト
-        // 注意: Dropbox APIへのリクエストなど、動的な外部通信はここを通過します
-        return fetch(event.request).catch(() => {
-            // オフラインで、かつ画像やページが見つからない場合のフォールバック処理が必要ならここに記述
-            // 今回はシングルページアプリなので基本はindex.htmlが返ればOK
-        });
-      })
-  );
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+    const isJsModule = JS_MODULES.some(m => event.request.url.endsWith(m.replace('./', '/')));
+
+    // JSモジュール: ネットワーク優先（失敗時はキャッシュにフォールバック）
+    if (isJsModule) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // それ以外: キャッシュ優先
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            return response || fetch(event.request);
+        })
+    );
 });
