@@ -323,125 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	function renderSubtasksInModal(type, taskId) {
-		const isRepeat = type === 'repeat';
-		const container = document.getElementById(isRepeat ? 'edit-repeat-subtasks' : 'edit-task-subtasks');
-		const task = isRepeat ? state.repeatTasks.find(t => t.id === taskId) : getTasksForViewDate().find(t => t.id === taskId);
-
-		container.innerHTML = '';
-		if (!task || !task.subtasks) return;
-
-		task.subtasks.forEach((st, index) => {
-			const item = document.createElement('div');
-			item.className = 'subtask-edit-item';
-			item.dataset.subtaskId = st.id;
-
-			item.innerHTML = `
-	                <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" ${st.completed ? 'checked' : ''} ${isRepeat ? 'disabled' : ''}>
-	                <input type="text" class="flex-1 p-1 border rounded-md" value="${escapeHtml(st.name)}">
-					<div class="flex items-center">
-						<button class="subtask-move-up-btn text-gray-400 hover:text-blue-500 p-1" title="上へ移動">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
-						</button>
-						<button class="subtask-move-down-btn text-gray-400 hover:text-blue-500 p-1" title="下へ移動">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-						</button>
-						<button class="subtask-delete-btn text-gray-400 hover:text-red-500 p-1" title="削除">
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-						</button>
-					</div>
-	            `;
-			container.appendChild(item);
-		});
-
-		// イベントリスナーが重複しないようにフラグで管理
-		if (!container.dataset.listenersAdded) {
-			// イベント委任でクリックを処理
-			container.addEventListener('click', (e) => {
-				const item = e.target.closest('.subtask-edit-item');
-				if (!item) return;
-
-				if (e.target.closest('.subtask-delete-btn')) {
-					item.remove();
-				} else if (e.target.closest('.subtask-move-up-btn')) {
-					if (item.previousElementSibling) {
-						item.parentElement.insertBefore(item, item.previousElementSibling);
-					}
-				} else if (e.target.closest('.subtask-move-down-btn')) {
-					if (item.nextElementSibling) {
-						item.parentElement.insertBefore(item.nextElementSibling, item);
-					}
-				}
-			});
-
-			// モーダル内サブタスクのキーボード並び替え
-			container.addEventListener('keydown', (e) => {
-				if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-					if (e.ctrlKey || e.metaKey) {
-						e.preventDefault();
-						const currentItem = e.target.closest('.subtask-edit-item');
-						if (!currentItem) return;
-
-						if (e.key === 'ArrowUp' && currentItem.previousElementSibling) {
-							currentItem.parentElement.insertBefore(currentItem, currentItem.previousElementSibling);
-							e.target.focus();
-						} else if (e.key === 'ArrowDown' && currentItem.nextElementSibling) {
-							currentItem.parentElement.insertBefore(currentItem.nextElementSibling, currentItem);
-							e.target.focus();
-						}
-					}
-				}
-			});
-			container.dataset.listenersAdded = 'true';
-		}
-	}
-
-	function addSubtaskToModal(type, name) {
-		const isRepeat = type === 'repeat';
-		const container = document.getElementById(isRepeat ? 'edit-repeat-subtasks' : 'edit-task-subtasks');
-
-		const item = document.createElement('div');
-		item.className = 'subtask-edit-item';
-		item.dataset.subtaskId = 'new-st-' + Date.now();
-
-		item.innerHTML = `
-	            <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" ${isRepeat ? 'disabled' : ''}>
-	            <input type="text" class="flex-1 p-1 border rounded-md" value="${escapeHtml(name)}">
-				<div class="flex items-center">
-					<button class="subtask-move-up-btn text-gray-400 hover:text-blue-500 p-1" title="上へ移動">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
-					</button>
-					<button class="subtask-move-down-btn text-gray-400 hover:text-blue-500 p-1" title="下へ移動">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-					</button>
-					<button class="subtask-delete-btn text-gray-400 hover:text-red-500 p-1" title="削除">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-					</button>
-				</div>
-	        `;
-		container.appendChild(item);
-		// イベントリスナーは親コンテナで委任されているため、個別に追加する必要はありません
-		item.querySelector('input[type="text"]').focus();
-	}
-
-	function getSubtasksFromModal(type) {
-		const isRepeat = type === 'repeat';
-		const container = document.getElementById(isRepeat ? 'edit-repeat-subtasks' : 'edit-task-subtasks');
-		const subtaskItems = container.querySelectorAll('.subtask-edit-item');
-		const subtasks = [];
-		subtaskItems.forEach(item => {
-			const name = item.querySelector('input[type="text"]').value.trim();
-			if (name) {
-				subtasks.push({
-					id: item.dataset.subtaskId.startsWith('new-st-') ? 'st' + Date.now() + Math.random() : item.dataset.subtaskId,
-					name: name,
-					completed: isRepeat ? false : item.querySelector('input[type="checkbox"]').checked
-				});
-			}
-		});
-		return subtasks;
-	}
-
 	/**
          * 指定された年月の「第N・何曜日」が何日にあたるかを計算する
          * @param {number} year - 年
@@ -528,6 +409,13 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRepeatCallbacks.saveAndRender = saveAndRender;
       renderRepeatCallbacks.openRepeatEditModal = openRepeatEditModal;
       renderRepeatCallbacks.deleteRepeatTask = deleteRepeatTask;
+      modalCallbacks.getTasksForViewDate = getTasksForViewDate;
+      modalCallbacks.saveAndRender = saveAndRender;
+      modalCallbacks.saveState = saveState;
+      modalCallbacks.updateProjectDropdowns = updateProjectDropdowns;
+      modalCallbacks.updateSectionDropdowns = updateSectionDropdowns;
+      modalCallbacks.updateTaskStatus = updateTaskStatus;
+      modalCallbacks.isMobile = isMobile;
       keyboardCallbacks.getTasksForViewDate = getTasksForViewDate;
       keyboardCallbacks.setTasksForViewDate = setTasksForViewDate;
       keyboardCallbacks.saveAndRender = saveAndRender;
@@ -1557,35 +1445,65 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 
+    // リピートタスク追加フォーム - 毎月の日付追加
+    document.getElementById('add-monthly-day-btn').addEventListener('click', () => {
+      const input = document.getElementById('repeat-monthly-day-input');
+      const day = parseInt(input.value, 10);
+      if (isNaN(day) || day < 1 || day > 31) {
+        alert('1～31の日付を入力してください。');
+        return;
+      }
+      addMonthlyDayChip(day, 'repeat-monthly-days-list');
+      input.value = '';
+    });
+
+    // リピートタスク追加フォーム - 毎年の日付追加
+    document.getElementById('add-yearly-date-btn').addEventListener('click', () => {
+      const monthInput = document.getElementById('repeat-yearly-month-input');
+      const dayInput = document.getElementById('repeat-yearly-day-input');
+      const month = parseInt(monthInput.value, 10);
+      const day = parseInt(dayInput.value, 10);
+      if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
+        alert('有効な月日を入力してください。');
+        return;
+      }
+      addYearlyDateChip(month, day, 'repeat-yearly-dates-list');
+      monthInput.value = '';
+      dayInput.value = '';
+    });
+
+    // リピートタスク編集モーダル - 毎月の日付追加
+    document.getElementById('edit-add-monthly-day-btn').addEventListener('click', () => {
+      const input = document.getElementById('edit-repeat-monthly-day-input');
+      const day = parseInt(input.value, 10);
+      if (isNaN(day) || day < 1 || day > 31) {
+        alert('1～31の日付を入力してください。');
+        return;
+      }
+      addMonthlyDayChip(day, 'edit-repeat-monthly-days-list');
+      input.value = '';
+    });
+
+    // リピートタスク編集モーダル - 毎年の日付追加
+    document.getElementById('edit-add-yearly-date-btn').addEventListener('click', () => {
+      const monthInput = document.getElementById('edit-repeat-yearly-month-input');
+      const dayInput = document.getElementById('edit-repeat-yearly-day-input');
+      const month = parseInt(monthInput.value, 10);
+      const day = parseInt(dayInput.value, 10);
+      if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
+        alert('有効な月日を入力してください。');
+        return;
+      }
+      addYearlyDateChip(month, day, 'edit-repeat-yearly-dates-list');
+      monthInput.value = '';
+      dayInput.value = '';
+    });
+
 		document.querySelectorAll('.modal').forEach(modal => {
 			modal.addEventListener('click', (e) => {
 				if (e.target === modal) closeModal(modal.id);
 			});
 		});
-	}
-
-	function openModal(modalId) {
-		document.getElementById(modalId).classList.add('active');
-
-		// スマホ用のボトムUIコンテナを非表示にする
-		if (isMobile()) {
-			const container = document.getElementById('bottom-ui-container');
-			if (container) container.style.display = 'none';
-		}
-	}
-
-	function closeModal(modalId) {
-		document.getElementById(modalId).classList.remove('active');
-		if (modalId === 'task-edit-modal') {
-			state.editingTaskDateKey = null;
-			state.editingTaskId = null;
-		}
-
-		// スマホ用のボトムUIコンテナを表示に戻す
-		if (isMobile()) {
-			const container = document.getElementById('bottom-ui-container');
-			if (container) container.style.display = 'flex';
-		}
 	}
 
 	function render(options = {}) {
@@ -1783,512 +1701,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	function openAddTaskModal() {
-		document.getElementById('new-task-name').value = '';
-		document.getElementById('new-task-time').value = '20';
-		document.getElementById('new-task-project').value = '';
-
-		// 現在のセクションを取得
-		const currentSection = getCurrentSection();
-		document.getElementById('new-task-section').value = currentSection ? currentSection.id : '';
-
-		// テンプレート呼び出し用UIの生成
-		const modalContent = document.querySelector('#add-task-modal .modal-content');
-
-		const existingContainer = document.getElementById('template-chips-container');
-		if (existingContainer) existingContainer.remove();
-
-		const templates = state.repeatTasks.filter(rt => rt.type === 'template');
-
-		if (templates.length > 0) {
-			const container = document.createElement('div');
-			container.id = 'template-chips-container';
-			container.className = 'mb-4';
-
-			const chipsWrapper = document.createElement('div');
-			chipsWrapper.className = 'flex flex-wrap gap-2';
-
-			templates.forEach(tpl => {
-				const project = state.projects.find(p => p.id === tpl.projectId);
-				const btn = document.createElement('button');
-				const borderColor = project ? project.color : '#d1d5db';
-
-				btn.className = 'text-xs px-3 py-1.5 bg-white border rounded-full hover:bg-blue-50 transition-colors text-gray-700 shadow-sm truncate max-w-full';
-				btn.style.borderColor = borderColor;
-				btn.style.borderLeftWidth = '4px';
-				btn.textContent = tpl.name;
-				btn.title = `見積: ${tpl.estimatedTime}分`;
-
-				btn.addEventListener('click', () => {
-					const subtasksCopy = tpl.subtasks ? JSON.parse(JSON.stringify(tpl.subtasks)) : [];
-					subtasksCopy.forEach(st => st.completed = false);
-
-					addTask(
-						tpl.name,
-						tpl.estimatedTime,
-						tpl.projectId,
-						// 現在時刻のセクションを使用する
-						currentSection ? currentSection.id : null, 
-						false, 
-						{ 
-							memo: tpl.memo || '',
-							subtasks: subtasksCopy,
-							originRepeatId: tpl.id,
-							isManuallyAddedRepeat: true
-						}
-					);
-
-					closeModal('add-task-modal');
-					showToast(`「${tpl.name}」を追加しました`);
-				});
-				chipsWrapper.appendChild(btn);
-			});
-
-			container.appendChild(chipsWrapper);
-
-			const modalTitle = modalContent.querySelector('h3');
-			modalTitle.parentNode.insertBefore(container, modalTitle.nextSibling);
-		}
-
-		openModal('add-task-modal');
-		const input = document.getElementById('new-task-name');
-		input.focus();
-	}
-
-	function openTaskEditModal(id) {
-		const task = getTasksForViewDate().find(t => t.id === id);
-		if (!task) return;
-
-		state.editingTaskId = id;
-		state.editingTaskDateKey = null; // 常にnullに
-		document.getElementById('edit-task-name').value = task.name || '';
-		document.getElementById('edit-task-time').value = task.estimatedTime || 0;
-		updateProjectDropdowns();
-		updateSectionDropdowns();
-		document.getElementById('edit-task-project').value = task.projectId || '';
-		document.getElementById('edit-task-section').value = task.sectionId || '';
-		document.getElementById('edit-task-memo').value = task.memo || '';
-
-		setTimeout(() => {
-			const memoTextarea = document.getElementById('edit-task-memo');
-			memoTextarea.style.height = 'auto';
-			memoTextarea.style.height = (memoTextarea.scrollHeight) + 'px';
-		}, 0);
-
-		const subtaskToggle = document.getElementById('task-subtask-toggle');
-		const subtaskContent = document.getElementById('task-subtask-content');
-		const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-		subtaskToggle.checked = hasSubtasks;
-		subtaskContent.classList.toggle('hidden', !hasSubtasks);
-
-		const newToggle = subtaskToggle.cloneNode(true);
-		subtaskToggle.parentNode.replaceChild(newToggle, subtaskToggle);
-		newToggle.addEventListener('change', () => {
-			subtaskContent.classList.toggle('hidden', !newToggle.checked);
-		});
-
-		renderSubtasksInModal('task', task.id);
-		const newSubtaskInput = document.getElementById('new-subtask-name');
-		const addSubtaskBtn = document.getElementById('add-subtask-btn');
-		newSubtaskInput.value = '';
-		const addSubtaskHandler = () => {
-			const subtaskName = newSubtaskInput.value.trim();
-			if (subtaskName) {
-				addSubtaskToModal('task', subtaskName);
-				newSubtaskInput.value = '';
-				newSubtaskInput.focus();
-			}
-		};
-		addSubtaskBtn.replaceWith(addSubtaskBtn.cloneNode(true));
-		document.getElementById('add-subtask-btn').addEventListener('click', addSubtaskHandler);
-		newSubtaskInput.addEventListener('keydown', (e) => {
-			if(e.key === 'Enter') {
-				e.preventDefault();
-				addSubtaskHandler();
-			}
-		});
-
-
-		const startTimeInput = document.getElementById('edit-task-startTime');
-		const endTimeInput = document.getElementById('edit-task-endTime');
-
-		startTimeInput.value = task.startTime ? new Date(task.startTime).toTimeString().slice(0, 5) : '';
-		endTimeInput.value = task.endTime ? new Date(task.endTime).toTimeString().slice(0, 5) : '';
-
-		document.getElementById('create-repeat-from-task').style.display = 'block';
-		openModal('task-edit-modal');
-		const input = document.getElementById('edit-task-name');
-		input.focus();
-	}
-
-	function openMemoEditModal(id) {
-		const task = getTasksForViewDate().find(t => t.id === id);
-		if (!task) return;
-
-		state.editingMemoTaskId = id;
-		const memoTextEl = document.getElementById('edit-memo-text');
-		memoTextEl.value = task.memo || '';
-		openModal('memo-edit-modal');
-		memoTextEl.focus();
-	}
-
-
-	function saveMemoEdit() {
-		const task = getTasksForViewDate().find(t => t.id === state.editingMemoTaskId);
-		if (!task) return;
-
-		const memo = document.getElementById('edit-memo-text').value.trim();
-		task.memo = memo;
-
-		closeModal('memo-edit-modal');
-		task.updatedAt = new Date().toISOString();
-		saveAndRender();
-	}
-
-	function saveTaskEdit() {
-		const tasks = getTasksForViewDate();
-
-		if (!tasks) {
-			closeModal('task-edit-modal');
-			return;
-		}
-
-		const task = tasks.find(t => t.id === state.editingTaskId);
-		if (!task) {
-			closeModal('task-edit-modal');
-			return;
-		}
-
-		const name = document.getElementById('edit-task-name').value.trim();
-		const time = parseInt(document.getElementById('edit-task-time').value, 10);
-		const projectId = document.getElementById('edit-task-project').value || null;
-		const sectionId = document.getElementById('edit-task-section').value || null;
-		const memo = document.getElementById('edit-task-memo').value.trim();
-
-		if (!name || isNaN(time) || time < 0) {
-			alert('タスク名と見積時間を正しく入力してください。');
-			return;
-		}
-
-		const sectionChanged = task.sectionId !== sectionId;
-
-		task.name = name;
-		task.estimatedTime = time;
-		task.projectId = projectId;
-		task.sectionId = sectionId;
-		task.memo = memo;
-
-		task.subtasks = getSubtasksFromModal('task');
-
-		if (sectionChanged) {
-			const taskIndex = tasks.findIndex(t => t.id === state.editingTaskId);
-			if (taskIndex > -1) {
-				const [movedTask] = tasks.splice(taskIndex, 1);
-
-				let lastIndexInSection = -1;
-				for (let i = tasks.length - 1; i >= 0; i--) {
-					if (tasks[i].sectionId === sectionId) {
-						lastIndexInSection = i;
-						break;
-					}
-				}
-				const insertIndex = lastIndexInSection !== -1 ? lastIndexInSection + 1 : tasks.length;
-				tasks.splice(insertIndex, 0, movedTask);
-			}
-		}
-
-		const startTimeValue = document.getElementById('edit-task-startTime').value;
-		const endTimeValue = document.getElementById('edit-task-endTime').value;
-
-		let startDateObj = null;
-		let endDateObj = null;
-
-		// 1. 開始時刻の計算
-		if (startTimeValue) {
-			// 既存のstartTimeがあればそれをベースに、なければcreatedDate、それもなければ現在時刻をベースにする
-			const baseDate = task.startTime ? new Date(task.startTime) : (task.createdDate ? new Date(task.createdDate) : new Date());
-			const [hours, minutes] = startTimeValue.split(':');
-			baseDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-			startDateObj = baseDate;
-		}
-
-		// 2. 終了時刻の計算
-		if (endTimeValue) {
-			// ベースとなる日付の決定：
-			// 開始時刻が設定されていれば、まず「開始時刻と同じ日付」をベースにする
-			let baseDate;
-			if (startDateObj) {
-				baseDate = new Date(startDateObj);
-			} else if (task.startTime) {
-				baseDate = new Date(task.startTime);
-			} else {
-				baseDate = task.createdDate ? new Date(task.createdDate) : new Date();
-			}
-
-			const [hours, minutes] = endTimeValue.split(':');
-			baseDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-			endDateObj = baseDate;
-
-			// 3. 0時またぎ判定 (終了時刻 < 開始時刻 なら日付を翌日に進める)
-			if (startDateObj && endDateObj < startDateObj) {
-				endDateObj.setDate(endDateObj.getDate() + 1);
-			}
-		}
-
-		task.startTime = startDateObj ? startDateObj.toISOString() : null;
-		task.endTime = endDateObj ? endDateObj.toISOString() : null;
-		task.actualTime = calculateActualTime(task);
-		updateTaskStatus(task);
-		closeModal('task-edit-modal');
-		task.updatedAt = new Date().toISOString();
-		saveAndRender();
-	}
-
-	function createRepeatFromTask() {
-		const task = getTasksForViewDate().find(t => t.id === state.editingTaskId);
-		if (!task) return;
-
-		const name = document.getElementById('edit-task-name').value.trim();
-		const time = parseInt(document.getElementById('edit-task-time').value, 10);
-		const projectId = document.getElementById('edit-task-project').value || null;
-		const sectionId = document.getElementById('edit-task-section').value || null;
-		if (!name || isNaN(time) || time < 0) {
-			alert('タスク名と見積時間を正しく入力してください。');
-			return;
-		}
-
-		state.repeatTasks.push({
-			id: 'rt' + Date.now(),
-			name: name,
-			estimatedTime: time,
-			projectId: projectId,
-			sectionId: sectionId,
-			memo: task.memo || '',
-			subtasks: JSON.parse(JSON.stringify(task.subtasks || [])),
-			type: 'daily',
-			value: null,
-			startDate: null
-		});
-
-		closeModal('task-edit-modal');
-		alert('リピートタスクを作成しました（毎日設定）。リピートタスクタブで詳細を編集できます。');
-		saveAndRender();
-	}
-
-	function openRepeatEditModal(id) {
-		const repeatTask = state.repeatTasks.find(rt => rt.id === id);
-		if (!repeatTask) return;
-
-		state.editingRepeatId = id;
-		document.getElementById('edit-repeat-name').value = repeatTask.name || '';
-		document.getElementById('edit-repeat-time').value = repeatTask.estimatedTime || 0;
-		updateProjectDropdowns();
-		updateSectionDropdowns();
-		document.getElementById('edit-repeat-project').value = repeatTask.projectId || '';
-		document.getElementById('edit-repeat-section').value = repeatTask.sectionId || '';
-		document.getElementById('edit-repeat-memo').value = repeatTask.memo || '';
-		document.getElementById('edit-repeat-type').value = repeatTask.type || 'daily';
-
-		setTimeout(() => {
-			const memoTextarea = document.getElementById('edit-repeat-memo');
-			memoTextarea.style.height = 'auto';
-			memoTextarea.style.height = (memoTextarea.scrollHeight) + 'px';
-		}, 0);
-
-		const subtaskToggle = document.getElementById('repeat-subtask-toggle');
-		const subtaskContent = document.getElementById('repeat-subtask-content');
-		const hasSubtasks = repeatTask.subtasks && repeatTask.subtasks.length > 0;
-		subtaskToggle.checked = hasSubtasks;
-		subtaskContent.classList.toggle('hidden', !hasSubtasks);
-
-		const newToggle = subtaskToggle.cloneNode(true);
-		subtaskToggle.parentNode.replaceChild(newToggle, subtaskToggle);
-		newToggle.addEventListener('change', () => {
-			subtaskContent.classList.toggle('hidden', !newToggle.checked);
-		});
-
-		renderSubtasksInModal('repeat', repeatTask.id);
-		const newSubtaskInput = document.getElementById('new-repeat-subtask-name');
-		const addSubtaskBtn = document.getElementById('add-repeat-subtask-btn');
-		newSubtaskInput.value = '';
-		const addSubtaskHandler = () => {
-			const subtaskName = newSubtaskInput.value.trim();
-			if (subtaskName) {
-				addSubtaskToModal('repeat', subtaskName);
-				newSubtaskInput.value = '';
-				newSubtaskInput.focus();
-			}
-		};
-		addSubtaskBtn.replaceWith(addSubtaskBtn.cloneNode(true));
-		document.getElementById('add-repeat-subtask-btn').addEventListener('click', addSubtaskHandler);
-		newSubtaskInput.addEventListener('keydown', (e) => {
-			if(e.key === 'Enter') {
-				e.preventDefault();
-				addSubtaskHandler();
-			}
-		});
-
-
-		const weeklyContainer = document.getElementById('edit-repeat-weekly-days');
-		if (weeklyContainer.childElementCount === 0) {
-			['日','月','火','水','木','金','土'].forEach((d, i) => {
-				weeklyContainer.innerHTML += `<label class="inline-flex items-center"><input type="checkbox" value="${i}" class="form-checkbox"><span class="ml-2 text-sm">${d}</span></label>`;
-			});
-		}
-
-		// 値のクリアと設定
-		document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => cb.checked = false);
-		document.getElementById('edit-repeat-weekly-interval').value = '1';
-		document.getElementById('edit-repeat-weekly-start-date').value = '';
-		document.getElementById('edit-repeat-monthly-days-list').innerHTML = '';
-		document.getElementById('edit-repeat-yearly-dates-list').innerHTML = '';
-		document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
-		document.getElementById('edit-repeat-monthly-day-options').classList.remove('hidden');
-		document.getElementById('edit-repeat-monthly-weekday-options').classList.add('hidden');
-		document.getElementById('edit-repeat-interval-days').value = '';
-		document.getElementById('edit-repeat-interval-start-date').value = '';
-
-		// 保存された値の反映
-		if (repeatTask.type === 'weekly') {
-			if (Array.isArray(repeatTask.value)) {
-				document.querySelectorAll('#edit-repeat-weekly-days input').forEach(cb => {
-					cb.checked = repeatTask.value.includes(parseInt(cb.value, 10));
-				});
-			}
-			document.getElementById('edit-repeat-weekly-interval').value = repeatTask.weekInterval || '1';
-			document.getElementById('edit-repeat-weekly-start-date').value = repeatTask.startDate || '';
-		} else if (repeatTask.type === 'monthly' && repeatTask.value) {
-			if (repeatTask.value.type === 'day') {
-				document.querySelector('input[name="edit-monthly-type"][value="day"]').checked = true;
-				// 複数日付に対応
-				if (Array.isArray(repeatTask.value.days)) {
-					repeatTask.value.days.forEach(day => {
-						addMonthlyDayChip(day, 'edit-repeat-monthly-days-list');
-					});
-				} else if (repeatTask.value.day) {
-					// 旧形式（単一日付）との互換性
-					addMonthlyDayChip(repeatTask.value.day, 'edit-repeat-monthly-days-list');
-				}
-			} else if (repeatTask.value.type === 'weekday') {
-				document.querySelector('input[name="edit-monthly-type"][value="weekday"]').checked = true;
-				document.getElementById('edit-monthly-week').value = repeatTask.value.week || '1';
-				document.getElementById('edit-monthly-weekday').value = repeatTask.value.weekday || '0';
-				document.getElementById('edit-repeat-monthly-day-options').classList.add('hidden');
-				document.getElementById('edit-repeat-monthly-weekday-options').classList.remove('hidden');
-			}
-		} else if (repeatTask.type === 'yearly' && repeatTask.value) {
-			// 複数日付に対応
-			if (Array.isArray(repeatTask.value)) {
-				repeatTask.value.forEach(date => {
-					addYearlyDateChip(date.month, date.day, 'edit-repeat-yearly-dates-list');
-				});
-			} else if (repeatTask.value.month && repeatTask.value.day) {
-				// 旧形式（単一日付）との互換性
-				addYearlyDateChip(repeatTask.value.month, repeatTask.value.day, 'edit-repeat-yearly-dates-list');
-			}
-		} else if (repeatTask.type === 'interval') {
-			document.getElementById('edit-repeat-interval-days').value = repeatTask.value || '';
-			document.getElementById('edit-repeat-interval-start-date').value = repeatTask.startDate || '';
-		}
-
-		document.getElementById('edit-repeat-weekly-options').classList.toggle('hidden', repeatTask.type !== 'weekly');
-		document.getElementById('edit-repeat-monthly-options').classList.toggle('hidden', repeatTask.type !== 'monthly');
-		document.getElementById('edit-repeat-yearly-options').classList.toggle('hidden', repeatTask.type !== 'yearly');
-		document.getElementById('edit-repeat-interval-options').classList.toggle('hidden', repeatTask.type !== 'interval');
-
-		// 編集モーダル内の月間ラジオボタンのイベントリスナー（毎回再設定）
-		document.querySelectorAll('input[name="edit-monthly-type"]').forEach(radio => {
-			const listener = (e) => {
-				const isDayType = e.target.value === 'day';
-				document.getElementById('edit-repeat-monthly-day-options').classList.toggle('hidden', !isDayType);
-				document.getElementById('edit-repeat-monthly-weekday-options').classList.toggle('hidden', isDayType);
-			};
-			// 既存のリスナーを削除して再追加
-			radio.replaceWith(radio.cloneNode(true));
-			document.querySelector(`input[name="edit-monthly-type"][value="${radio.value}"]`).addEventListener('change', listener);
-		});
-		// ラジオボタンの状態を再適用
-		if (repeatTask.type === 'monthly' && repeatTask.value) {
-			document.querySelector(`input[name="edit-monthly-type"][value="${repeatTask.value.type}"]`).checked = true;
-		}
-
-		openModal('repeat-edit-modal');
-		const input = document.getElementById('edit-repeat-name');
-		input.focus();
-	}
-
-	function saveRepeatEdit() {
-		const repeatTask = state.repeatTasks.find(rt => rt.id === state.editingRepeatId);
-		if (!repeatTask) return;
-
-		const name = document.getElementById('edit-repeat-name').value.trim();
-		const time = parseInt(document.getElementById('edit-repeat-time').value, 10);
-		const projectId = document.getElementById('edit-repeat-project').value || null;
-		const sectionId = document.getElementById('edit-repeat-section').value || null;
-		const memo = document.getElementById('edit-repeat-memo').value.trim();
-		const type = document.getElementById('edit-repeat-type').value;
-
-		if (!name || isNaN(time) || time < 0) {
-			alert('タスク名と見積時間を正しく入力してください。');
-			return;
-		}
-
-		let value = null;
-		let startDate = repeatTask.startDate || null;
-		let weekInterval = 1;
-
-		if (type === 'weekly') {
-			value = Array.from(document.querySelectorAll('#edit-repeat-weekly-days input:checked')).map(cb => parseInt(cb.value, 10));
-			if (value.length === 0) { alert('曜日を選択してください。'); return; }
-			weekInterval = parseInt(document.getElementById('edit-repeat-weekly-interval').value, 10) || 1;
-			startDate = document.getElementById('edit-repeat-weekly-start-date').value || new Date().toISOString().slice(0,10);
-		} else if (type === 'monthly') {
-			const monthlyType = document.querySelector('input[name="edit-monthly-type"]:checked').value;
-			if (monthlyType === 'day') {
-				const days = getMonthlyDaysFromChips('edit-repeat-monthly-days-list');
-				if (days.length === 0) {
-					alert('少なくとも1つの日付を追加してください。');
-					return;
-				}
-				value = { type: 'day', days: days };
-			} else {
-				const week = parseInt(document.getElementById('edit-monthly-week').value, 10);
-				const weekday = parseInt(document.getElementById('edit-monthly-weekday').value, 10);
-				value = { type: 'weekday', week: week, weekday: weekday };
-			}
-		} else if (type === 'yearly') {
-			const dates = getYearlyDatesFromChips('edit-repeat-yearly-dates-list');
-			if (dates.length === 0) {
-				alert('少なくとも1つの月日を追加してください。');
-				return;
-			}
-			value = dates;
-		} else if (type === 'interval') {
-			value = parseInt(document.getElementById('edit-repeat-interval-days').value, 10);
-			if (isNaN(value) || value < 1) { alert('有効な間隔（日数）を入力してください。'); return; }
-			const startDateInput = document.getElementById('edit-repeat-interval-start-date').value;
-			if (startDateInput) {
-				startDate = startDateInput;
-			} else if (!startDate) {
-				startDate = new Date().toISOString().slice(0,10);
-			}
-		}
-
-		repeatTask.name = name;
-		repeatTask.estimatedTime = time;
-		repeatTask.projectId = projectId;
-		repeatTask.sectionId = sectionId;
-		repeatTask.memo = memo;
-		repeatTask.type = type;
-		repeatTask.value = value;
-		repeatTask.startDate = startDate;
-		repeatTask.weekInterval = weekInterval;
-		repeatTask.subtasks = getSubtasksFromModal('repeat');
-
-		closeModal('repeat-edit-modal');
-		saveAndRender();
-	}
-
 	function updateProjectDropdowns() {
 		const selects = document.querySelectorAll('#new-task-project, #repeat-task-project, #edit-task-project, #edit-repeat-project');
 		selects.forEach(select => {
@@ -2296,141 +1708,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			select.innerHTML = '<option value="">プロジェクトなし</option>' + state.projects.filter(p => !p.isArchived).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
 			if (cur) select.value = cur;
 		});
-	}
-
-	// リピートタスク追加フォーム - 毎月の日付追加
-	document.getElementById('add-monthly-day-btn').addEventListener('click', () => {
-		const input = document.getElementById('repeat-monthly-day-input');
-		const day = parseInt(input.value, 10);
-		if (isNaN(day) || day < 1 || day > 31) {
-			alert('1～31の日付を入力してください。');
-			return;
-		}
-		addMonthlyDayChip(day, 'repeat-monthly-days-list');
-		input.value = '';
-	});
-
-	// リピートタスク追加フォーム - 毎年の日付追加
-	document.getElementById('add-yearly-date-btn').addEventListener('click', () => {
-		const monthInput = document.getElementById('repeat-yearly-month-input');
-		const dayInput = document.getElementById('repeat-yearly-day-input');
-		const month = parseInt(monthInput.value, 10);
-		const day = parseInt(dayInput.value, 10);
-		if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
-			alert('有効な月日を入力してください。');
-			return;
-		}
-		addYearlyDateChip(month, day, 'repeat-yearly-dates-list');
-		monthInput.value = '';
-		dayInput.value = '';
-	});
-
-	// リピートタスク編集モーダル - 毎月の日付追加
-	document.getElementById('edit-add-monthly-day-btn').addEventListener('click', () => {
-		const input = document.getElementById('edit-repeat-monthly-day-input');
-		const day = parseInt(input.value, 10);
-		if (isNaN(day) || day < 1 || day > 31) {
-			alert('1～31の日付を入力してください。');
-			return;
-		}
-		addMonthlyDayChip(day, 'edit-repeat-monthly-days-list');
-		input.value = '';
-	});
-
-	// リピートタスク編集モーダル - 毎年の日付追加
-	document.getElementById('edit-add-yearly-date-btn').addEventListener('click', () => {
-		const monthInput = document.getElementById('edit-repeat-yearly-month-input');
-		const dayInput = document.getElementById('edit-repeat-yearly-day-input');
-		const month = parseInt(monthInput.value, 10);
-		const day = parseInt(dayInput.value, 10);
-		if (isNaN(month) || month < 1 || month > 12 || isNaN(day) || day < 1 || day > 31) {
-			alert('有効な月日を入力してください。');
-			return;
-		}
-		addYearlyDateChip(month, day, 'edit-repeat-yearly-dates-list');
-		monthInput.value = '';
-		dayInput.value = '';
-	});
-
-	// 毎月の日付チップを追加
-	function addMonthlyDayChip(day, containerId) {
-		const container = document.getElementById(containerId);
-
-		// 重複チェック
-		const existing = Array.from(container.querySelectorAll('.day-chip')).find(
-			chip => parseInt(chip.dataset.day) === day
-		);
-		if (existing) {
-			alert('この日付は既に追加されています。');
-			return;
-		}
-
-		const chip = document.createElement('div');
-		chip.className = 'day-chip flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
-		chip.dataset.day = day;
-		chip.innerHTML = `
-		        <span>${day}日</span>
-		        <button type="button" class="remove-chip hover:text-red-600">
-		            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-		                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-		            </svg>
-		        </button>
-		    `;
-
-		chip.querySelector('.remove-chip').addEventListener('click', () => chip.remove());
-		container.appendChild(chip);
-	}
-
-	// 毎年の月日チップを追加
-	function addYearlyDateChip(month, day, containerId) {
-		const container = document.getElementById(containerId);
-
-		// 重複チェック
-		const existing = Array.from(container.querySelectorAll('.date-chip')).find(
-			chip => parseInt(chip.dataset.month) === month && parseInt(chip.dataset.day) === day
-		);
-		if (existing) {
-			alert('この日付は既に追加されています。');
-			return;
-		}
-
-		const chip = document.createElement('div');
-		chip.className = 'date-chip flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
-		chip.dataset.month = month;
-		chip.dataset.day = day;
-		chip.innerHTML = `
-		        <span>${month}月${day}日</span>
-		        <button type="button" class="remove-chip hover:text-red-600">
-		            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-		                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-		            </svg>
-		        </button>
-		    `;
-
-		chip.querySelector('.remove-chip').addEventListener('click', () => chip.remove());
-		container.appendChild(chip);
-	}
-
-	// 毎月の日付リストを取得
-	function getMonthlyDaysFromChips(containerId) {
-		const container = document.getElementById(containerId);
-		return Array.from(container.querySelectorAll('.day-chip'))
-			.map(chip => parseInt(chip.dataset.day))
-			.sort((a, b) => a - b);
-	}
-
-	// 毎年の日付リストを取得
-	function getYearlyDatesFromChips(containerId) {
-		const container = document.getElementById(containerId);
-		return Array.from(container.querySelectorAll('.date-chip'))
-			.map(chip => ({
-				month: parseInt(chip.dataset.month),
-				day: parseInt(chip.dataset.day)
-			}))
-			.sort((a, b) => {
-				if (a.month !== b.month) return a.month - b.month;
-				return a.day - b.day;
-			});
 	}
 
 	function deleteAllTasksForViewDate() {
