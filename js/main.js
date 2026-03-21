@@ -764,6 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			Object.keys(state.dailyTasks).forEach(dateKey => {
 				if (dateKey < yesterdayStr) { // 昨日より前の日付ならアーカイブ
 					archiveCompletedTasks(dateKey);
+          dailyTaskListApp.saveMonthlyLog(dateKey);
 				}
 			});
 

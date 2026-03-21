@@ -2,10 +2,81 @@
 import { state } from './state.js';
 import { getFormattedDate } from './utils.js';
 
+// 日本語曜日
+const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'];
+
+// 秒数を "Xm" 形式に変換
+function secondsToMinStr(seconds) {
+    const m = Math.round(seconds / 60);
+    return `${m}m`;
+}
+
+// ISO文字列を "HH:MM" に変換
+function isoToHHMM(isoStr) {
+    if (!isoStr) return '--:--';
+    const d = new Date(isoStr);
+    return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+}
+
+// タスクの実績時間（秒）を計算
+function calcActualSeconds(task) {
+    if (task.startTime && task.endTime) {
+        return Math.round(Math.max(0, new Date(task.endTime) - new Date(task.startTime)) / 1000);
+    }
+    return task.actualTime || 0;
+}
+
+// マークダウンのリンク記法を除去してプレーンテキストに
+function stripMarkdownLinks(text) {
+    if (!text) return '';
+    return text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+}
+
+// 1日分のアーカイブタスクをマークダウン文字列に変換
+function buildDayMarkdown(dateStr, tasks) {
+    const dateObj = new Date(dateStr + 'T12:00:00');
+    const weekday = WEEKDAYS_JA[dateObj.getDay()];
+    const lines = [`## ${dateStr} (${weekday})`, ''];
+
+    const projectMap = new Map(state.projects.map(p => [p.id, p.name]));
+
+    tasks.forEach(task => {
+        const projectName = task.projectId ? (projectMap.get(task.projectId) || '') : '';
+        const projectTag = projectName ? ` @${projectName}` : '';
+        const estimated = task.estimatedTime ? ` :${task.estimatedTime}m` : '';
+        const start = isoToHHMM(task.startTime);
+        const end = isoToHHMM(task.endTime);
+        const actualSec = calcActualSeconds(task);
+        const actual = actualSec > 0 ? ` (${secondsToMinStr(actualSec)})` : '';
+        const taskName = stripMarkdownLinks(task.name || '');
+
+        lines.push(`- ${taskName}${projectTag}${estimated} ${start}-${end}${actual}`);
+
+        // メモ
+        if (task.memo && task.memo.trim()) {
+            task.memo.trim().split('\n').forEach(memoLine => {
+                if (memoLine.trim()) lines.push(`  - ${memoLine.trim()}`);
+            });
+        }
+
+        // サブタスク
+        if (task.subtasks && task.subtasks.length > 0) {
+            task.subtasks.forEach(st => {
+                const check = st.completed ? '[x]' : '[ ]';
+                lines.push(`  - ${check} ${stripMarkdownLinks(st.name || '')}`);
+            });
+        }
+    });
+
+    lines.push('');
+    return lines.join('\n');
+}
+
 export const dailyTaskListApp = {
     dropboxFilePath: '/DailyTaskListData.json',
     inboxFilePath: '/inbox.txt',
     archiveFilePath: '/ArchiveData.json',
+    logsDirPath: '/logs',
     dbx: null,
     saveTimeout: null,
     lastSyncTime: 0,
@@ -139,6 +210,64 @@ export const dailyTaskListApp = {
             console.error('Error saving inbox content:', error);
             alert('Inboxの保存に失敗しました。');
             return false;
+        }
+    },
+
+    // 月次マークダウンログを保存する
+    // dateStr: ログに追記する日付 (例: '2026-03-21')
+    saveMonthlyLog: async function(dateStr) {
+        if (!this.dbx) return;
+
+        // アーカイブから対象日の完了タスクを取得
+        const tasks = (state.archivedTasks[dateStr] || []).filter(t => t.startTime && t.endTime);
+        if (tasks.length === 0) return;
+
+        // 開始時刻でソート
+        tasks.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+        const yearMonth = dateStr.slice(0, 7); // 'YYYY-MM'
+        const logPath = `${this.logsDirPath}/${yearMonth}.md`;
+        const newSection = buildDayMarkdown(dateStr, tasks);
+
+        try {
+            // 既存ファイルを取得して追記、なければ新規作成
+            let existingContent = '';
+            try {
+                const response = await this.dbx.filesDownload({ path: logPath });
+                existingContent = await response.result.fileBlob.text();
+            } catch (e) {
+                if (e.status !== 409) {
+                    console.warn('Monthly log fetch error (will create new):', e);
+                }
+                // 409 = not found → 新規作成するのでそのまま続行
+            }
+
+            // 同じ日付のセクションが既にあれば上書き、なければ追記
+            if (existingContent.includes(`## ${dateStr}`)) {
+                // 既存セクションを新しい内容で置換
+                // セクションは "## YYYY-MM-DD (曜)" から始まり次の "## " か末尾まで
+                const escapedDate = dateStr.replace(/-/g, '\\-');
+                const sectionRegex = new RegExp(
+                    `## ${escapedDate} \\([^)]+\\)\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
+                    'g'
+                );
+                existingContent = existingContent.replace(sectionRegex, newSection.trimEnd());
+            } else {
+                // 末尾に追記
+                const trimmed = existingContent.trimEnd();
+                existingContent = trimmed ? trimmed + '\n\n' + newSection : newSection;
+            }
+
+            await this.dbx.filesUpload({
+                path: logPath,
+                contents: existingContent.trimEnd() + '\n',
+                mode: 'overwrite'
+            });
+
+            console.log(`Monthly log saved: ${logPath}`);
+        } catch (error) {
+            // ログ保存の失敗はメイン処理を止めない
+            console.error('Error saving monthly log:', error);
         }
     },
 
