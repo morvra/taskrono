@@ -232,6 +232,7 @@ export const dailyTaskListApp = {
         try {
             // 既存ファイルを取得して追記、なければ新規作成
             let existingContent = '';
+            let isNewFile = false;
             try {
                 const response = await this.dbx.filesDownload({ path: logPath });
                 existingContent = await response.result.fileBlob.text();
@@ -239,7 +240,29 @@ export const dailyTaskListApp = {
                 if (e.status !== 409) {
                     console.warn('Monthly log fetch error (will create new):', e);
                 }
-                // 409 = not found → 新規作成するのでそのまま続行
+                // 409 = not found → 新規作成
+                isNewFile = true;
+            }
+
+            // 新規ファイルの場合はヘッダーを付ける
+            if (isNewFile) {
+                const [year, month] = yearMonth.split('-');
+                existingContent = [
+                    `# Taskrono タスクログ ${year}-${month}`,
+                    '',
+                    `このファイルはTaskronoで記録した${year}年${parseInt(month, 10)}月の完了タスクのログです。`,
+                    '',
+                    '## 記法',
+                    '',
+                    '- `@プロジェクト名` : タスクが属するプロジェクト',
+                    '- `:Xm` : 見積時間',
+                    '- `HH:MM-HH:MM` : 開始時刻-終了時刻',
+                    '- `(Xm)` : 実績時間',
+                    '- サブタスクは `[x]` 完了 / `[ ]` 未完了で表記',
+                    '',
+                    '---',
+                    '',
+                ].join('\n');
             }
 
             // 同じ日付のセクションが既にあれば上書き、なければ追記
