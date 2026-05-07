@@ -298,15 +298,18 @@ export const dailyTaskListApp = {
                         runningTask.updatedAt = new Date().toISOString();
                     }
 
-                    // 新しいタスクを作成して開始
+                    // 新しいタスクを作成
                     const section = getCurrentSection(new Date(timestamp));
+                    const targetSectionId = section ? section.id : null;
+                    const targetSectionNullId = targetSectionId || 'null';
+
                     const newTask = {
                         id: 't' + Date.now() + Math.random(),
                         name: cmd.name,
                         estimatedTime: cmd.estimatedTime || 20,
                         projectId: null,
-                        sectionId: section ? section.id : null,
-                        status: 'running',
+                        sectionId: targetSectionId,
+                        status: 'pending',
                         startTime: timestamp,
                         endTime: null,
                         actualTime: 0,
@@ -315,7 +318,32 @@ export const dailyTaskListApp = {
                         createdDate: todayStr,
                         updatedAt: new Date().toISOString(),
                     };
-                    todayTasks.push(newTask);
+
+                    // addTask と同じロジックでセクション内の末尾に挿入
+                    const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+                    const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+                    const targetSectionOrderIndex = sectionOrder.indexOf(targetSectionNullId);
+
+                    let insertIndex = todayTasks.length;
+                    let lastTaskInTargetSectionIndex = -1;
+                    for (let i = todayTasks.length - 1; i >= 0; i--) {
+                        if ((todayTasks[i].sectionId || 'null') === targetSectionNullId && !todayTasks[i].isDeleted) {
+                            lastTaskInTargetSectionIndex = i;
+                            break;
+                        }
+                    }
+                    if (lastTaskInTargetSectionIndex !== -1) {
+                        insertIndex = lastTaskInTargetSectionIndex + 1;
+                    } else {
+                        for (let i = 0; i < todayTasks.length; i++) {
+                            const taskSectionOrderIndex = sectionOrder.indexOf(todayTasks[i].sectionId || 'null');
+                            if (taskSectionOrderIndex > targetSectionOrderIndex && !todayTasks[i].isDeleted) {
+                                insertIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    todayTasks.splice(insertIndex, 0, newTask);
                     break;
                 }
             }
