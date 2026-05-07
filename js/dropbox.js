@@ -220,29 +220,18 @@ export const dailyTaskListApp = {
         if (!this.dbx) return;
 
         // commands.json を取得
-        let lines = [];
+        let commands = [];
         try {
             const response = await this.dbx.filesDownload({ path: this.commandsFilePath });
             const content = await response.result.fileBlob.text();
-            // 空行を除いて1行ずつ分割
-            lines = content.split('\n').filter(l => l.trim().length > 0);
-            if (lines.length === 0) return;
+            const parsed = JSON.parse(content);
+            if (!Array.isArray(parsed) || parsed.length === 0) return;
+            commands = parsed;
         } catch (error) {
-            if (error.status === 409) return; // ファイルが存在しない場合はスキップ
+            if (error.status === 409) return; // ファイルが存在しない場合は何もしない
             console.error('Error reading commands:', error);
             return;
         }
-
-        // 各行をJSONとしてパース
-        const commands = [];
-        for (const line of lines) {
-            try {
-                commands.push(JSON.parse(line));
-            } catch (e) {
-                console.warn('Invalid command line, skipping:', line);
-            }
-        }
-        if (commands.length === 0) return;
 
         const todayStr = getFormattedDate(new Date());
         if (!state.dailyTasks[todayStr]) state.dailyTasks[todayStr] = [];
@@ -254,7 +243,7 @@ export const dailyTaskListApp = {
             switch (cmd.type) {
 
                 case 'memo': {
-                    // 実行中のタスク（startTimeあり・endTimeなし）を探す
+                    // 実行中のタスクを探す（startTime あり、endTime なし）
                     const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
                     if (runningTask) {
                         // 実行中タスクのメモに追記
@@ -274,6 +263,7 @@ export const dailyTaskListApp = {
                 }
 
                 case 'complete_current': {
+                    // 実行中のタスクを完了させる
                     const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
                     if (runningTask) {
                         runningTask.endTime = timestamp;
@@ -281,29 +271,33 @@ export const dailyTaskListApp = {
                             Math.max(0, new Date(timestamp) - new Date(runningTask.startTime)) / 1000
                         );
                         runningTask.updatedAt = new Date().toISOString();
+                        // status と並び替えは後続の updateTaskStatus が処理する
                     }
                     break;
                 }
 
                 case 'start_next': {
+                    // 上から順に最初の pending タスクを開始する
                     const pendingTask = todayTasks.find(t => !t.startTime && !t.endTime && !t.isDeleted);
                     if (pendingTask) {
+                        // コマンドの timestamp からセクションを判定
                         const section = getCurrentSection(new Date(timestamp));
                         pendingTask.startTime = timestamp;
                         pendingTask.sectionId = section ? section.id : null;
                         pendingTask.updatedAt = new Date().toISOString();
+                        // status と先頭への移動は後続の updateTaskStatus が処理する
                     }
                     break;
                 }
             }
         }
 
-        // 処理済みのコマンドをクリア（空ファイルで上書き）
+        // 処理済みのコマンドをクリア
         try {
             await this.dbx.filesUpload({
                 path: this.commandsFilePath,
-                contents: '',
-                mode: 'overwrite',
+                contents: '[]',
+                mode: 'overwrite'
             });
         } catch (error) {
             console.error('Error clearing commands:', error);
