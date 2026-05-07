@@ -760,13 +760,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 
 			// 2. アーカイブ処理の変更：一昨日以前（昨日より前）の古いデータをアーカイブへ移動
-			// state.dailyTasks のキー（日付）を全走査して判定します
-			Object.keys(state.dailyTasks).forEach(dateKey => {
-				if (dateKey < yesterdayStr) { // 昨日より前の日付ならアーカイブ
-					archiveCompletedTasks(dateKey);
-          dailyTaskListApp.saveMonthlyLog(dateKey);
-				}
-			});
+      const sortedDates = Object.keys(state.dailyTasks).sort();
+      for (const dateKey of sortedDates) {
+          if (dateKey < yesterdayStr) {
+              archiveCompletedTasks(dateKey);
+              await dailyTaskListApp.saveMonthlyLog(dateKey); // await で直列化
+          }
+      }
 
 			// 翌日分のリピートタスクを生成
 			generateTomorrowRepeats();
