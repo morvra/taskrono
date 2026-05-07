@@ -603,6 +603,9 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     z-index: 10;
     pointer-events: none;
 }
+.task-row .running-progress-bg {
+    bottom: -1px;
+}
 
 /* ============================================================
    クイックアクション（長押しメニュー）
