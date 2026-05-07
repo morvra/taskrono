@@ -79,8 +79,9 @@ export function getSectionDisplayInfo(sectionId) {
     };
 }
 
-export function getCurrentSection() {
-    const now = new Date();
+// atDate を渡すと、その時刻時点のセクションを返す（省略時は現在時刻）
+export function getCurrentSection(atDate = null) {
+    const now = atDate || new Date();
     const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
     const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));

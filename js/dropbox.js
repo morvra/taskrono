@@ -1,6 +1,7 @@
 // js/dropbox.js
 import { state } from './state.js';
 import { getFormattedDate } from './utils.js';
+import { getCurrentSection } from './sections.js';
 
 // 日本語曜日
 const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -76,6 +77,7 @@ export const dailyTaskListApp = {
     dropboxFilePath: '/DailyTaskListData.json',
     inboxFilePath: '/inbox.txt',
     archiveFilePath: '/ArchiveData.json',
+    commandsFilePath: '/commands.json',
     logsDirPath: '/logs',
     dbx: null,
     saveTimeout: null,
@@ -213,24 +215,115 @@ export const dailyTaskListApp = {
         }
     },
 
+    // Scriptable から送られたコマンドを処理する
+    processCommands: async function() {
+        if (!this.dbx) return;
+
+        // commands.json を取得
+        let lines = [];
+        try {
+            const response = await this.dbx.filesDownload({ path: this.commandsFilePath });
+            const content = await response.result.fileBlob.text();
+            // 空行を除いて1行ずつ分割
+            lines = content.split('\n').filter(l => l.trim().length > 0);
+            if (lines.length === 0) return;
+        } catch (error) {
+            if (error.status === 409) return; // ファイルが存在しない場合はスキップ
+            console.error('Error reading commands:', error);
+            return;
+        }
+
+        // 各行をJSONとしてパース
+        const commands = [];
+        for (const line of lines) {
+            try {
+                commands.push(JSON.parse(line));
+            } catch (e) {
+                console.warn('Invalid command line, skipping:', line);
+            }
+        }
+        if (commands.length === 0) return;
+
+        const todayStr = getFormattedDate(new Date());
+        if (!state.dailyTasks[todayStr]) state.dailyTasks[todayStr] = [];
+        const todayTasks = state.dailyTasks[todayStr];
+
+        for (const cmd of commands) {
+            const timestamp = cmd.timestamp || new Date().toISOString();
+
+            switch (cmd.type) {
+
+                case 'memo': {
+                    // 実行中のタスク（startTimeあり・endTimeなし）を探す
+                    const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
+                    if (runningTask) {
+                        // 実行中タスクのメモに追記
+                        runningTask.memo = runningTask.memo
+                            ? `${runningTask.memo}\n${cmd.text}`
+                            : cmd.text;
+                        runningTask.updatedAt = new Date().toISOString();
+                    } else {
+                        // 実行中タスクがなければ inbox.txt に追記
+                        const currentContent = await this.fetchInboxContent() || '';
+                        const newContent = currentContent.trim()
+                            ? `${currentContent.trim()}\n${cmd.text}`
+                            : cmd.text;
+                        await this.saveInboxContent(newContent);
+                    }
+                    break;
+                }
+
+                case 'complete_current': {
+                    const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
+                    if (runningTask) {
+                        runningTask.endTime = timestamp;
+                        runningTask.actualTime = Math.round(
+                            Math.max(0, new Date(timestamp) - new Date(runningTask.startTime)) / 1000
+                        );
+                        runningTask.updatedAt = new Date().toISOString();
+                    }
+                    break;
+                }
+
+                case 'start_next': {
+                    const pendingTask = todayTasks.find(t => !t.startTime && !t.endTime && !t.isDeleted);
+                    if (pendingTask) {
+                        const section = getCurrentSection(new Date(timestamp));
+                        pendingTask.startTime = timestamp;
+                        pendingTask.sectionId = section ? section.id : null;
+                        pendingTask.updatedAt = new Date().toISOString();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 処理済みのコマンドをクリア（空ファイルで上書き）
+        try {
+            await this.dbx.filesUpload({
+                path: this.commandsFilePath,
+                contents: '',
+                mode: 'overwrite',
+            });
+        } catch (error) {
+            console.error('Error clearing commands:', error);
+        }
+    },
+
     // 月次マークダウンログを保存する
-    // dateStr: ログに追記する日付 (例: '2026-03-21')
     saveMonthlyLog: async function(dateStr) {
         if (!this.dbx) return;
 
-        // アーカイブから対象日の完了タスクを取得
         const tasks = (state.archivedTasks[dateStr] || []).filter(t => t.startTime && t.endTime);
         if (tasks.length === 0) return;
 
-        // 開始時刻でソート
         tasks.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
-        const yearMonth = dateStr.slice(0, 7); // 'YYYY-MM'
+        const yearMonth = dateStr.slice(0, 7);
         const logPath = `${this.logsDirPath}/${yearMonth}.md`;
         const newSection = buildDayMarkdown(dateStr, tasks);
 
         try {
-            // 既存ファイルを取得して追記、なければ新規作成
             let existingContent = '';
             let isNewFile = false;
             try {
@@ -240,11 +333,9 @@ export const dailyTaskListApp = {
                 if (e.status !== 409) {
                     console.warn('Monthly log fetch error (will create new):', e);
                 }
-                // 409 = not found → 新規作成
                 isNewFile = true;
             }
 
-            // 新規ファイルの場合はヘッダーを付ける
             if (isNewFile) {
                 const [year, month] = yearMonth.split('-');
                 existingContent = [
@@ -265,10 +356,7 @@ export const dailyTaskListApp = {
                 ].join('\n');
             }
 
-            // 同じ日付のセクションが既にあれば上書き、なければ追記
             if (existingContent.includes(`## ${dateStr}`)) {
-                // 既存セクションを新しい内容で置換
-                // セクションは "## YYYY-MM-DD (曜)" から始まり次の "## " か末尾まで
                 const escapedDate = dateStr.replace(/-/g, '\\-');
                 const sectionRegex = new RegExp(
                     `## ${escapedDate} \\([^)]+\\)\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
@@ -276,7 +364,6 @@ export const dailyTaskListApp = {
                 );
                 existingContent = existingContent.replace(sectionRegex, newSection.trimEnd());
             } else {
-                // 末尾に追記
                 const trimmed = existingContent.trimEnd();
                 existingContent = trimmed ? trimmed + '\n\n' + newSection : newSection;
             }
@@ -289,7 +376,6 @@ export const dailyTaskListApp = {
 
             console.log(`Monthly log saved: ${logPath}`);
         } catch (error) {
-            // ログ保存の失敗はメイン処理を止めない
             console.error('Error saving monthly log:', error);
         }
     },
@@ -535,7 +621,11 @@ export const dailyTaskListApp = {
             if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
             state.lastDate = importedData.lastDate || state.lastDate;
 
+            // inbox からタスクをインポート
             await this.importTasksFromInbox();
+
+            // Scriptable からのコマンドを処理
+            await this.processCommands();
 
             this.callbacks.stopActiveTimer();
 
