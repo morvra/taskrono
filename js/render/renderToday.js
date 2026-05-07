@@ -176,7 +176,7 @@ export function renderTaskTable(tbody, tasksToRender, options = {}) {
         const index = allTasks.findIndex(t => t.id === task.id);
         const project = state.projects.find(p => p.id === task.projectId) || { name: '', color: '#cccccc' };
         const tr = document.createElement('tr');
-        tr.className = `border-b task-row ${task.status === 'completed' ? 'bg-gray-100 text-gray-500' : ''} ${task.status === 'running' ? 'bg-blue-100' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
+        tr.className = `border-b task-row ${task.status === 'completed' ? 'bg-gray-100 text-gray-500' : ''} ${task.status === 'running' ? 'bg-blue-100 relative' : ''} ${task.id === state.focusedTaskId ? 'focused' : ''}`;
         tr.dataset.taskId = task.id;
         tr.dataset.index = index;
         tr.dataset.sectionId = task.sectionId || 'null';
@@ -266,6 +266,15 @@ export function renderTaskTable(tbody, tasksToRender, options = {}) {
                 </button>
             </td>
         `;
+        if (isRunning) {
+            const progressWidth = task.estimatedTime > 0
+                ? Math.min(100, (calculateActualTime(task) / (task.estimatedTime * 60)) * 100)
+                : 0;
+            const progressBar = document.createElement('div');
+            progressBar.className = 'running-progress-bg';
+            progressBar.style.width = `${progressWidth}%`;
+            tr.firstElementChild.appendChild(progressBar);
+        }
         tbody.appendChild(tr);
 
         if (subtasks.length > 0) {
