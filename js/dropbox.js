@@ -277,6 +277,16 @@ export const dailyTaskListApp = {
                 }
 
                 case 'start_next': {
+                    // 実行中のタスクがあれば先に完了させる
+                    const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
+                    if (runningTask) {
+                        runningTask.endTime = timestamp;
+                        runningTask.actualTime = Math.round(
+                            Math.max(0, new Date(timestamp) - new Date(runningTask.startTime)) / 1000
+                        );
+                        runningTask.updatedAt = new Date().toISOString();
+                    }
+
                     const pendingTask = todayTasks.find(t => !t.startTime && !t.endTime && !t.isDeleted);
                     if (pendingTask) {
                         const section = getCurrentSection(new Date(timestamp));
