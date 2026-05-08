@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         for (const date in state.dailyTasks) {
             state.dailyTasks[date].forEach(task => {
-                if (task.startTime && task.endTime) {
+                if (task.startTime && task.endTime && !task.isDeleted) {
                     if (!allTasks.some(at => at.id === task.id)) {
                         allTasks.push({ ...task, completedDate: date });
                     }
