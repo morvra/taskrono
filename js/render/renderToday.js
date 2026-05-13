@@ -141,7 +141,7 @@ export function renderTodayTasks(options = {}) {
             headerRow.className = 'bg-gray-100';
             headerRow.dataset.sectionId = sectionId;
             headerRow.innerHTML = `
-                <td colspan="8" class="py-1 px-4 text-xs font-bold text-white ${isOverloaded ? 'bg-red-500' : 'bg-gray-400'}">
+                <td colspan="8" class="py-1 px-4 text-xs font-bold text-white ${isOverloaded ? 'bg-red-300' : 'bg-gray-400'}">
                     <div class="justify-between items-center">
                         <span>${name} ${range}</span>
                         ${remainingTimeHtml}
