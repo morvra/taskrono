@@ -158,3 +158,22 @@ export function renderSections() {
         btn.addEventListener('click', (e) => deleteSection(e.currentTarget.dataset.id))
     );
 }
+
+export function getSectionDurationMinutes(sectionId) {
+    if (!sectionId || sectionId === 'null') return null;
+    const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const sectionIndex = sortedSections.findIndex(s => s.id === sectionId);
+    if (sectionIndex === -1) return null;
+
+    const section = sortedSections[sectionIndex];
+    const nextSection = sortedSections[(sectionIndex + 1) % sortedSections.length];
+
+    const [startH, startM] = section.startTime.split(':').map(Number);
+    const [endH, endM] = nextSection.startTime.split(':').map(Number);
+
+    let startTotal = startH * 60 + startM;
+    let endTotal   = endH * 60 + endM;
+    if (endTotal <= startTotal) endTotal += 24 * 60; // 日付跨ぎ対応
+
+    return endTotal - startTotal;
+}

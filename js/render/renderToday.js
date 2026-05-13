@@ -1,7 +1,7 @@
 // js/render/renderToday.js
 import { state } from '../state.js';
 import { getFormattedDate, escapeHtml, formatTime, formatClockTime, calculateActualTime, formatTaskName } from '../utils.js';
-import { getSectionDisplayInfo } from '../sections.js';
+import { getSectionDisplayInfo, getSectionDurationMinutes } from '../sections.js';
 
 export const renderTodayCallbacks = {
     getTasksForViewDate: null,
@@ -77,8 +77,12 @@ export function renderTodayTasks(options = {}) {
                 .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
             const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
 
+            const totalEstimated = sectionTasks.reduce((sum, t) => sum + (t.estimatedTime || 0), 0);
+            const sectionDuration = getSectionDurationMinutes(sectionId);
+            const isOverloaded = sectionDuration !== null && totalEstimated > sectionDuration;
+
             const sectionHeader = document.createElement('div');
-            sectionHeader.className = 'text-xs font-bold text-white mt-2 px-2 py-1 bg-gray-500 flex justify-between items-center';
+            sectionHeader.className = `text-xs font-bold text-white mt-2 px-2 py-1 ${isOverloaded ? 'bg-red-300' : 'bg-gray-500'} flex justify-between items-center`;
             sectionHeader.innerHTML = `<span>${name} ${range}</span> ${remainingTimeHtml}`;
             wrapper.appendChild(sectionHeader);
 
@@ -129,11 +133,15 @@ export function renderTodayTasks(options = {}) {
                 .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
             const remainingTimeHtml = remainingTimeInSection > 0 ? `<span>見積: ${remainingTimeInSection}分</span>` : '';
 
+            const totalEstimated = sectionTasks.reduce((sum, t) => sum + (t.estimatedTime || 0), 0);
+            const sectionDuration = getSectionDurationMinutes(sectionId);
+            const isOverloaded = sectionDuration !== null && totalEstimated > sectionDuration;
+
             const headerRow = document.createElement('tr');
             headerRow.className = 'bg-gray-100';
             headerRow.dataset.sectionId = sectionId;
             headerRow.innerHTML = `
-                <td colspan="8" class="py-1 px-4 text-xs font-bold text-white bg-gray-400">
+                <td colspan="8" class="py-1 px-4 text-xs font-bold text-white ${isOverloaded ? 'bg-red-500' : 'bg-gray-400'}">
                     <div class="justify-between items-center">
                         <span>${name} ${range}</span>
                         ${remainingTimeHtml}
