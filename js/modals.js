@@ -254,6 +254,9 @@ export function saveTaskEdit() {
 
     task.startTime = startDateObj ? startDateObj.toISOString() : null;
     task.endTime = endDateObj ? endDateObj.toISOString() : null;
+    if (task.endTime && !task.completedAt) {
+        task.completedAt = task.endTime;
+    }
     task.actualTime = calculateActualTime(task);
     modalCallbacks.updateTaskStatus(task);
     closeModal('task-edit-modal');

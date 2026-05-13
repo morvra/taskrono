@@ -717,6 +717,7 @@ export const dailyTaskListApp = {
 
             this.callbacks.saveState();
             this.callbacks.render();
+            await this.callbacks.checkDayChange();
             this.callbacks.restoreRunningTaskState();
 
             this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;

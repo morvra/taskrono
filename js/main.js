@@ -375,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	        saveState,
 	        render,
 	        restoreRunningTaskState,
+          checkDayChange,
 	    };
       taskCallbacks.getTasksForViewDate = getTasksForViewDate;
       taskCallbacks.setTasksForViewDate = setTasksForViewDate;
@@ -442,7 +443,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	    // DOM要素とイベントリスナーが設定された後にDropboxの初期化を行う
 	    initializeDropboxSync();
 	    renderPcAddTaskButton();
-	    checkDayChange();
+	    if (!localStorage.getItem('dropbox_access_token')) {
+          // オフライン/未ログイン時のみ即時実行
+          checkDayChange();
+      }
 	    generateTomorrowRepeats();
 	    setInterval(checkDayChange, 1000 * 60); 
 	    updateTitle();
@@ -748,7 +752,12 @@ document.addEventListener('DOMContentLoaded', () => {
 			const yesterdaysTasks = state.dailyTasks[state.lastDate];
 			if (yesterdaysTasks && yesterdaysTasks.length > 0) {
 				// isDeletedでない未完了タスクのみを抽出
-				const leftoverTasks = yesterdaysTasks.filter(t => t.status !== 'completed' && !t.isDeleted);
+				const leftoverTasks = yesterdaysTasks.filter(t => {
+            if (t.isDeleted) return false;
+            if (t.status === 'completed') return false;
+            if (t.completedAt) return false; // ← 別端末で完了済みとみなす
+            return true;
+        });
 				if (leftoverTasks.length > 0) {
 					if (!state.dailyTasks[today]) {
 						state.dailyTasks[today] = [];

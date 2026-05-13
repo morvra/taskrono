@@ -259,6 +259,7 @@ export function toggleTimer(id, forceStop = false) {
     // [Case 1] 実行中のタスクを停止する
     if (state.activeTaskId === id && !forceStop) {
         task.endTime = new Date().toISOString();
+        task.completedAt = new Date().toISOString();
         task.actualTime = calculateActualTime(task);
         taskCallbacks.updateTaskStatus(task);
         stopActiveTimer();
@@ -278,6 +279,7 @@ export function toggleTimer(id, forceStop = false) {
             const runningTask = tasks.find(t => t.id === state.activeTaskId);
             if (runningTask) {
                 runningTask.endTime = new Date().toISOString();
+                runningTask.completedAt = new Date().toISOString();
                 runningTask.actualTime = calculateActualTime(runningTask);
                 taskCallbacks.updateTaskStatus(runningTask);
                 runningTask.updatedAt = new Date().toISOString();
