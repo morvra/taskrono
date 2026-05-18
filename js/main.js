@@ -171,27 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
 				alert('Dropboxの認証に失敗しました。詳細はコンソールを確認してください。');
 			}
 		} else {
-			// ローカルストレージにトークンがあるか確認
-			if (accessToken) {
-				// トークンの有効性を確認（このAPI呼び出しにより、期限切れならSDKが自動でリフレッシュを試みる）
-				try {
-					await dbx.usersGetCurrentAccount();
-					dailyTaskListApp.updateAuthUi(true);
-					dailyTaskListApp.updateReauthUi(false);
-					dailyTaskListApp.loadStateFromDropbox();
-				} catch (error) {
-					// トークンが無効だった場合（リフレッシュも失敗した場合）
-					console.error('Stored token invalid:', error);
-					localStorage.removeItem('dropbox_access_token');
-					localStorage.removeItem('dropbox_refresh_token');
-					dailyTaskListApp.dbx = null;
-					dailyTaskListApp.updateAuthUi(false);
-					dailyTaskListApp.updateReauthUi(true);
-				}
-			} else {
-				dailyTaskListApp.updateAuthUi(false);
-			}
-		}
+        // ローカルストレージにトークンがあるか確認
+        if (accessToken) {
+            dailyTaskListApp.updateAuthUi(true);
+            dailyTaskListApp.updateReauthUi(false);
+            dailyTaskListApp.loadStateFromDropbox();
+        } else {
+            dailyTaskListApp.updateAuthUi(false);
+        }
+    }
 
 		// 認証開始処理
 		dailyTaskListApp.authorizeButton.addEventListener('click', async () => {
@@ -737,77 +725,90 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	async function checkDayChange() {
-		const today = getFormattedDate(new Date());
+  async function checkDayChange() {
+      const today = getFormattedDate(new Date());
 
-		// 昨日の日付文字列を計算
-		const yesterdayObj = new Date();
-		yesterdayObj.setDate(yesterdayObj.getDate() - 1);
-		const yesterdayStr = getFormattedDate(yesterdayObj);
+      // 昨日の日付文字列を計算
+      const yesterdayObj = new Date();
+      yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+      const yesterdayStr = getFormattedDate(yesterdayObj);
 
-		if (state.lastDate !== today) {
-			console.log(`Date changed: ${state.lastDate} -> ${today}`);
+      if (state.lastDate !== today) {
+          console.log(`Date changed: ${state.lastDate} -> ${today}`);
 
-			// 1. 未完了タスクの持ち越し処理 (前回起動日から今日へ)
-			const yesterdaysTasks = state.dailyTasks[state.lastDate];
-			if (yesterdaysTasks && yesterdaysTasks.length > 0) {
-				// isDeletedでない未完了タスクのみを抽出
-				const leftoverTasks = yesterdaysTasks.filter(t => {
-            if (t.isDeleted) return false;
-            if (t.status === 'completed') return false;
-            if (t.completedAt) return false; // ← 別端末で完了済みとみなす
-            return true;
-        });
-				if (leftoverTasks.length > 0) {
-					if (!state.dailyTasks[today]) {
-						state.dailyTasks[today] = [];
-					}
-					state.dailyTasks[today].unshift(...leftoverTasks);
-					// 元の日付のリストからは、持ち越したタスク（未完了）を取り除く（完了と削除済みだけ残す）
-					state.dailyTasks[state.lastDate] = yesterdaysTasks.filter(t => t.status === 'completed' || t.isDeleted);
-				}
-			}
-
-			// 2. アーカイブ処理の変更：一昨日以前（昨日より前）の古いデータをアーカイブへ移動
-      const sortedDates = Object.keys(state.dailyTasks).sort();
-      for (const dateKey of sortedDates) {
-          if (dateKey < yesterdayStr) {
-              archiveCompletedTasks(dateKey);
-              await dailyTaskListApp.saveMonthlyLog(dateKey); // await で直列化
+          // 1. 未完了タスクの持ち越し処理 (前回起動日から今日へ)
+          const yesterdaysTasks = state.dailyTasks[state.lastDate];
+          if (yesterdaysTasks && yesterdaysTasks.length > 0) {
+              const leftoverTasks = yesterdaysTasks.filter(t => {
+                  if (t.isDeleted) return false;
+                  if (t.status === 'completed') return false;
+                  if (t.completedAt) return false;
+                  return true;
+              });
+              if (leftoverTasks.length > 0) {
+                  if (!state.dailyTasks[today]) {
+                      state.dailyTasks[today] = [];
+                  }
+                  state.dailyTasks[today].unshift(...leftoverTasks);
+                  state.dailyTasks[state.lastDate] = yesterdaysTasks.filter(t => t.status === 'completed' || t.isDeleted);
+              }
           }
+
+          // 2. アーカイブ処理 + 月次ログ保存（バッチ最適化）
+          // まず全対象日のアーカイブ処理を実行し、ログ対象日を収集する
+          const datesToLog = [];
+          const sortedDates = Object.keys(state.dailyTasks).sort();
+          for (const dateKey of sortedDates) {
+              if (dateKey < yesterdayStr) {
+                  archiveCompletedTasks(dateKey);
+                  datesToLog.push(dateKey);
+              }
+          }
+
+          // 月別にグループ化して並列保存
+          if (datesToLog.length > 0) {
+              const datesByMonth = {};
+              for (const dateKey of datesToLog) {
+                  const yearMonth = dateKey.slice(0, 7);
+                  if (!datesByMonth[yearMonth]) datesByMonth[yearMonth] = [];
+                  datesByMonth[yearMonth].push(dateKey);
+              }
+              await Promise.all(
+                  Object.values(datesByMonth).map(monthDates =>
+                      dailyTaskListApp.saveMonthlyLogBatch(monthDates)
+                  )
+              );
+          }
+
+          // 翌日分のリピートタスクを生成
+          generateTomorrowRepeats();
+
+          state.lastDate = today;
+          state.viewDate = today;
+
+          if (state.dailyTasks[today] && state.dailyTasks[today].length > 0) {
+              const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
+              const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
+
+              state.dailyTasks[today].sort((a, b) => {
+                  const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
+                  const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
+                  return sectionIndexA - sectionIndexB;
+              });
+          }
+
+          const tasksToday = state.dailyTasks[today] || [];
+          const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
+          if (firstUncompletedTask) {
+              state.focusedTaskId = firstUncompletedTask.id;
+          } else if (tasksToday.length > 0) {
+              state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
+          } else {
+              state.focusedTaskId = null;
+          }
+          saveAndRender();
       }
-
-			// 翌日分のリピートタスクを生成
-			generateTomorrowRepeats();
-
-			state.lastDate = today;
-			state.viewDate = today; 
-
-			// 先送りタスクとリピートタスクを追加後、セクション順でソートする
-			if (state.dailyTasks[today] && state.dailyTasks[today].length > 0) {
-				const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
-				const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
-
-				state.dailyTasks[today].sort((a, b) => {
-					const sectionIndexA = sectionOrder.indexOf(a.sectionId || 'null');
-					const sectionIndexB = sectionOrder.indexOf(b.sectionId || 'null');
-					return sectionIndexA - sectionIndexB;
-				});
-			}
-
-			// 生成したタスクを画面に反映させる
-			const tasksToday = state.dailyTasks[today] || [];
-			const firstUncompletedTask = tasksToday.find(t => getTaskStatus(t) !== 'completed');
-			if (firstUncompletedTask) {
-				state.focusedTaskId = firstUncompletedTask.id;
-			} else if (tasksToday.length > 0) {
-				state.focusedTaskId = tasksToday[tasksToday.length - 1].id;
-			} else {
-				state.focusedTaskId = null;
-			}
-			saveAndRender();
-		}
-	}
+  }
 
 	function archiveCompletedTasks(dateKey) {
 		if (!state.dailyTasks[dateKey]) return;

@@ -209,13 +209,20 @@ export const dailyTaskListApp = {
     },
 
     // Shortcutから送られたコマンドを処理する（JSONL形式）
-    processCommands: async function() {
+    processCommands: async function(prefetchedContent = null) {
         if (!this.dbx) return;
 
         let lines = [];
         try {
-            const response = await this.dbx.filesDownload({ path: this.commandsFilePath });
-            const content = await response.result.fileBlob.text();
+            let content;
+            if (prefetchedContent !== null) {
+                // 事前取得済みコンテンツを利用（ダウンロードをスキップ）
+                content = prefetchedContent;
+            } else {
+                // 単独呼び出し時は従来通りダウンロード
+                const response = await this.dbx.filesDownload({ path: this.commandsFilePath });
+                content = await response.result.fileBlob.text();
+            }
             lines = content.split('\n').filter(l => l.trim().length > 0);
             if (lines.length === 0) return;
         } catch (error) {
@@ -244,17 +251,13 @@ export const dailyTaskListApp = {
             switch (cmd.type) {
 
                 case 'memo': {
-                    // 実行中のタスク（startTimeあり・endTimeなし）を探す
                     const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
                     if (runningTask) {
-                        // 実行中タスクのメモに追記
                         runningTask.memo = runningTask.memo
                             ? `${runningTask.memo}\n${cmd.text}`
                             : cmd.text;
                         runningTask.updatedAt = new Date().toISOString();
                     } else {
-                        // 実行中タスクがなければ inbox.txt にプレーンテキストとして追記
-                        // （タスクとして認識されないよう - [ ] を付けない）
                         const currentContent = await this.fetchInboxContent() || '';
                         const newContent = currentContent.trim()
                             ? `${currentContent.trim()}\n${cmd.text}`
@@ -277,7 +280,6 @@ export const dailyTaskListApp = {
                 }
 
                 case 'start_next': {
-                    // 実行中のタスクがあれば先に完了させる
                     const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
                     if (runningTask) {
                         runningTask.endTime = timestamp;
@@ -298,7 +300,6 @@ export const dailyTaskListApp = {
                 }
 
                 case 'add_and_start': {
-                    // 実行中のタスクがあれば先に完了させる
                     const runningTask = todayTasks.find(t => t.startTime && !t.endTime && !t.isDeleted);
                     if (runningTask) {
                         runningTask.endTime = timestamp;
@@ -308,7 +309,6 @@ export const dailyTaskListApp = {
                         runningTask.updatedAt = new Date().toISOString();
                     }
 
-                    // 新しいタスクを作成
                     const section = getCurrentSection(new Date(timestamp));
                     const targetSectionId = section ? section.id : null;
                     const targetSectionNullId = targetSectionId || 'null';
@@ -329,7 +329,6 @@ export const dailyTaskListApp = {
                         updatedAt: new Date().toISOString(),
                     };
 
-                    // addTask と同じロジックでセクション内の末尾に挿入
                     const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
                     const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
                     const targetSectionOrderIndex = sectionOrder.indexOf(targetSectionNullId);
@@ -440,14 +439,102 @@ export const dailyTaskListApp = {
         }
     },
 
-    importTasksFromInbox: async function() {
+    // 同一月の複数日付を1回のread/writeでまとめて保存
+    saveMonthlyLogBatch: async function(dates) {
+        if (!this.dbx || !dates || dates.length === 0) return;
+
+        const sortedDates = [...dates].sort();
+        const yearMonth = sortedDates[0].slice(0, 7);
+        const logPath = `${this.logsDirPath}/${yearMonth}.md`;
+
+        // 保存するタスクが存在するか確認
+        const hasAnyTasks = sortedDates.some(dateStr =>
+            (state.archivedTasks[dateStr] || []).some(t => t.startTime && t.endTime)
+        );
+        if (!hasAnyTasks) return;
+
+        // ファイルを1回だけ読み込む
+        let existingContent = '';
+        let isNewFile = false;
+        try {
+            const response = await this.dbx.filesDownload({ path: logPath });
+            existingContent = await response.result.fileBlob.text();
+        } catch (e) {
+            if (e.status !== 409) {
+                console.warn('Monthly log fetch error (will create new):', e);
+            }
+            isNewFile = true;
+        }
+
+        if (isNewFile) {
+            const [year, month] = yearMonth.split('-');
+            existingContent = [
+                `# Taskrono タスクログ ${year}-${month}`,
+                '',
+                `このファイルはTaskronoで記録した${year}年${parseInt(month, 10)}月の完了タスクのログです。`,
+                '',
+                '## 記法',
+                '',
+                '- `@プロジェクト名` : タスクが属するプロジェクト',
+                '- `:Xm` : 見積時間',
+                '- `HH:MM-HH:MM` : 開始時刻-終了時刻',
+                '- `(Xm)` : 実績時間',
+                '',
+                '---',
+                '',
+            ].join('\n');
+        }
+
+        // 全日付のセクションを1つのコンテンツにまとめてから書き込む
+        for (const dateStr of sortedDates) {
+            const tasks = (state.archivedTasks[dateStr] || []).filter(t => t.startTime && t.endTime);
+            if (tasks.length === 0) continue;
+
+            tasks.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+            const newSection = buildDayMarkdown(dateStr, tasks);
+
+            if (existingContent.includes(`## ${dateStr}`)) {
+                const escapedDate = dateStr.replace(/-/g, '\\-');
+                const sectionRegex = new RegExp(
+                    `## ${escapedDate} \\([^)]+\\)\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
+                    'g'
+                );
+                existingContent = existingContent.replace(sectionRegex, newSection.trimEnd());
+            } else {
+                const trimmed = existingContent.trimEnd();
+                existingContent = trimmed ? trimmed + '\n\n' + newSection : newSection;
+            }
+        }
+
+        // ファイルを1回だけ書き込む
+        try {
+            await this.dbx.filesUpload({
+                path: logPath,
+                contents: existingContent.trimEnd() + '\n',
+                mode: 'overwrite'
+            });
+            console.log(`Monthly log batch saved: ${logPath} (${sortedDates.length} dates)`);
+        } catch (error) {
+            console.error('Error saving monthly log batch:', error);
+        }
+    },
+
+    importTasksFromInbox: async function(prefetchedContent = null) {
         if (!this.dbx) return;
 
         try {
-            const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
-            const fileContent = await response.result.fileBlob.text();
+            let fileContent;
+            if (prefetchedContent !== null) {
+                // 事前取得済みコンテンツを利用（ダウンロードをスキップ）
+                fileContent = prefetchedContent;
+                if (!fileContent) return;
+            } else {
+                // 単独呼び出し時は従来通りダウンロード
+                const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
+                fileContent = await response.result.fileBlob.text();
+            }
+
             const lines = fileContent.split('\n');
-            const newTasks = [];
             const remainingLines = [];
             let processed = false;
             const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
@@ -458,20 +545,18 @@ export const dailyTaskListApp = {
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getFormattedDate(tomorrow);
             const tasksToAddByDate = {};
+            const newTasks = [];
 
             lines.forEach(line => {
                 const trimmed = line.trim();
 
-                // 空行はスキップ（remainingLinesにも入れない）
                 if (!trimmed) return;
 
-                // "- [ ]" で始まる行だけをタスクとして処理、それ以外はinboxに残す
                 if (!trimmed.startsWith('- [ ]')) {
                     remainingLines.push(line);
                     return;
                 }
 
-                // "- [ ]" を除去してタスク名として処理
                 let taskName = trimmed.replace(/^-\s*\[\s*\]\s*/, '');
                 let estimatedTime = 5;
                 let targetDate = todayStr;
@@ -487,7 +572,6 @@ export const dailyTaskListApp = {
                     }
                 }
 
-                // 明後日以降の日付指定はinboxに残す
                 if (hasDate && targetDate > tomorrowStr) {
                     remainingLines.push(line);
                     return;
@@ -535,7 +619,6 @@ export const dailyTaskListApp = {
             });
 
             if (processed) {
-                // タスク化した行を除いた残りを書き戻す
                 const newContent = remainingLines.join('\n').trim();
                 await this.dbx.filesUpload({
                     path: this.inboxFilePath,
@@ -567,8 +650,15 @@ export const dailyTaskListApp = {
         this.updateSyncUi('loading');
         this.driveStatusEl.textContent = 'Dropboxからデータを読み込み中...';
         try {
-            const response = await this.dbx.filesDownload({ path: this.dropboxFilePath });
-            const fileContent = await response.result.fileBlob.text();
+            const [mainDataResponse, inboxResponse, commandsResponse] = await Promise.all([
+                this.dbx.filesDownload({ path: this.dropboxFilePath }),
+                this.dbx.filesDownload({ path: this.inboxFilePath })
+                    .catch(e => e.status === 409 ? null : Promise.reject(e)),
+                this.dbx.filesDownload({ path: this.commandsFilePath })
+                    .catch(e => e.status === 409 ? null : Promise.reject(e))
+            ]);
+
+            const fileContent = await mainDataResponse.result.fileBlob.text();
             const importedData = JSON.parse(fileContent);
 
             if (importedData.sections && Array.isArray(importedData.sections)) {
@@ -689,11 +779,12 @@ export const dailyTaskListApp = {
             if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
             state.lastDate = importedData.lastDate || state.lastDate;
 
-            // inbox からタスクをインポート
-            await this.importTasksFromInbox();
+            // 並列取得済みコンテンツを渡してinboxとcommandを処理
+            const inboxContent = inboxResponse ? await inboxResponse.result.fileBlob.text() : '';
+            await this.importTasksFromInbox(inboxContent);
 
-            // Shortcutからのコマンドを処理
-            await this.processCommands();
+            const commandsContent = commandsResponse ? await commandsResponse.result.fileBlob.text() : '';
+            await this.processCommands(commandsContent);
 
             this.callbacks.stopActiveTimer();
 
