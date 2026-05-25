@@ -94,7 +94,8 @@
                         </svg>
                     </button>
 				</div>
-                <p class="text-xs text-gray-500 hidden md:block">[↑][↓]選択, [Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除</p>
+        <p class="text-xs text-gray-500 hidden md:block">[Space]開始/停止, [P]先送り, [Ctrl+↑][↓]移動, [N]新規, [E]編集, [M]メモ, [D]削除, [C]連結</p>
+
             </div>
             <div id="sections-container" class="sections-wrapper"></div>
         </div>
@@ -321,7 +322,10 @@
             <div class="grid grid-cols-2 gap-4">
                  <div>
                     <label for="edit-task-startTime" class="text-sm font-medium text-gray-700">開始時刻</label>
-                    <input type="time" id="edit-task-startTime" class="w-full p-2 border rounded-lg">
+                    <div class="flex gap-1 mt-1">
+                        <input type="time" id="edit-task-startTime" class="flex-1 p-2 border rounded-lg">
+                        <button type="button" id="link-prev-task-time-btn" title="前タスクの終了時刻を引用" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-500 flex-shrink-0">⛓</button>
+                    </div>
                 </div>
                 <div>
                     <label for="edit-task-endTime" class="text-sm font-medium text-gray-700">終了時刻</label>

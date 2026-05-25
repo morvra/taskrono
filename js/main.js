@@ -1511,6 +1511,24 @@ document.addEventListener('DOMContentLoaded', () => {
       dayInput.value = '';
     });
 
+    document.getElementById('link-prev-task-time-btn').addEventListener('click', () => {
+        const tasks = getTasksForViewDate();
+        const currentIndex = tasks.findIndex(t => t.id === state.editingTaskId);
+        if (currentIndex <= 0) {
+            showToast('前のタスクがありません。');
+            return;
+        }
+        const prevTask = tasks[currentIndex - 1];
+        if (!prevTask.endTime) {
+            showToast('前のタスクに終了時刻がありません。');
+            return;
+        }
+        const endTime = new Date(prevTask.endTime);
+        const h = endTime.getHours().toString().padStart(2, '0');
+        const m = endTime.getMinutes().toString().padStart(2, '0');
+        document.getElementById('edit-task-startTime').value = `${h}:${m}`;
+    });
+
 		document.querySelectorAll('.modal').forEach(modal => {
 			modal.addEventListener('click', (e) => {
 				if (e.target === modal) closeModal(modal.id);
