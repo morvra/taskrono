@@ -424,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
       keyboardCallbacks.generateSingleRepeatTask = generateSingleRepeatTask;
       keyboardCallbacks.openInboxModal = openInboxModal;
       keyboardCallbacks.getDailyTaskListApp = () => window.dailyTaskListApp;
+      keyboardCallbacks.connectTaskToPrev = connectTaskToPrev;
 	    window.dailyTaskListApp = dailyTaskListApp;
 	    // DOM要素の初期化を先に行う
 	    dailyTaskListApp.initDomElements();
@@ -2000,6 +2001,54 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 		calculateAllEstimates();
 	}
+
+  function connectTaskToPrev(id) {
+      const tasks = getTasksForViewDate();
+      const currentIndex = tasks.findIndex(t => t.id === id);
+      if (currentIndex <= 0) return;
+      const prevTask = tasks[currentIndex - 1];
+      if (!prevTask.endTime) return;
+
+      const task = tasks[currentIndex];
+
+      // 他に実行中のタスクがあれば停止
+      if (state.activeTaskId) {
+          const runningTask = tasks.find(t => t.id === state.activeTaskId);
+          if (runningTask) {
+              runningTask.endTime = new Date().toISOString();
+              runningTask.actualTime = calculateActualTime(runningTask);
+              updateTaskStatus(runningTask);
+              runningTask.updatedAt = new Date().toISOString();
+          }
+          stopActiveTimer();
+      }
+
+      // 前タスクの終了時刻を開始時刻にセット
+      task.startTime = prevTask.endTime;
+      task.endTime = null;
+
+      // 現在のセクションをアサイン
+      const currentSection = getCurrentSection();
+      task.sectionId = currentSection ? currentSection.id : task.sectionId;
+
+      updateTaskStatus(task);
+      state.activeTaskId = id;
+      state.focusedTaskId = id;
+      task.updatedAt = new Date().toISOString();
+
+      // タイマーをスタート
+      state.activeTimerId = setInterval(() => {
+          const currentActualSeconds = calculateActualTime(task);
+          const timeString = formatTime(currentActualSeconds);
+          document.querySelectorAll(`[data-task-id="${task.id}"] .time-actual`).forEach(el => el.textContent = timeString);
+          const progressBar = document.querySelector(`[data-task-id="${task.id}"] .running-progress-bg`);
+          if (progressBar && task.estimatedTime > 0) {
+              progressBar.style.width = `${Math.min(100, (currentActualSeconds / (task.estimatedTime * 60)) * 100)}%`;
+          }
+      }, 1000);
+
+      saveAndRender({ scroll: true });
+  }
 
 	function renderPcAddTaskButton() {
 		const container = document.getElementById('add-task-floating-container');

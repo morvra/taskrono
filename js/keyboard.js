@@ -20,6 +20,7 @@ export const keyboardCallbacks = {
     generateSingleRepeatTask: null,
     openInboxModal: null,
     getDailyTaskListApp: null,
+    connectTaskToPrev: null,
 };
 
 export function handleKeyboardShortcuts(e) {
@@ -109,18 +110,11 @@ function handleTodayShortcuts(e) {
         case 'd': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.deleteTask(state.focusedTaskId); break;
         case 'p': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.postponeTask(state.focusedTaskId); break;
         case 's': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.toggleSubtaskView(state.focusedTaskId); break;
-        case 'c':
+        case 'c': {
             e.preventDefault();
-            if (!state.focusedTaskId) break;
-            const tasks = keyboardCallbacks.getTasksForViewDate();
-            const currentIndex = tasks.findIndex(t => t.id === state.focusedTaskId);
-            if (currentIndex <= 0) break;
-            const prevTask = tasks[currentIndex - 1];
-            if (!prevTask.endTime) break;
-            tasks[currentIndex].startTime = prevTask.endTime;
-            tasks[currentIndex].updatedAt = new Date().toISOString();
-            keyboardCallbacks.saveAndRender();
+            if (state.focusedTaskId) keyboardCallbacks.connectTaskToPrev(state.focusedTaskId);
             break;
+        }
         case 'r':
             e.preventDefault();
             const appR = keyboardCallbacks.getDailyTaskListApp();
