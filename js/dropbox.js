@@ -38,7 +38,9 @@ function stripMarkdownLinks(text) {
 function buildDayMarkdown(dateStr, tasks) {
     const dateObj = new Date(dateStr + 'T12:00:00');
     const weekday = WEEKDAYS_JA[dateObj.getDay()];
-    const lines = [`## ${dateStr} (${weekday})`, ''];
+    const totalMin = Math.round(tasks.reduce((s, t) => s + calcActualSeconds(t), 0) / 60);
+    const totalStr = totalMin >= 60 ? `${Math.floor(totalMin/60)}h ${totalMin%60}m` : `${totalMin}m`;
+    const lines = [`## ${dateStr} (${weekday}) — ${tasks.length}件 / ${totalStr}`, ''];
 
     const projectMap = new Map(state.projects.map(p => [p.id, p.name]));
 
@@ -63,6 +65,7 @@ function buildDayMarkdown(dateStr, tasks) {
     });
 
     lines.push('');
+    lines.push('---');
     lines.push('');
     return lines.join('\n');
 }
