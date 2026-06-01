@@ -63,6 +63,7 @@ function buildDayMarkdown(dateStr, tasks) {
     });
 
     lines.push('');
+    lines.push('');
     return lines.join('\n');
 }
 
