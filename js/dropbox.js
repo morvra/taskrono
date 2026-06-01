@@ -422,8 +422,8 @@ export const dailyTaskListApp = {
             if (existingContent.includes(`## ${dateStr}`)) {
                 const escapedDate = dateStr.replace(/-/g, '\\-');
                 const sectionRegex = new RegExp(
-                    `## ${escapedDate} \\([^)]+\\)\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
-                    'g'
+                  `## ${escapedDate} \\([^)]+\\)[^\\n]*\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
+                  'g'
                 );
                 existingContent = existingContent.replace(sectionRegex, newSection.trimEnd());
             } else {
@@ -500,8 +500,8 @@ export const dailyTaskListApp = {
             if (existingContent.includes(`## ${dateStr}`)) {
                 const escapedDate = dateStr.replace(/-/g, '\\-');
                 const sectionRegex = new RegExp(
-                    `## ${escapedDate} \\([^)]+\\)\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
-                    'g'
+                  `## ${escapedDate} \\([^)]+\\)[^\\n]*\\n[\\s\\S]*?(?=\\n## |\\s*$)`,
+                  'g'
                 );
                 existingContent = existingContent.replace(sectionRegex, newSection.trimEnd());
             } else {
