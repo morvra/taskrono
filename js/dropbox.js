@@ -12,6 +12,15 @@ function secondsToMinStr(seconds) {
     return `${m}m`;
 }
 
+// 秒数を "Xh Ym" 形式に変換
+function secondsToHourMin(seconds) {
+    const totalMin = Math.round(seconds / 60);
+    if (totalMin < 60) return `${totalMin}m`;
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
 // ISO文字列を "HH:MM" に変換
 function isoToHHMM(isoStr) {
     if (!isoStr) return '--:--';
@@ -31,6 +40,38 @@ function calcActualSeconds(task) {
 function stripMarkdownLinks(text) {
     if (!text) return '';
     return text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+}
+
+// 指定月のプロジェクト別実績セクションを生成
+function buildProjectStats(yearMonth) {
+    const projectMap = new Map(state.projects.map(p => [p.id, p.name]));
+    const totals = {};
+
+    for (const [dateStr, tasks] of Object.entries(state.archivedTasks)) {
+        if (!dateStr.startsWith(yearMonth)) continue;
+        for (const task of tasks) {
+            if (!task.startTime || !task.endTime) continue;
+            const projectName = task.projectId
+                ? (projectMap.get(task.projectId) || 'その他')
+                : 'その他';
+            totals[projectName] = (totals[projectName] || 0) + calcActualSeconds(task);
+        }
+    }
+
+    const totalSeconds = Object.values(totals).reduce((a, b) => a + b, 0);
+    if (totalSeconds === 0) return '';
+
+    const sorted = Object.entries(totals).sort(([, a], [, b]) => b - a);
+
+    const lines = ['## プロジェクト別実績'];
+    for (const [name, seconds] of sorted) {
+        const pct = Math.round((seconds / totalSeconds) * 100);
+        lines.push(`- ${name}: ${secondsToHourMin(seconds)} (${pct}%)`);
+    }
+    lines.push(`- 合計: ${secondsToHourMin(totalSeconds)}`);
+    lines.push('');
+
+    return lines.join('\n');
 }
 
 // 1日分のアーカイブタスクをマークダウン文字列に変換
@@ -414,6 +455,7 @@ export const dailyTaskListApp = {
                     '- `HH:MM-HH:MM` : 開始時刻-終了時刻',
                     '- `(Xm)` : 実績時間',
                     '',
+                    buildProjectStats(yearMonth),
                     '---',
                     '',
                 ].join('\n');
@@ -429,6 +471,22 @@ export const dailyTaskListApp = {
             } else {
                 const trimmed = existingContent.trimEnd();
                 existingContent = trimmed ? trimmed + '\n\n' + newSection : newSection;
+            }
+
+            // プロジェクト別実績セクションを更新
+            const statsSection = buildProjectStats(yearMonth);
+            if (statsSection) {
+                if (existingContent.includes('## プロジェクト別実績')) {
+                    existingContent = existingContent.replace(
+                        /## プロジェクト別実績[\s\S]*?\n---/,
+                        statsSection + '---'
+                    );
+                } else {
+                    existingContent = existingContent.replace(
+                        /(\- `\(Xm\)` : 実績時間\n)\n/,
+                        `$1\n${statsSection}`
+                    );
+                }
             }
 
             await this.dbx.filesUpload({
@@ -484,6 +542,7 @@ export const dailyTaskListApp = {
                 '- `HH:MM-HH:MM` : 開始時刻-終了時刻',
                 '- `(Xm)` : 実績時間',
                 '',
+                buildProjectStats(yearMonth),
                 '---',
                 '',
             ].join('\n');
@@ -507,6 +566,22 @@ export const dailyTaskListApp = {
             } else {
                 const trimmed = existingContent.trimEnd();
                 existingContent = trimmed ? trimmed + '\n\n' + newSection : newSection;
+            }
+        }
+
+        // プロジェクト別実績セクションを更新
+        const statsSection = buildProjectStats(yearMonth);
+        if (statsSection) {
+            if (existingContent.includes('## プロジェクト別実績')) {
+                existingContent = existingContent.replace(
+                    /## プロジェクト別実績[\s\S]*?\n---/,
+                    statsSection + '---'
+                );
+            } else {
+                existingContent = existingContent.replace(
+                    /(\- `\(Xm\)` : 実績時間\n)\n/,
+                    `$1\n${statsSection}`
+                );
             }
         }
 
