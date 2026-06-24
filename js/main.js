@@ -247,14 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	const currentDateEls = document.querySelectorAll('#current-date');
 	const totalEstimatedEndTimeEls = document.querySelectorAll('#total-estimated-end-time, #total-estimated-end-time-desktop');
 
-	function updateSortOrderAndTimestamps(dateKey) {
+  function updateSortOrderAndTimestamps(dateKey) {
 		const tasks = state.dailyTasks[dateKey] || [];
 		const now = new Date().toISOString();
 		tasks.forEach((task, index) => {
+			const prevSortOrder = task.sortOrder;
 			task.sortOrder = index;
-			// Only update the timestamp if the order actually changed
-			// to avoid unnecessary saves during simple reads.
-			if (!task.updatedAt || task.sortOrder !== index) {
+			if (!task.updatedAt || prevSortOrder !== index) { // 旧値と比較
 				task.updatedAt = now;
 			}
 		});
@@ -674,12 +673,15 @@ document.addEventListener('DOMContentLoaded', () => {
 	    Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
 	}
 	
-	function saveState() {
+  function saveState() {
 	    saveStateToStorage();
 	    // Dropbox保存はここに残す
+	    if (window.dailyTaskListApp && window.dailyTaskListApp.isSyncingFromDropbox) {
+	        return;
+	    }
 	    const app = window.dailyTaskListApp;
 	    const accessToken = localStorage.getItem('dropbox_access_token');
-	    if (app.dbx && accessToken) {
+	    if (app && app.dbx && accessToken) {
 	        if (app.saveTimeout) clearTimeout(app.saveTimeout);
 	        app.saveTimeout = setTimeout(() => app.saveStateToDropbox(), 2000);
 	    }

@@ -122,6 +122,8 @@ export const dailyTaskListApp = {
     lastSyncTime: 0,
     defaultFavicon: './taskrono.ico',
     runningFavicon: './taskrono_running.ico',
+    isSyncingFromDropbox: false,  // Dropboxからのロード中はtrue（この間はsaveState()がDropbox保存をスキップ）
+    isSaving: false,              // Dropboxへの保存中はtrue（同時実行を防ぐ）
     callbacks: {
         getTaskStatus: null,
         showToast: null,
@@ -724,6 +726,8 @@ export const dailyTaskListApp = {
             return;
         }
 
+        this.isSyncingFromDropbox = true;
+
         const preSyncRunningTaskId = state.activeTaskId;
 
         this.updateSyncUi('loading');
@@ -893,11 +897,16 @@ export const dailyTaskListApp = {
             this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
             this.updateSyncUi('success');
             this.lastSyncTime = Date.now();
+
+            this.isSyncingFromDropbox = false;
+            await this.saveStateToDropbox();
+
             if (showNotification) {
                 this.callbacks.showToast('Dropboxからデータを読み込みました。');
             }
 
         } catch (error) {
+            this.isSyncingFromDropbox = false;
             this.updateSyncUi('idle');
             if (error.status === 409) {
                 this.driveStatusEl.textContent = 'データファイルが見つかりません。初回同期を開始します...';
@@ -920,6 +929,12 @@ export const dailyTaskListApp = {
             console.log('Dropbox not authenticated, skipping cloud save');
             return;
         }
+
+        if (this.isSaving) {
+            console.log('Taskrono: saveStateToDropbox skipped (already saving).');
+            return;
+        }
+        this.isSaving = true;
 
         this.driveStatusEl.textContent = 'Dropboxへ保存準備中...';
         const cleanedDailyTasks = {};
@@ -975,6 +990,8 @@ export const dailyTaskListApp = {
                 this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';
                 this.updateReauthUi(true);
             }
+        } finally {
+            this.isSaving = false;
         }
     }
 };

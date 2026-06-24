@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taskrono-v2.3';
+const CACHE_NAME = 'taskrono-v2.4';
 
 const STATIC_ASSETS = [
     './',
