@@ -173,13 +173,23 @@ document.addEventListener('DOMContentLoaded', () => {
 		} else {
         // ローカルストレージにトークンがあるか確認
         if (accessToken) {
-            dailyTaskListApp.updateAuthUi(true);
-            dailyTaskListApp.updateReauthUi(false);
-            dailyTaskListApp.loadStateFromDropbox();
+            try {
+                await dbx.usersGetCurrentAccount();
+                dailyTaskListApp.updateAuthUi(true);
+                dailyTaskListApp.updateReauthUi(false);
+                dailyTaskListApp.loadStateFromDropbox();
+            } catch (error) {
+                console.error('Stored token invalid or refresh failed:', error);
+                // リフレッシュも失敗した場合は再ログインを促す
+                localStorage.removeItem('dropbox_access_token');
+                localStorage.removeItem('dropbox_refresh_token');
+                dailyTaskListApp.dbx = null;
+                dailyTaskListApp.updateAuthUi(false);
+                dailyTaskListApp.updateReauthUi(true);
+            }
         } else {
             dailyTaskListApp.updateAuthUi(false);
         }
-    }
 
 		// 認証開始処理
 		dailyTaskListApp.authorizeButton.addEventListener('click', async () => {
