@@ -120,6 +120,7 @@ export const dailyTaskListApp = {
     dbx: null,
     saveTimeout: null,
     lastSyncTime: 0,
+    isSyncingFromDropbox: false,
     defaultFavicon: './taskrono.ico',
     runningFavicon: './taskrono_running.ico',
     isSyncingFromDropbox: false,  // Dropboxからのロード中はtrue（この間はsaveState()がDropbox保存をスキップ）
@@ -720,12 +721,16 @@ export const dailyTaskListApp = {
         }
     },
 
-    loadStateFromDropbox: async function(showNotification = true) {
+loadStateFromDropbox: async function(showNotification = true) {
         if (!this.dbx) {
             alert('Dropboxにログインしてください。');
             return;
         }
 
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = null;
+        }
         this.isSyncingFromDropbox = true;
 
         const preSyncRunningTaskId = state.activeTaskId;
@@ -888,7 +893,7 @@ export const dailyTaskListApp = {
             }
 
             Object.values(state.dailyTasks).flat().forEach(task => this.callbacks.updateTaskStatus(task));
-
+            this.isSyncingFromDropbox = false;
             this.callbacks.saveState();
             this.callbacks.render();
             await this.callbacks.checkDayChange();
@@ -897,10 +902,6 @@ export const dailyTaskListApp = {
             this.driveStatusEl.textContent = `Dropboxからデータを読み込みました (${new Date().toLocaleTimeString()})。`;
             this.updateSyncUi('success');
             this.lastSyncTime = Date.now();
-
-            this.isSyncingFromDropbox = false;
-            await this.saveStateToDropbox();
-
             if (showNotification) {
                 this.callbacks.showToast('Dropboxからデータを読み込みました。');
             }

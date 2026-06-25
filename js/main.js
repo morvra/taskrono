@@ -676,12 +676,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function saveState() {
 	    saveStateToStorage();
 	    // Dropbox保存はここに残す
-	    if (window.dailyTaskListApp && window.dailyTaskListApp.isSyncingFromDropbox) {
-	        return;
-	    }
 	    const app = window.dailyTaskListApp;
 	    const accessToken = localStorage.getItem('dropbox_access_token');
-	    if (app && app.dbx && accessToken) {
+	    if (app && app.dbx && accessToken && !app.isSyncingFromDropbox) {
 	        if (app.saveTimeout) clearTimeout(app.saveTimeout);
 	        app.saveTimeout = setTimeout(() => app.saveStateToDropbox(), 2000);
 	    }
