@@ -755,50 +755,49 @@ loadStateFromDropbox: async function(showNotification = true) {
             }
 
             const driveDailyTasks = importedData.dailyTasks || {};
+
             const localDailyTasks = state.dailyTasks;
-            const allDailyDates = new Set([...Object.keys(localDailyTasks), ...Object.keys(driveDailyTasks)]);
+            const allDailyDates = new Set([
+                ...Object.keys(localDailyTasks),
+                ...Object.keys(driveDailyTasks)
+            ]);
 
             allDailyDates.forEach(date => {
                 const localTasksForDate = localDailyTasks[date] || [];
                 const driveTasksForDate = driveDailyTasks[date] || [];
-                const combinedTasks = [...localTasksForDate, ...driveTasksForDate];
-                const taskMap = new Map();
 
-                for (const task of combinedTasks) {
+                // Dropboxのタスクを基本として採用
+                const driveTaskMap = new Map();
+                for (const task of driveTasksForDate) {
                     const key = (task.originRepeatId && !task.isManuallyAddedRepeat)
                         ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
                         : `task-${task.id}`;
+                    driveTaskMap.set(key, task);
+                }
 
-                    if (!taskMap.has(key)) {
-                        taskMap.set(key, task);
+                // ローカルにしか存在しないタスク（Dropbox未保存の新規タスク）と
+                // running中タスクをDropboxのデータに追加・上書き
+                for (const localTask of localTasksForDate) {
+                    const key = (localTask.originRepeatId && !localTask.isManuallyAddedRepeat)
+                        ? `repeat-${localTask.originRepeatId}-${localTask.createdDate || date}`
+                        : `task-${localTask.id}`;
+
+                    const driveTask = driveTaskMap.get(key);
+
+                    if (!driveTask) {
+                        // Dropboxに存在しないタスク（このデバイスで新規追加したがまだ保存されていない）
+                        driveTaskMap.set(key, localTask);
                     } else {
-                        const existingTask = taskMap.get(key);
-                        const newTask = task;
-                        const existingStatus = this.callbacks.getTaskStatus(existingTask);
-                        const newStatus = this.callbacks.getTaskStatus(newTask);
-
-                        let taskToKeep = existingTask;
-
-                        if (newStatus === 'completed' && existingStatus !== 'completed') {
-                            taskToKeep = newTask;
-                        } else if (existingStatus === 'completed' && newStatus !== 'completed') {
-                            taskToKeep = existingTask;
-                        } else if (existingStatus === 'running' && newStatus === 'pending') {
-                            taskToKeep = existingTask;
-                        } else if (newStatus === 'running' && existingStatus === 'pending') {
-                            taskToKeep = newTask;
-                        } else {
-                            const existingTimestamp = existingTask.updatedAt || '1970-01-01T00:00:00.000Z';
-                            const newTimestamp = newTask.updatedAt || '1970-01-01T00:00:00.000Z';
-                            if (newTimestamp >= existingTimestamp) {
-                                taskToKeep = newTask;
-                            }
+                        // 両方に存在する場合: running中のみローカルを保護
+                        const localStatus = this.callbacks.getTaskStatus(localTask);
+                        if (localStatus === 'running') {
+                            // このデバイスで計測中のタスクはローカルを優先
+                            driveTaskMap.set(key, localTask);
                         }
-                        taskMap.set(key, taskToKeep);
                     }
                 }
 
-                let mergedTasks = Array.from(taskMap.values());
+                let mergedTasks = Array.from(driveTaskMap.values());
 
                 const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
                 const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
