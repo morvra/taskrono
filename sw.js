@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taskrono-v2.4.3';
+const CACHE_NAME = 'taskrono-v2.4.4';
 
 const STATIC_ASSETS = [
     './',
@@ -57,6 +57,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
     const isJsModule = JS_MODULES.some(m => event.request.url.endsWith(m.replace('./', '/')));
+
+    // ★ Dropboxへのリクエストは常にネットワーク（キャッシュ禁止）
+    if (url.hostname.includes('dropbox.com') || url.hostname.includes('dropboxapi.com')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
 
     // JSモジュール: ネットワーク優先（失敗時はキャッシュにフォールバック）
     if (isJsModule) {
