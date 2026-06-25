@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             dailyTaskListApp.updateAuthUi(false);
         }
+    }
 
 		// 認証開始処理
 		dailyTaskListApp.authorizeButton.addEventListener('click', async () => {
