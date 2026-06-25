@@ -120,7 +120,6 @@ export const dailyTaskListApp = {
     dbx: null,
     saveTimeout: null,
     lastSyncTime: 0,
-    isSyncingFromDropbox: false,
     defaultFavicon: './taskrono.ico',
     runningFavicon: './taskrono_running.ico',
     isSyncingFromDropbox: false,  // Dropboxからのロード中はtrue（この間はsaveState()がDropbox保存をスキップ）
@@ -866,7 +865,6 @@ loadStateFromDropbox: async function(showNotification = true) {
             if (importedData.repeatTasks) state.repeatTasks = importedData.repeatTasks;
             state.lastDate = importedData.lastDate || state.lastDate;
 
-            // 並列取得済みコンテンツを渡してinboxとcommandを処理
             const inboxContent = inboxResponse ? await inboxResponse.result.fileBlob.text() : '';
             await this.importTasksFromInbox(inboxContent);
 
