@@ -787,12 +787,16 @@ loadStateFromDropbox: async function(showNotification = true) {
                         // Dropboxに存在しないタスク（このデバイスで新規追加したがまだ保存されていない）
                         driveTaskMap.set(key, localTask);
                     } else {
-                        // 両方に存在する場合: running中のみローカルを保護
+                        // 両方に存在する場合:
+                        // Dropboxがcompletedなら必ずDropboxを優先（どちらかの端末で完了済み）
+                        // Dropboxがrunningまたはpendingで、ローカルがrunningなら計測中を保護
                         const localStatus = this.callbacks.getTaskStatus(localTask);
-                        if (localStatus === 'running') {
-                            // このデバイスで計測中のタスクはローカルを優先
+                        const driveStatus = this.callbacks.getTaskStatus(driveTask);
+                        if (localStatus === 'running' && driveStatus !== 'completed') {
+                            // ローカルで計測中、かつDropboxでも完了していない → ローカルを保護
                             driveTaskMap.set(key, localTask);
                         }
+                        // それ以外（Dropboxがcompletedなど）はDropboxをそのまま採用
                     }
                 }
 
