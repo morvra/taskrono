@@ -7,6 +7,7 @@ export const state = {
     repeatTasks: [],
     sections: [],
     archivedTasks: {},
+    loggedDates: [],
     viewDate: null,
     lastDate: null,
     settings: { dayChangeHour: 4 },

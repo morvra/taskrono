@@ -766,14 +766,41 @@ async function checkDayChange() {
 				}
 			}
 
-			// 2. アーカイブ処理：一昨日以前のデータをアーカイブへ移動
-			const sortedDates = Object.keys(state.dailyTasks).sort();
-			for (const dateKey of sortedDates) {
-				if (dateKey < yesterdayStr) {
-					archiveCompletedTasks(dateKey);
-					await dailyTaskListApp.saveMonthlyLog(dateKey);
-				}
-			}
+      // 2. アーカイブ処理 + 月次ログ保存
+      // 「まだログ保存されていない日」だけを対象にする
+      const datesToLog = [];
+      const sortedDates = Object.keys(state.dailyTasks).sort();
+      for (const dateKey of sortedDates) {
+          if (dateKey < yesterdayStr) {
+              archiveCompletedTasks(dateKey);
+              // archivedTasksに実際にタスクがある日だけログ保存対象にする
+              // （すでにログ済みの日は state.loggedDates で管理）
+              const hasArchivedTasks = (state.archivedTasks[dateKey] || [])
+                  .some(t => t.startTime && t.endTime);
+              const alreadyLogged = (state.loggedDates || []).includes(dateKey);
+              if (hasArchivedTasks && !alreadyLogged) {
+                  datesToLog.push(dateKey);
+              }
+          }
+      }
+
+      // 月別にグループ化して並列保存
+      if (datesToLog.length > 0) {
+          const datesByMonth = {};
+          for (const dateKey of datesToLog) {
+              const yearMonth = dateKey.slice(0, 7);
+              if (!datesByMonth[yearMonth]) datesByMonth[yearMonth] = [];
+              datesByMonth[yearMonth].push(dateKey);
+          }
+          await Promise.all(
+              Object.values(datesByMonth).map(monthDates =>
+                  dailyTaskListApp.saveMonthlyLogBatch(monthDates)
+              )
+          );
+          // 保存済み日付を記録
+          if (!state.loggedDates) state.loggedDates = [];
+          state.loggedDates = [...new Set([...state.loggedDates, ...datesToLog])];
+      }
 
 			// 翌日分のリピートタスクを生成
 			generateTomorrowRepeats();
