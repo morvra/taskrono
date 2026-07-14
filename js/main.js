@@ -450,8 +450,17 @@ document.addEventListener('DOMContentLoaded', () => {
 	    generateTomorrowRepeats();
 	    setInterval(checkDayChange, 1000 * 60); 
 	    updateTitle();
-	    render();
-	    updateTimeDisplays();
+      const initialTasks = getTasksForViewDate();
+      const firstUncompletedTask = initialTasks.find(t => getTaskStatus(t) !== 'completed');
+      if (firstUncompletedTask) {
+          state.focusedTaskId = firstUncompletedTask.id;
+      } else if (initialTasks.length > 0) {
+          state.focusedTaskId = initialTasks[initialTasks.length - 1].id;
+      } else {
+          state.focusedTaskId = null;
+      }
+      render({ scroll: true });
+      updateTimeDisplays();
 	    setInterval(updateTimeDisplays, 1000*30);
 	    window.addEventListener('pageshow', function(event) {
 	        if (event.persisted) {
