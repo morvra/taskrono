@@ -896,7 +896,7 @@ loadStateFromDropbox: async function(showNotification = true) {
             Object.values(state.dailyTasks).flat().forEach(task => this.callbacks.updateTaskStatus(task));
             this.isSyncingFromDropbox = false;
             this.callbacks.saveState();
-            this.callbacks.render();
+            this.callbacks.render({ scroll: true });
             await this.callbacks.checkDayChange();
             this.callbacks.restoreRunningTaskState();
 

@@ -450,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	    generateTomorrowRepeats();
 	    setInterval(checkDayChange, 1000 * 60); 
 	    updateTitle();
+      
       const initialTasks = getTasksForViewDate();
       const firstUncompletedTask = initialTasks.find(t => getTaskStatus(t) !== 'completed');
       if (firstUncompletedTask) {
