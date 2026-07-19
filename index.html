@@ -329,7 +329,10 @@
                 </div>
                 <div>
                     <label for="edit-task-endTime" class="text-sm font-medium text-gray-700">終了時刻</label>
-                    <input type="time" id="edit-task-endTime" class="w-full p-2 border rounded-lg">
+                    <div class="flex gap-1 mt-1">
+                        <input type="time" id="edit-task-endTime" class="flex-1 p-2 border rounded-lg">
+                        <button type="button" id="estimate-end-time-btn" title="開始時刻+見積時間から終了時刻を計算" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-500 flex-shrink-0">🕓</button>
+                    </div>
                 </div>
             </div>
         </div>

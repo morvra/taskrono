@@ -1561,6 +1561,26 @@ async function checkDayChange() {
         document.getElementById('edit-task-startTime').value = `${h}:${m}`;
     });
 
+    document.getElementById('estimate-end-time-btn').addEventListener('click', () => {
+        const startTimeValue = document.getElementById('edit-task-startTime').value;
+        if (!startTimeValue) {
+            showToast('先に開始時刻を入力してください。');
+            return;
+        }
+        const estimatedTime = parseInt(document.getElementById('edit-task-time').value, 10);
+        if (isNaN(estimatedTime) || estimatedTime < 0) {
+            showToast('見積時間を正しく入力してください。');
+            return;
+        }
+        const [h, m] = startTimeValue.split(':').map(Number);
+        const endDate = new Date();
+        endDate.setHours(h, m, 0, 0);
+        endDate.setMinutes(endDate.getMinutes() + estimatedTime);
+        const eh = endDate.getHours().toString().padStart(2, '0');
+        const em = endDate.getMinutes().toString().padStart(2, '0');
+        document.getElementById('edit-task-endTime').value = `${eh}:${em}`;
+    });
+
 		document.querySelectorAll('.modal').forEach(modal => {
 			modal.addEventListener('click', (e) => {
 				if (e.target === modal) closeModal(modal.id);
