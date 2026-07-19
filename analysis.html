@@ -72,7 +72,7 @@
                         ログアウト
                     </button>
                 </div>
-                <p id="drive-status" class="text-gray-400 hidden"></p>
+                <p id="drive-status" class="sr-only" aria-live="polite"></p>
             </div>
         </div>
     </header>
@@ -288,9 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerRender();
             return;
         }
-		// ステータスを一時的に表示
-        dailyTaskListApp.driveStatusEl.textContent = 'loading';
-        dailyTaskListApp.driveStatusEl.classList.remove('hidden');
         
         try {
             // メインデータとアーカイブデータを並行して取得
