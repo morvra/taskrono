@@ -108,14 +108,12 @@
                         </button>
                     </div>
                     <div class="relative pt-1 min-h-[20rem] flex flex-col">
-                        <div id="project-filter-chip" class="hidden flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-full pl-3 pr-1 py-1 mb-2">
-                            <span id="project-filter-chip-label" class="text-xs text-blue-700 font-medium truncate"></span>
-                            <button id="reset-project-filter-btn" title="絞り込みを解除してすべてのプロジェクトを表示" class="text-blue-400 hover:text-blue-700 hover:bg-blue-100 rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 transition-colors duration-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
+                        <button id="reset-project-filter-btn" title="絞り込みを解除してすべてのプロジェクトを表示" class="hidden items-center gap-1 self-start text-xs text-blue-600 hover:text-blue-800 font-medium mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            絞り込みを解除
+                        </button>
                         <div class="relative flex-grow">
                             <canvas id="project-pie-chart"></canvas>
                             <div id="chart-no-data" class="absolute inset-0 flex items-center justify-center text-gray-500 hidden">この期間のデータはありません</div>
@@ -621,23 +619,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TIME ANALYSIS VIEW ---
     function renderTimeAnalysisView() {
         updatePeriodDisplay();
-        updateProjectFilterChip();
+        updateProjectFilterButton();
         const tasks = getTasksForPeriod();
         renderPieChart(tasks);
         renderTrendChart();
         renderTimeAnalysisTable(tasks);
     }
 
-    function updateProjectFilterChip() {
-        const chip = document.getElementById('project-filter-chip');
-        const label = document.getElementById('project-filter-chip-label');
+    function updateProjectFilterButton() {
+        const btn = document.getElementById('reset-project-filter-btn');
         if (state.timeProjectFilter === 'all') {
-            chip.classList.add('hidden');
-            return;
+            btn.classList.add('hidden');
+            btn.classList.remove('flex');
+        } else {
+            btn.classList.remove('hidden');
+            btn.classList.add('flex');
         }
-        const project = state.projects.find(p => p.id === state.timeProjectFilter);
-        label.textContent = project ? project.name : '選択中のプロジェクト';
-        chip.classList.remove('hidden');
     }
 
     function movePeriod(direction) {
