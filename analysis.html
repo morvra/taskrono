@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .tab-link.active { border-color: #3b82f6; background-color:#3b82f6; color:white; }
+        .tab-link.active { color: #2563eb; border-color: #2563eb; }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
         .task-table th, .task-table td {
@@ -77,9 +77,9 @@
         </div>
     </header>
 
-    <nav class="flex space-x-0 border-b border-gray-200">
-        <button class="tab-link text-sm md:text-base py-2 px-4 text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex-shrink-0" data-tab="time-analysis">時間分析</button>
-        <button class="tab-link text-sm md:text-base py-2 px-4 text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex-shrink-0" data-tab="repeat-analysis">リピートタスク</button>
+    <nav class="flex gap-1 border-b border-gray-200">
+        <button class="tab-link -mb-px px-4 py-2.5 text-sm md:text-base font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-800 hover:border-gray-300 transition-colors duration-200 flex-shrink-0" data-tab="time-analysis">時間分析</button>
+        <button class="tab-link -mb-px px-4 py-2.5 text-sm md:text-base font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-800 hover:border-gray-300 transition-colors duration-200 flex-shrink-0" data-tab="repeat-analysis">リピートタスク</button>
     </nav>
 
     <main class="mt-6">
