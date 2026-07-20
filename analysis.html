@@ -117,6 +117,12 @@
                 </div>
                 <!-- Task List -->
                 <div class="lg:col-span-2 bg-white p-4 rounded-lg shadow-md">
+                    <div id="trend-chart-container" class="mb-4 pb-4 border-b border-gray-100">
+                        <p id="trend-chart-title" class="text-xs font-medium text-gray-500 mb-1"></p>
+                        <div class="relative w-full h-28">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                    </div>
                     <div class="flex flex-col md:flex-row gap-4 mb-4">
                         <div class="flex-grow">
                             <label for="time-filter-project" class="block text-sm font-medium text-gray-700">プロジェクトで絞り込み</label>
@@ -164,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isLoadingMore: false,
         // Chart.js instance
         pieChartInstance: null,
+        trendChartInstance: null,
     };
 
     // --- DROPBOX APP OBJECT ---
@@ -602,6 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePeriodDisplay();
         const tasks = getTasksForPeriod();
         renderPieChart(tasks);
+        renderTrendChart();
         renderTimeAnalysisTable(tasks);
     }
 
@@ -738,6 +746,154 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // --- TREND CHART (recent-period totals) ---
+    const TREND_BUCKET_COUNT = { date: 14, week: 12, month: 12, year: 5 };
+    const TREND_UNIT_LABEL = { date: '日', week: '週', month: 'ヶ月', year: '年' };
+
+    // 指定モード・基準日から、その期間バケットの開始日・終了日を返す（getTasksForPeriodと同じ区切り方）
+    function getBucketRange(mode, refDate) {
+        const d = new Date(refDate);
+        d.setHours(0, 0, 0, 0);
+        let startDate, endDate;
+        switch (mode) {
+            case 'week': {
+                const dayOfWeek = d.getDay();
+                startDate = new Date(d);
+                startDate.setDate(d.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+                endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+                break;
+            }
+            case 'month':
+                startDate = new Date(d.getFullYear(), d.getMonth(), 1);
+                endDate = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+                break;
+            case 'year':
+                startDate = new Date(d.getFullYear(), 0, 1);
+                endDate = new Date(d.getFullYear(), 11, 31);
+                break;
+            case 'date':
+            default:
+                startDate = d;
+                endDate = d;
+                break;
+        }
+        return { startDate, endDate };
+    }
+
+    // 基準日をモード単位でamount分だけ前後にずらす（movePeriodと同じ考え方）
+    function shiftDate(mode, date, amount) {
+        const d = new Date(date);
+        switch (mode) {
+            case 'date': d.setDate(d.getDate() + amount); break;
+            case 'week': d.setDate(d.getDate() + 7 * amount); break;
+            case 'month': d.setMonth(d.getMonth() + amount); break;
+            case 'year': d.setFullYear(d.getFullYear() + amount); break;
+        }
+        return d;
+    }
+
+    function formatBucketLabel(mode, range) {
+        switch (mode) {
+            case 'month':
+                return range.startDate.toLocaleDateString('ja-JP', { month: 'short' });
+            case 'year':
+                return `${range.startDate.getFullYear()}`;
+            case 'date':
+            case 'week':
+            default:
+                return range.startDate.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+        }
+    }
+
+    // 現在選択中の期間を末尾として、直近N期間ぶんの合計時間を集計する
+    // ※ プロジェクト絞り込み（time-filter-project）は反映するが、キーワード検索は反映しない
+    function getTrendData() {
+        const mode = state.timeViewMode;
+        const count = TREND_BUCKET_COUNT[mode];
+        if (!count) return null; // 'total'モードには推移の概念がない
+
+        const allTasks = getAllCompletedTasks();
+
+        const buckets = [];
+        for (let i = count - 1; i >= 0; i--) {
+            const refDate = shiftDate(mode, state.timeViewDate, -i);
+            const range = getBucketRange(mode, refDate);
+            buckets.push({
+                label: formatBucketLabel(mode, range),
+                startDate: range.startDate,
+                endDate: range.endDate,
+                isCurrent: i === 0
+            });
+        }
+
+        const totals = buckets.map(bucket => {
+            let sum = 0;
+            allTasks.forEach(task => {
+                if (state.timeProjectFilter !== 'all' && task.projectId !== state.timeProjectFilter) return;
+                const taskDate = new Date(task.completedDate);
+                taskDate.setHours(0, 0, 0, 0);
+                if (taskDate >= bucket.startDate && taskDate <= bucket.endDate) {
+                    sum += calculateActualTime(task);
+                }
+            });
+            return sum;
+        });
+
+        return { buckets, totals };
+    }
+
+    function renderTrendChart() {
+        const container = document.getElementById('trend-chart-container');
+        const trendData = getTrendData();
+
+        if (!trendData) {
+            container.classList.add('hidden');
+            return;
+        }
+        container.classList.remove('hidden');
+
+        const { buckets, totals } = trendData;
+        const count = buckets.length;
+        document.getElementById('trend-chart-title').textContent = `直近${count}${TREND_UNIT_LABEL[state.timeViewMode]}の推移`;
+
+        if (state.trendChartInstance) {
+            state.trendChartInstance.destroy();
+        }
+
+        const hours = totals.map(s => Math.round((s / 3600) * 10) / 10);
+        const colors = buckets.map(b => b.isCurrent ? '#2563eb' : '#d1d5db');
+
+        state.trendChartInstance = new Chart(document.getElementById('trend-chart'), {
+            type: 'bar',
+            data: {
+                labels: buckets.map(b => b.label),
+                datasets: [{
+                    data: hours,
+                    backgroundColor: colors,
+                    borderRadius: 4,
+                    maxBarThickness: 24
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => formatTime(totals[ctx.dataIndex])
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                    y: { display: false, beginAtZero: true }
+                }
+            }
+        });
+    }
+
     function renderTimeAnalysisTable(tasks) {
         const container = document.getElementById('time-tasks-list-container');
         if (tasks.length === 0) {
