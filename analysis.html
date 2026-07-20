@@ -723,6 +723,20 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onHover: (evt, elements) => {
+                    evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                },
+                onClick: (evt, elements) => {
+                    if (!elements.length) return;
+                    const projectId = sortedProjectData[elements[0].index][0];
+                    // 「プロジェクトなし」はドロップダウンに対応する選択肢が無いため、
+                    // クリックしても絞り込みは行わない
+                    if (projectId === 'none') return;
+                    state.timeProjectFilter = projectId;
+                    document.getElementById('time-filter-project').value = projectId;
+                    state.timeAnalysisVisibleItems = 50;
+                    renderTimeAnalysisView();
+                },
                 plugins: {
                     legend: { position: 'top' },
                     tooltip: {
@@ -878,6 +892,16 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onHover: (evt, elements) => {
+                    evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                },
+                onClick: (evt, elements) => {
+                    if (!elements.length) return;
+                    const bucket = buckets[elements[0].index];
+                    state.timeViewDate = new Date(bucket.startDate);
+                    state.timeAnalysisVisibleItems = 50;
+                    renderTimeAnalysisView();
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
