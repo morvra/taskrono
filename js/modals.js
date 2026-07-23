@@ -100,7 +100,7 @@ export function openAddTaskModal() {
     }
 
     openModal('add-task-modal');
-    document.getElementById('new-task-name').focus();
+    document.getElementById('new-task-name').focus({ preventScroll: true });
 }
 
 // 現在のセクションを取得（sections.js に依存しないよう state から計算）
@@ -178,7 +178,7 @@ export function openTaskEditModal(id) {
 
     document.getElementById('create-repeat-from-task').style.display = 'block';
     openModal('task-edit-modal');
-    document.getElementById('edit-task-name').focus();
+    document.getElementById('edit-task-name').focus({ preventScroll: true });
 }
 
 export function saveTaskEdit() {
@@ -305,7 +305,7 @@ export function openMemoEditModal(id) {
     const memoTextEl = document.getElementById('edit-memo-text');
     memoTextEl.value = task.memo || '';
     openModal('memo-edit-modal');
-    memoTextEl.focus();
+    memoTextEl.focus({ preventScroll: true });
 }
 
 export function saveMemoEdit() {
@@ -443,7 +443,7 @@ export function openRepeatEditModal(id) {
     }
 
     openModal('repeat-edit-modal');
-    document.getElementById('edit-repeat-name').focus();
+    document.getElementById('edit-repeat-name').focus({ preventScroll: true });
 }
 
 export function saveRepeatEdit() {
