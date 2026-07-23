@@ -15,7 +15,36 @@ export const modalCallbacks = {
 
 // --- Modal open/close ---
 
+// モーダル表示中は body を position:fixed で固定し、
+// キーボード表示やアドレスバーの伸縮などブラウザ起因のスクロールも含めて
+// 背景（タスク一覧）が一切動かないようにする。
+let scrollLockY = 0;
+let isScrollLocked = false;
+
+function lockBodyScroll() {
+    if (isScrollLocked) return;
+    scrollLockY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollLockY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    isScrollLocked = true;
+}
+
+function unlockBodyScroll() {
+    if (!isScrollLocked) return;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, scrollLockY);
+    isScrollLocked = false;
+}
+
 export function openModal(modalId) {
+    lockBodyScroll();
     document.getElementById(modalId).classList.add('active');
     if (modalCallbacks.isMobile()) {
         const container = document.getElementById('bottom-ui-container');
@@ -32,6 +61,12 @@ export function closeModal(modalId) {
     if (modalCallbacks.isMobile()) {
         const container = document.getElementById('bottom-ui-container');
         if (container) container.style.display = 'flex';
+    }
+
+    // 他に開いているモーダルが無ければロック解除（多重オープン対策）
+    const anyModalStillActive = document.querySelector('.modal.active');
+    if (!anyModalStillActive) {
+        unlockBodyScroll();
     }
 }
 
