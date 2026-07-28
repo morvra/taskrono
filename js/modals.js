@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { escapeHtml, calculateActualTime, getFormattedDate } from './utils.js';
 import { addTask } from './tasks.js';
+import { getRepeatTextShort } from './render/renderRepeat.js';
 
 export const modalCallbacks = {
     getTasksForViewDate: null,
@@ -57,6 +58,7 @@ export function closeModal(modalId) {
     if (modalId === 'task-edit-modal') {
         state.editingTaskDateKey = null;
         state.editingTaskId = null;
+        state.pendingOriginRepeatId = null;
     }
     if (modalCallbacks.isMobile()) {
         const container = document.getElementById('bottom-ui-container');
@@ -162,6 +164,7 @@ export function openTaskEditModal(id) {
 
     state.editingTaskId = id;
     state.editingTaskDateKey = null;
+    state.pendingOriginRepeatId = null;
     document.getElementById('edit-task-name').value = task.name || '';
     document.getElementById('edit-task-time').value = task.estimatedTime || 0;
     modalCallbacks.updateProjectDropdowns();
@@ -169,6 +172,7 @@ export function openTaskEditModal(id) {
     document.getElementById('edit-task-project').value = task.projectId || '';
     document.getElementById('edit-task-section').value = task.sectionId || '';
     document.getElementById('edit-task-memo').value = task.memo || '';
+    setupRepeatPickerForTaskEdit();
 
     setTimeout(() => {
         const memoTextarea = document.getElementById('edit-task-memo');
@@ -214,6 +218,115 @@ export function openTaskEditModal(id) {
     document.getElementById('create-repeat-from-task').style.display = 'block';
     openModal('task-edit-modal');
     document.getElementById('edit-task-name').focus({ preventScroll: true });
+}
+
+// --- Repeat picker (task-edit-modal 用) ---
+
+function setupRepeatPickerForTaskEdit() {
+    const btn = document.getElementById('pick-repeat-for-task-btn');
+    const popup = document.getElementById('repeat-picker-popup');
+    if (!btn || !popup) return;
+
+    popup.classList.add('hidden');
+    btn.style.display = state.repeatTasks.length > 0 ? '' : 'none';
+
+    // 前回モーダルを開いた時のクリックハンドラが積み重ならないよう、ボタンを複製して差し替える
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    newBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = popup.classList.contains('hidden');
+        if (willOpen) {
+            renderRepeatPickerList(popup);
+        }
+        popup.classList.toggle('hidden', !willOpen);
+    });
+
+    if (!popup.dataset.outsideClickBound) {
+        document.addEventListener('click', (e) => {
+            if (popup.classList.contains('hidden')) return;
+            if (e.target.closest('#repeat-picker-popup') || e.target.closest('#pick-repeat-for-task-btn')) return;
+            popup.classList.add('hidden');
+        });
+        popup.dataset.outsideClickBound = 'true';
+    }
+}
+
+function renderRepeatPickerList(popup) {
+    popup.innerHTML = '';
+
+    const templates = state.repeatTasks.filter(rt => rt.type === 'template');
+    const others = state.repeatTasks.filter(rt => rt.type !== 'template');
+
+    if (templates.length === 0 && others.length === 0) {
+        popup.innerHTML = '<div class="p-3 text-sm text-gray-400">リピートタスクがありません</div>';
+        return;
+    }
+
+    const buildItem = (rt) => {
+        const project = state.projects.find(p => p.id === rt.projectId);
+        const borderColor = project ? project.color : '#d1d5db';
+
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'w-full text-left px-3 py-2 border hover:bg-blue-50 flex items-center justify-between gap-2';
+        item.style.borderColor = borderColor;
+        item.style.borderLeftWidth = '4px';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'truncate text-sm text-gray-800';
+        nameSpan.textContent = rt.name;
+
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'text-xs text-gray-400 flex-shrink-0 whitespace-nowrap';
+        metaSpan.textContent = `${getRepeatTextShort(rt)}・${rt.estimatedTime}分`;
+
+        item.appendChild(nameSpan);
+        item.appendChild(metaSpan);
+
+        item.addEventListener('click', () => {
+            applyRepeatToTaskEditForm(rt);
+            popup.classList.add('hidden');
+        });
+
+        return item;
+    };
+
+    if (templates.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'px-3 pt-2 pb-1 text-xs font-bold text-gray-400';
+        label.textContent = 'テンプレート';
+        popup.appendChild(label);
+        templates.forEach(rt => popup.appendChild(buildItem(rt)));
+    }
+
+    if (others.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'px-3 pt-2 pb-1 text-xs font-bold text-gray-400 border-t border-gray-100 mt-1';
+        label.textContent = 'その他のリピート';
+        popup.appendChild(label);
+        others.forEach(rt => popup.appendChild(buildItem(rt)));
+    }
+}
+
+function applyRepeatToTaskEditForm(repeatTask) {
+    document.getElementById('edit-task-name').value = repeatTask.name || '';
+    document.getElementById('edit-task-time').value = repeatTask.estimatedTime || 0;
+    document.getElementById('edit-task-project').value = repeatTask.projectId || '';
+
+    const subtaskContainer = document.getElementById('edit-task-subtasks');
+    subtaskContainer.innerHTML = '';
+    const subtasksCopy = repeatTask.subtasks ? JSON.parse(JSON.stringify(repeatTask.subtasks)) : [];
+    subtasksCopy.forEach(st => addSubtaskToModal('task', st.name));
+
+    const subtaskToggle = document.getElementById('task-subtask-toggle');
+    const subtaskContent = document.getElementById('task-subtask-content');
+    const hasSubtasks = subtasksCopy.length > 0;
+    subtaskToggle.checked = hasSubtasks;
+    subtaskContent.classList.toggle('hidden', !hasSubtasks);
+
+    state.pendingOriginRepeatId = repeatTask.id;
 }
 
 export function saveTaskEdit() {
@@ -294,6 +407,13 @@ export function saveTaskEdit() {
     }
     task.actualTime = calculateActualTime(task);
     modalCallbacks.updateTaskStatus(task);
+
+    if (state.pendingOriginRepeatId) {
+        task.originRepeatId = state.pendingOriginRepeatId;
+        task.isManuallyAddedRepeat = true;
+        state.pendingOriginRepeatId = null;
+    }
+
     closeModal('task-edit-modal');
     task.updatedAt = new Date().toISOString();
     modalCallbacks.saveAndRender();

@@ -20,7 +20,8 @@ export const state = {
     editingTaskId: null,
     editingTaskDateKey: null,
     editingRepeatId: null,
-    editingMemoTaskId: null
+    editingMemoTaskId: null,
+    pendingOriginRepeatId: null
 };
 
 export function loadStateFromStorage() {

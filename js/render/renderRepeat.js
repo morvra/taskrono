@@ -46,7 +46,7 @@ function getRepeatText(rt) {
     }
 }
 
-function getRepeatTextShort(rt) {
+export function getRepeatTextShort(rt) {
     const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
     switch (rt.type) {
         case 'daily': return '毎日';
