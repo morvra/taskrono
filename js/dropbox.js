@@ -792,8 +792,11 @@ loadStateFromDropbox: async function(showNotification = true) {
                         // Dropboxがrunningまたはpendingで、ローカルがrunningなら計測中を保護
                         const localStatus = this.callbacks.getTaskStatus(localTask);
                         const driveStatus = this.callbacks.getTaskStatus(driveTask);
+                        const localIsNewer = (localTask.updatedAt || '') > (driveTask.updatedAt || '');
+
                         if (localStatus === 'running' && driveStatus !== 'completed') {
-                            // ローカルで計測中、かつDropboxでも完了していない → ローカルを保護
+                            driveTaskMap.set(key, localTask);
+                        } else if (localIsNewer) {
                             driveTaskMap.set(key, localTask);
                         }
                         // それ以外（Dropboxがcompletedなど）はDropboxをそのまま採用
@@ -820,9 +823,10 @@ loadStateFromDropbox: async function(showNotification = true) {
                 for (const dateKey in state.dailyTasks) {
                     const foundTask = state.dailyTasks[dateKey].find(t => t.id === preSyncRunningTaskId);
                     if (foundTask) {
-                        foundTask.status = 'running';
-                        state.activeTaskId = preSyncRunningTaskId;
-                        restoredActiveDate = dateKey;
+                        if (this.callbacks.getTaskStatus(foundTask) !== 'completed') {
+                            state.activeTaskId = preSyncRunningTaskId;
+                            restoredActiveDate = dateKey;
+                        }
                         break;
                     }
                 }
