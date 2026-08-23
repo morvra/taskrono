@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
           state.focusedTaskId = null;
       }
-      render({ scroll: true });
+      render({ scroll: true, instant: true });
       updateTimeDisplays();
 	    setInterval(updateTimeDisplays, 1000*30);
 	    window.addEventListener('pageshow', function(event) {

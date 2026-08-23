@@ -162,7 +162,7 @@ export function renderTodayTasks(options = {}) {
 
     const focusedEl = document.querySelector('.task-row.focused, .task-card.focused');
     if (focusedEl && options.scroll) {
-        focusedEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        focusedEl.scrollIntoView({ block: 'center', behavior: options.instant ? 'auto' : 'smooth' });
     }
 }
 
