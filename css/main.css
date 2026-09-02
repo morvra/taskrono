@@ -662,3 +662,144 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .animate-spin { animation: spin 1s linear infinite; }
+
+
+/* ============================================================
+   コンパクト・シグナル ── 状態を左ボーダーの色で示すデザイン
+   ============================================================ */
+
+:root {
+  --signal-ink: #23261f;
+  --signal-paper: #faf9f6;
+  --signal-line: #e4e1d8;
+  --signal-line-strong: #cfccc0;
+  --signal-blue: #2f5fac;   /* 実行中・次のタスク */
+  --signal-green: #4b7a51;  /* 完了 */
+  --signal-amber: #b9812f;  /* 先送り・スワイプ左 */
+  --signal-red: #a4443c;    /* 締切超過・削除 */
+  --signal-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body { background-color: var(--signal-paper) !important; color: var(--signal-ink); }
+
+/* ---- ヘッダー ---- */
+.header {
+  background: var(--signal-paper) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--signal-line);
+}
+.header h1 { color: var(--signal-ink) !important; font-weight: 600; letter-spacing: -0.01em; }
+#current-date { color: #8a877c !important; }
+
+.header-stats p:last-child,
+#completed-tasks-stats,
+#total-estimated-end-time,
+#completed-tasks-stats-desktop,
+#total-estimated-end-time-desktop {
+  font-family: var(--signal-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--signal-ink) !important;
+}
+
+/* ---- タブ ---- */
+.tab-link {
+  color: #8a877c !important;
+  border-bottom: 2px solid transparent;
+  border-radius: 0 !important;
+}
+.tab-link:hover { background: transparent !important; color: var(--signal-ink) !important; }
+.tab-link.active {
+  background: transparent !important;
+  color: var(--signal-blue) !important;
+  border-color: var(--signal-blue);
+  font-weight: 600;
+}
+@media (min-width: 1200px) {
+  #desktop-sidebar .tab-link.active { border-color: var(--signal-blue); color: var(--signal-blue) !important; }
+}
+
+/* ---- 日付ナビ・その他ボタン ---- */
+#today-date-nav button,
+.small-btn {
+  background: #fff !important;
+  border: 1px solid var(--signal-line);
+  box-shadow: none !important;
+  border-radius: 6px !important;
+}
+#today-date-nav button:hover { border-color: var(--signal-line-strong); }
+
+/* ---- タスクカード ---- */
+.task-card-swipe-wrapper {
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--signal-line);
+  margin-top: 0 !important;
+}
+.task-card {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border-left: 3px solid var(--signal-line-strong);
+  padding-left: 12px !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.task-card.running-enhanced {
+  border-left-color: var(--signal-blue) !important;
+  background-color: rgba(47, 95, 172, 0.06) !important;
+}
+.task-card.completed {
+  border-left-color: var(--signal-green) !important;
+  background-color: transparent !important;
+}
+.task-card.completed span,
+.task-card.completed .task-name { color: #9a9689 !important; text-decoration: line-through; }
+.task-row.focused,
+.task-card.focused,
+.task-card.running-enhanced.focused {
+  background-color: rgba(185, 129, 47, 0.08) !important;
+}
+.dragging { background-color: rgba(185, 129, 47, 0.1) !important; }
+.drag-over { background-color: rgba(47, 95, 172, 0.08) !important; }
+
+/* ---- 数字まわり（見積・時刻・タイマー） ---- */
+.running-timer,
+.task-table td.font-mono,
+.time-input,
+.task-table th.font-mono {
+  font-family: var(--signal-mono);
+  font-variant-numeric: tabular-nums;
+}
+.running-timer { color: var(--signal-blue) !important; font-weight: 600; }
+.running-progress-bg { background: var(--signal-blue) !important; }
+
+/* ---- スワイプ背景（左右アクション） ---- */
+.swipe-bg-right { background-color: var(--signal-green) !important; }
+.swipe-bg-left { background-color: var(--signal-amber) !important; }
+
+/* ---- サブタスク ---- */
+.subtask-item { border-bottom: 1px solid var(--signal-line); }
+.subtask-item.completed span { color: #9a9689 !important; }
+.subtask-container { background-color: transparent !important; box-shadow: none !important; border-left: 2px solid var(--signal-line); }
+
+/* ---- 下部ナビ・FAB ---- */
+#bottom-nav-bar {
+  background-color: rgba(250, 249, 246, 0.92) !important;
+  border: 1px solid var(--signal-line);
+  box-shadow: 0 2px 8px rgba(35, 38, 31, 0.06) !important;
+}
+.bottom-nav-btn { color: #8a877c !important; }
+.bottom-nav-btn.active { color: var(--signal-blue) !important; }
+#add-task-btn-floating-mobile {
+  background-color: var(--signal-ink) !important;
+  box-shadow: 0 2px 8px rgba(35, 38, 31, 0.2) !important;
+}
+
+/* ---- モーダル ---- */
+.modal-content { border-radius: 8px !important; box-shadow: 0 8px 24px rgba(35, 38, 31, 0.15) !important; }
+.modal-content input,
+.modal-content select,
+.modal-content textarea { border-color: var(--signal-line) !important; border-radius: 6px !important; }
+.modal-content button.bg-blue-500,
+.modal-content button.bg-blue-600 { background-color: var(--signal-blue) !important; }
+
+/* ---- ツールチップ・削除系ボタン ---- */
+#clear-data-btn,
+.bg-red-500 { background-color: var(--signal-red) !important; }
