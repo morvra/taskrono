@@ -12,6 +12,7 @@ export const keyboardCallbacks = {
     openMemoEditModal: null,
     deleteTask: null,
     postponeTask: null,
+    interruptTask: null,
     toggleSubtaskView: null,
     toggleTimer: null,
     moveViewDate: null,
@@ -109,6 +110,7 @@ function handleTodayShortcuts(e) {
         case 'm': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.openMemoEditModal(state.focusedTaskId); break;
         case 'd': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.deleteTask(state.focusedTaskId); break;
         case 'p': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.postponeTask(state.focusedTaskId); break;
+        case 'x': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.interruptTask(state.focusedTaskId); break;
         case 's': e.preventDefault(); if (state.focusedTaskId) keyboardCallbacks.toggleSubtaskView(state.focusedTaskId); break;
         case 'c': {
             e.preventDefault();

@@ -3,7 +3,7 @@
 import { escapeHtml, formatTime, formatClockTime, calculateActualTime, getPlainTaskName, formatTaskName, getFormattedDate } from './utils.js';
 import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
 import { dailyTaskListApp } from './dropbox.js';
-import { taskCallbacks, addTask, deleteTask, postponeTask, moveTaskToToday, toggleTimer, stopActiveTimer } from './tasks.js';
+import { taskCallbacks, addTask, deleteTask, postponeTask, moveTaskToToday, toggleTimer, stopActiveTimer, interruptTask } from './tasks.js';
 import { projectCallbacks, addProject, editProject, deleteProject, archiveProject, unarchiveProject } from './projects.js';
 import { sectionCallbacks, addSection, editSection, deleteSection, getSectionById, getSectionDisplayInfo, getCurrentSection, updateSectionDropdowns, renderSections } from './sections.js';
 import { renderProjectsCallbacks, renderProjects } from './render/renderProjects.js';
@@ -396,6 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTodayCallbacks.toggleSubtaskView = toggleSubtaskView;
       renderTodayCallbacks.handleSwipeStart = handleSwipeStart;
       renderTodayCallbacks.toggleTimer = toggleTimer;
+	  renderTodayCallbacks.interruptTask = interruptTask;
       renderTodayCallbacks.deleteTask = deleteTask;
       renderTodayCallbacks.postponeTask = postponeTask;
       renderTodayCallbacks.moveTaskToToday = moveTaskToToday;
@@ -429,6 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       keyboardCallbacks.postponeTask = postponeTask;
       keyboardCallbacks.toggleSubtaskView = toggleSubtaskView;
       keyboardCallbacks.toggleTimer = toggleTimer;
+	  keyboardCallbacks.interruptTask = interruptTask;
       keyboardCallbacks.moveViewDate = moveViewDate;
       keyboardCallbacks.openRepeatEditModal = openRepeatEditModal;
       keyboardCallbacks.deleteRepeatTask = deleteRepeatTask;
@@ -978,6 +980,9 @@ async function checkDayChange() {
 			rightExtraLong: swipeBackground.querySelector('#swipe-right-extra-long'),
 			leftShort: swipeBackground.querySelector('#swipe-left-short'),
 			leftLong: swipeBackground.querySelector('#swipe-left-long'),
+			leftInterrupt: swipeBackground.querySelector('#swipe-left-interrupt'),
+			leftPostpone: swipeBackground.querySelector('#swipe-left-postpone'),
+			leftExtraLong: swipeBackground.querySelector('#swipe-left-extra-long'),
 		};
 
 		// タスクの状態を確認
@@ -1012,14 +1017,30 @@ async function checkDayChange() {
 		} else if (deltaX < 0) {
 			// 左スワイプ
 			const absDeltaX = Math.abs(deltaX);
-			if (absDeltaX > SWIPE_THRESHOLD_LONG) {
-				actions.leftLong.classList.add('visible');
-				bgLeft.style.backgroundColor = '#ef4444'; // 長(赤) - 削除
-			} else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
-				// 短(黄) - 先送り (60px超えたらアイコン表示)
-				actions.leftShort.classList.add('visible');
+
+			if (isRunning) {
+				// 実行中：中断 → 先送り → 削除
+				if (absDeltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
+					actions.leftExtraLong.classList.add('visible');
+					bgLeft.style.backgroundColor = '#ef4444';
+				} else if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+					actions.leftPostpone.classList.add('visible');
+					bgLeft.style.backgroundColor = '#3b82f6';
+				} else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+					actions.leftInterrupt.classList.add('visible');
+					bgLeft.style.backgroundColor = '#f59e0b';
+				}
+			} else {
+				// 未着手：従来どおり先送り → 削除
+				if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+					actions.leftLong.classList.add('visible');
+					bgLeft.style.backgroundColor = '#ef4444';
+				} else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
+					actions.leftShort.classList.add('visible');
+				}
 			}
 		}
+
 	}
 	// タッチ終了イベント
 	function handleSwipeEnd(e) {
@@ -1042,13 +1063,28 @@ async function checkDayChange() {
 				// 右スワイプ（短）: タイマー
 				toggleTimer(taskId);
 				actionTriggered = true;
-			} else if (swipeDeltaX < -SWIPE_THRESHOLD_LONG) {
-				// 左スワイプ（長）: 削除 (-150px以下)
-				deleteTask(taskId); 
-				actionTriggered = true; 
 			} else if (swipeDeltaX < -SWIPE_THRESHOLD_SHORT) {
-				// 左スワイプ（短）: 先送り (-60px 〜 -150px)
-				postponeTask(taskId);
+				const task = getTasksForViewDate().find(t => t.id === taskId);
+				const absDeltaX = Math.abs(swipeDeltaX);
+
+				if (task && task.status === 'running') {
+					// 実行中：中断 → 先送り → 削除
+					if (absDeltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
+						deleteTask(taskId);
+					} else if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+						postponeTask(taskId);
+					} else {
+						interruptTask(taskId);
+					}
+				} else {
+					// 未着手：従来どおり
+					if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+						deleteTask(taskId);
+					} else {
+						postponeTask(taskId);
+					}
+				}
+
 				actionTriggered = true;
 			}
 
@@ -1408,6 +1444,29 @@ async function checkDayChange() {
 				document.getElementById('new-task-project').value,
 				document.getElementById('new-task-section').value
 			);
+			closeModal('add-task-modal');
+		});
+		document.getElementById('interrupt-new-task-btn').addEventListener('click', () => {
+			// 新しいタスクを追加
+			const newTask = addTask(
+				document.getElementById('new-task-name').value,
+				document.getElementById('new-task-time').value,
+				document.getElementById('new-task-project').value,
+				document.getElementById('new-task-section').value
+			);
+
+			// 入力不備などで追加できなければ、割り込み処理もしない
+			if (!newTask) return;
+
+			// 実行中のタスクを中断
+			const activeTaskId = state.activeTaskId;
+			if (activeTaskId) {
+				interruptTask(activeTaskId);
+			}
+
+			// 新しいタスクの計測を開始
+			toggleTimer(newTask.id);
+
 			closeModal('add-task-modal');
 		});
 		document.getElementById('cancel-add-task-btn').addEventListener('click', () => closeModal('add-task-modal'));

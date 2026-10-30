@@ -251,6 +251,78 @@ export function stopActiveTimer() {
     state.activeTaskId = null;
 }
 
+
+export function interruptTask(id) {
+    const tasks = taskCallbacks.getTasksForViewDate();
+    const task = tasks.find(t => t.id === id);
+
+    // 実行中のタスク以外は中断できない
+    if (!task || task.status !== 'running' || state.activeTaskId !== id) {
+        return null;
+    }
+
+    const now = new Date();
+    const endTime = now.toISOString();
+
+    // 中断時点までの実績時間（秒）
+    const actualSeconds = Math.max(
+        0,
+        Math.round((now.getTime() - new Date(task.startTime).getTime()) / 1000)
+    );
+
+    // 残り見積時間（分）。未設定・マイナスの場合は0
+    const estimatedSeconds = Math.max(0, Number(task.estimatedTime) || 0) * 60;
+    const remainingMinutes = Math.max(
+        0,
+        Math.round((estimatedSeconds - actualSeconds) / 60)
+    );
+
+    // 元のタスクを完了扱いにする
+    task.endTime = endTime;
+    task.completedAt = endTime;
+    task.actualTime = actualSeconds;
+    task.updatedAt = endTime;
+
+    taskCallbacks.updateTaskStatus(task);
+    stopActiveTimer();
+
+    // 続きのタスクを作成
+    const continuation = {
+        ...task,
+        id: 't' + Date.now() + Math.random(),
+        name: task.name.startsWith('（続）')
+            ? task.name
+            : `（続）${task.name}`,
+        estimatedTime: remainingMinutes,
+        actualTime: 0,
+        status: 'pending',
+        startTime: null,
+        endTime: null,
+        completedAt: null,
+        createdDate: state.viewDate,
+        updatedAt: endTime,
+        isDeleted: false,
+        subtasks: (task.subtasks || []).map(st => ({ ...st }))
+    };
+
+    // 元タスクの直後に続きのタスクを挿入
+    const updatedTasks = taskCallbacks.getTasksForViewDate();
+    const originalIndex = updatedTasks.findIndex(t => t.id === id);
+
+    if (originalIndex === -1) return null;
+
+    updatedTasks.splice(originalIndex + 1, 0, continuation);
+    taskCallbacks.setTasksForViewDate(updatedTasks);
+
+    state.focusedTaskId = continuation.id;
+    state.focusedSubtaskId = null;
+
+    taskCallbacks.saveAndRender({ scroll: true });
+    taskCallbacks.showToast('タスクを中断しました。');
+
+    return continuation;
+}
+
 export function toggleTimer(id, forceStop = false) {
     const tasks = taskCallbacks.getTasksForViewDate();
     const task = tasks.find(t => t.id === id);
