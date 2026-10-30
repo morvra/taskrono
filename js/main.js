@@ -981,8 +981,6 @@ async function checkDayChange() {
 			leftShort: swipeBackground.querySelector('#swipe-left-short'),
 			leftLong: swipeBackground.querySelector('#swipe-left-long'),
 			leftInterrupt: swipeBackground.querySelector('#swipe-left-interrupt'),
-			leftPostpone: swipeBackground.querySelector('#swipe-left-postpone'),
-			leftExtraLong: swipeBackground.querySelector('#swipe-left-extra-long'),
 		};
 
 		// タスクの状態を確認
@@ -1015,23 +1013,19 @@ async function checkDayChange() {
 				// 背景色は上で設定済み（実行中なら赤、そうでなければ緑）
 			}
 		} else if (deltaX < 0) {
-			// 左スワイプ
 			const absDeltaX = Math.abs(deltaX);
 
 			if (isRunning) {
-				// 実行中：中断 → 先送り → 削除
-				if (absDeltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
-					actions.leftExtraLong.classList.add('visible');
+				// 実行中：中断 → 削除
+				if (absDeltaX > SWIPE_THRESHOLD_LONG) {
+					actions.leftLong.classList.add('visible');
 					bgLeft.style.backgroundColor = '#ef4444';
-				} else if (absDeltaX > SWIPE_THRESHOLD_LONG) {
-					actions.leftPostpone.classList.add('visible');
-					bgLeft.style.backgroundColor = '#3b82f6';
 				} else if (absDeltaX > SWIPE_ICON_VISIBLE_THRESHOLD) {
 					actions.leftInterrupt.classList.add('visible');
 					bgLeft.style.backgroundColor = '#f59e0b';
 				}
 			} else {
-				// 未着手：従来どおり先送り → 削除
+				// 未着手：先送り → 削除
 				if (absDeltaX > SWIPE_THRESHOLD_LONG) {
 					actions.leftLong.classList.add('visible');
 					bgLeft.style.backgroundColor = '#ef4444';
@@ -1068,16 +1062,14 @@ async function checkDayChange() {
 				const absDeltaX = Math.abs(swipeDeltaX);
 
 				if (task && task.status === 'running') {
-					// 実行中：中断 → 先送り → 削除
-					if (absDeltaX > SWIPE_THRESHOLD_EXTRA_LONG) {
+					// 実行中：中断 → 削除
+					if (absDeltaX > SWIPE_THRESHOLD_LONG) {
 						deleteTask(taskId);
-					} else if (absDeltaX > SWIPE_THRESHOLD_LONG) {
-						postponeTask(taskId);
 					} else {
 						interruptTask(taskId);
 					}
 				} else {
-					// 未着手：従来どおり
+					// 未着手：先送り → 削除
 					if (absDeltaX > SWIPE_THRESHOLD_LONG) {
 						deleteTask(taskId);
 					} else {

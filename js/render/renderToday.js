@@ -229,29 +229,32 @@ export function renderTaskTable(tbody, tasksToRender, options = {}) {
         const todayStr = getFormattedDate(new Date());
         const isFutureDate = state.viewDate > todayStr;
         let moveButtonHtml = '';
-        if (isFutureDate) {
+
+        if (isRunning) {
+            // 実行中：先送りの代わりに中断ボタンを表示
+            moveButtonHtml = `
+                <button class="interrupt-task-btn text-gray-400 hover:text-orange-500 p-1"
+                        title="中断 (X)">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M8 5h3v14H8zM15 5v14h3V5h-3z" />
+                    </svg>
+                </button>`;
+        } else if (isFutureDate) {
+            // 未来の日付：当日に移動
             moveButtonHtml = `
                 <button class="move-to-today-btn text-gray-400 hover:text-green-500 p-1" title="当日に移動">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>
                 </button>`;
         } else {
+            // 通常：翌日に先送り
             moveButtonHtml = `
                 <button class="postpone-task-btn text-gray-400 hover:text-yellow-500 p-1" title="翌日に先送り (P)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </button>`;
         }
-
-        const interruptButtonHtml = isRunning ? `
-            <button class="interrupt-task-btn text-gray-400 hover:text-orange-500 p-1"
-                    title="中断 (X)">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M8 5h3v14H8zM15 5h3v14h-3z" />
-                </svg>
-            </button>
-        ` : '';
 
         tr.innerHTML = `
             <td class="text-center"><span class="drag-handle">⋮⋮</span></td>
@@ -281,7 +284,6 @@ export function renderTaskTable(tbody, tasksToRender, options = {}) {
                 <button class="edit-task-btn text-gray-400 hover:text-blue-500 p-1" title="編集 (E)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
-                ${interruptButtonHtml}
                 ${moveButtonHtml}
                 <button class="delete-task-btn text-gray-400 hover:text-red-500 p-1" title="削除 (D)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16"></path></svg>
