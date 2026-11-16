@@ -765,21 +765,31 @@ loadStateFromDropbox: async function(showNotification = true) {
                 const localTasksForDate = localDailyTasks[date] || [];
                 const driveTasksForDate = driveDailyTasks[date] || [];
 
+                // マージ用のキー
+                // リピート由来でも、開始済み・完了済みのタスクは個別のタスクとして扱う。
+                // 中断で分割された元タスクと続きのタスクが同じキーで衝突し、
+                // 片方だけが残ってしまうのを防ぐため。
+                // 重複とみなすのは未開始の自動生成タスクだけ
+                // （複数端末で同じリピートタスクが生成された場合の重複排除）。
+                const mergeKeyFor = (t) => {
+                    const isUnstartedAutoRepeat = t.originRepeatId
+                        && !t.isManuallyAddedRepeat
+                        && this.callbacks.getTaskStatus(t) === 'pending';
+                    return isUnstartedAutoRepeat
+                        ? `repeat-${t.originRepeatId}-${t.createdDate || date}`
+                        : `task-${t.id}`;
+                };
+
                 // Dropboxのタスクを基本として採用
                 const driveTaskMap = new Map();
                 for (const task of driveTasksForDate) {
-                    const key = (task.originRepeatId && !task.isManuallyAddedRepeat)
-                        ? `repeat-${task.originRepeatId}-${task.createdDate || date}`
-                        : `task-${task.id}`;
-                    driveTaskMap.set(key, task);
+                    driveTaskMap.set(mergeKeyFor(task), task);
                 }
 
                 // ローカルにしか存在しないタスク（Dropbox未保存の新規タスク）と
                 // running中タスクをDropboxのデータに追加・上書き
                 for (const localTask of localTasksForDate) {
-                    const key = (localTask.originRepeatId && !localTask.isManuallyAddedRepeat)
-                        ? `repeat-${localTask.originRepeatId}-${localTask.createdDate || date}`
-                        : `task-${localTask.id}`;
+                    const key = mergeKeyFor(localTask);
 
                     const driveTask = driveTaskMap.get(key);
 

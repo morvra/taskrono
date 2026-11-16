@@ -287,6 +287,8 @@ export function interruptTask(id) {
     stopActiveTimer();
 
     // 続きのタスクを作成
+    // ※ isManuallyAddedRepeat を付けて、Dropbox同期のマージで
+    //   元タスク（同じ originRepeatId・createdDate）と同一視されないようにする
     const continuation = {
         ...task,
         id: 't' + Date.now() + Math.random(),
@@ -302,7 +304,11 @@ export function interruptTask(id) {
         createdDate: state.viewDate,
         updatedAt: endTime,
         isDeleted: false,
-        subtasks: (task.subtasks || []).map(st => ({ ...st }))
+        isManuallyAddedRepeat: true,
+        subtasks: (task.subtasks || []).map(st => ({
+            ...st,
+            id: 'st' + Date.now() + Math.random()
+        }))
     };
 
     // 元タスクの直後に続きのタスクを挿入
