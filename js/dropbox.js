@@ -765,55 +765,88 @@ loadStateFromDropbox: async function(showNotification = true) {
                 const localTasksForDate = localDailyTasks[date] || [];
                 const driveTasksForDate = driveDailyTasks[date] || [];
 
-                // マージ用のキー
-                // リピート由来でも、開始済み・完了済みのタスクは個別のタスクとして扱う。
-                // 中断で分割された元タスクと続きのタスクが同じキーで衝突し、
-                // 片方だけが残ってしまうのを防ぐため。
-                // 重複とみなすのは未開始の自動生成タスクだけ
-                // （複数端末で同じリピートタスクが生成された場合の重複排除）。
-                const mergeKeyFor = (t) => {
+                // マージの同一判定はタスクIDを基本とする。
+                // 同じIDのタスクは、状態（未開始・実行中・完了）が違っても同じタスクなので
+                // 必ず1件にまとめる。状態によってキーが変わる方式だと、片側の未開始版と
+                // もう片側の完了版が別タスクとして両方残ってしまう。
+                // リピート由来の重複とみなすのは「別ID同士の、未開始の自動生成タスク」だけ
+                // （複数端末で同じリピートタスクが別々に生成された場合の重複排除）。
+                // 中断の続きタスクは元タスクとIDが別で、元タスクは開始済みのため競合しない。
+                const repeatKeyFor = (t) => {
                     const isUnstartedAutoRepeat = t.originRepeatId
                         && !t.isManuallyAddedRepeat
                         && this.callbacks.getTaskStatus(t) === 'pending';
                     return isUnstartedAutoRepeat
                         ? `repeat-${t.originRepeatId}-${t.createdDate || date}`
-                        : `task-${t.id}`;
+                        : null;
+                };
+
+                const statusRank = (t) => {
+                    const s = this.callbacks.getTaskStatus(t);
+                    return s === 'completed' ? 2 : s === 'running' ? 1 : 0;
+                };
+
+                // 同じタスクの2つの版から採用する方を選ぶ。
+                // incomingIsLocal=true（Dropbox×ローカル）のときは従来の優先ルール:
+                // ローカルがrunningで相手がcompletedでなければ計測中を保護し、
+                // それ以外は updatedAt が新しい方を採用する。
+                // 同じ側に重複がある場合（保存済みデータ内に同じIDが2件ある場合など）は
+                // 進んでいる状態（completed > running > pending）を優先し、同点なら新しい方。
+                const pickTaskVersion = (current, incoming, incomingIsLocal) => {
+                    if (incomingIsLocal) {
+                        const incomingStatus = this.callbacks.getTaskStatus(incoming);
+                        const currentStatus = this.callbacks.getTaskStatus(current);
+                        if (incomingStatus === 'running' && currentStatus !== 'completed') {
+                            return incoming;
+                        }
+                        return (incoming.updatedAt || '') > (current.updatedAt || '') ? incoming : current;
+                    }
+                    if (statusRank(incoming) !== statusRank(current)) {
+                        return statusRank(incoming) > statusRank(current) ? incoming : current;
+                    }
+                    return (incoming.updatedAt || '') >= (current.updatedAt || '') ? incoming : current;
+                };
+
+                const mergedById = new Map();
+                const idByRepeatKey = new Map();
+
+                const addMergedTask = (task, isLocal) => {
+                    const existing = mergedById.get(task.id);
+                    if (existing) {
+                        mergedById.set(task.id, pickTaskVersion(existing, task, isLocal));
+                        return;
+                    }
+                    const repeatKey = repeatKeyFor(task);
+                    if (repeatKey && idByRepeatKey.has(repeatKey)) {
+                        const dup = mergedById.get(idByRepeatKey.get(repeatKey));
+                        // 相手も未開始の自動生成タスクのときだけ重複として扱う
+                        if (dup && repeatKeyFor(dup) === repeatKey) {
+                            if (pickTaskVersion(dup, task, isLocal) === task) {
+                                mergedById.delete(dup.id);
+                                mergedById.set(task.id, task);
+                                idByRepeatKey.set(repeatKey, task.id);
+                            }
+                            return;
+                        }
+                    }
+                    mergedById.set(task.id, task);
+                    if (repeatKey) {
+                        idByRepeatKey.set(repeatKey, task.id);
+                    }
                 };
 
                 // Dropboxのタスクを基本として採用
-                const driveTaskMap = new Map();
                 for (const task of driveTasksForDate) {
-                    driveTaskMap.set(mergeKeyFor(task), task);
+                    addMergedTask(task, false);
                 }
 
                 // ローカルにしか存在しないタスク（Dropbox未保存の新規タスク）と
                 // running中タスクをDropboxのデータに追加・上書き
                 for (const localTask of localTasksForDate) {
-                    const key = mergeKeyFor(localTask);
-
-                    const driveTask = driveTaskMap.get(key);
-
-                    if (!driveTask) {
-                        // Dropboxに存在しないタスク（このデバイスで新規追加したがまだ保存されていない）
-                        driveTaskMap.set(key, localTask);
-                    } else {
-                        // 両方に存在する場合:
-                        // Dropboxがcompletedなら必ずDropboxを優先（どちらかの端末で完了済み）
-                        // Dropboxがrunningまたはpendingで、ローカルがrunningなら計測中を保護
-                        const localStatus = this.callbacks.getTaskStatus(localTask);
-                        const driveStatus = this.callbacks.getTaskStatus(driveTask);
-                        const localIsNewer = (localTask.updatedAt || '') > (driveTask.updatedAt || '');
-
-                        if (localStatus === 'running' && driveStatus !== 'completed') {
-                            driveTaskMap.set(key, localTask);
-                        } else if (localIsNewer) {
-                            driveTaskMap.set(key, localTask);
-                        }
-                        // それ以外（Dropboxがcompletedなど）はDropboxをそのまま採用
-                    }
+                    addMergedTask(localTask, true);
                 }
 
-                let mergedTasks = Array.from(driveTaskMap.values());
+                let mergedTasks = Array.from(mergedById.values());
 
                 const sortedSections = [...state.sections].sort((a, b) => a.startTime.localeCompare(b.startTime));
                 const sectionOrder = ['null', ...sortedSections.map(s => s.id)];
