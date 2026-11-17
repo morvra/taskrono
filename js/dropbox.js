@@ -787,15 +787,24 @@ loadStateFromDropbox: async function(showNotification = true) {
                 };
 
                 // 同じタスクの2つの版から採用する方を選ぶ。
-                // incomingIsLocal=true（Dropbox×ローカル）のときは従来の優先ルール:
-                // ローカルがrunningで相手がcompletedでなければ計測中を保護し、
-                // それ以外は updatedAt が新しい方を採用する。
-                // 同じ側に重複がある場合（保存済みデータ内に同じIDが2件ある場合など）は
-                // 進んでいる状態（completed > running > pending）を優先し、同点なら新しい方。
+                // 最優先: 未開始（pending）のコピーは、開始済み・完了済みのコピーに
+                // updatedAt に関係なく必ず負ける。保存時に並び順が変わると
+                // updateSortOrderAndTimestamps が未開始コピーの updatedAt を現在時刻に
+                // 書き換えてしまうため、updatedAt の新しさだけで比べると
+                // 完了記録が古い未開始コピーに上書きされて消えてしまう。
+                // 完了→再開（runningに戻す）フローは pending を経由しないので影響しない。
+                // それ以外は従来ルール:
+                // incomingIsLocal=true（Dropbox×ローカル）のときは、ローカルがrunningで
+                // 相手がcompletedでなければ計測中を保護し、それ以外は updatedAt が新しい方。
+                // 同じ側に重複がある場合は進んでいる状態
+                // （completed > running > pending）を優先し、同点なら新しい方。
                 const pickTaskVersion = (current, incoming, incomingIsLocal) => {
+                    const currentStatus = this.callbacks.getTaskStatus(current);
+                    const incomingStatus = this.callbacks.getTaskStatus(incoming);
+                    if ((currentStatus === 'pending') !== (incomingStatus === 'pending')) {
+                        return currentStatus === 'pending' ? incoming : current;
+                    }
                     if (incomingIsLocal) {
-                        const incomingStatus = this.callbacks.getTaskStatus(incoming);
-                        const currentStatus = this.callbacks.getTaskStatus(current);
                         if (incomingStatus === 'running' && currentStatus !== 'completed') {
                             return incoming;
                         }
