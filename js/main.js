@@ -580,7 +580,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	// タスクプレイヤーに表示するタスクを選択
 	function getTaskPlayerTarget() {
-		const todayTasks = (state.dailyTasks[state.viewDate] || [])
+		const todayDateKey = getFormattedDate(new Date());
+		const todayTasks = (state.dailyTasks[todayDateKey] || [])
 			.filter(task => !task.isDeleted);
 
 		// 全日付から実行中タスクを探す
@@ -627,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			return {
 				state: 'pending',
 				task: pendingTask,
-				dateKey: state.viewDate
+				dateKey: todayDateKey
 			};
 		}
 
