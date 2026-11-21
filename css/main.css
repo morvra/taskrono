@@ -821,6 +821,36 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         opacity: 0.4;
         cursor: default;
     }
+    
+    .task-player-empty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 64px;
+        padding: 0 16px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .task-player-empty-icon {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        color: #3b82f6;
+    }
+
+    .task-player-empty-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .task-player-empty.is-complete {
+        color: #2563eb;
+    }
 
     /* プレイヤー追加分だけ、タスク一覧の下部余白を増やす */
     .tab-content.active {

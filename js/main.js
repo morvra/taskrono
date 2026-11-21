@@ -12,6 +12,7 @@ import { repeatCallbacks, addRepeatTask, deleteRepeatTask, generateSingleRepeatT
 import { renderRepeatCallbacks, renderRepeatTasks, renderRepeatTaskTable, renderRepeatTaskCards } from './render/renderRepeat.js';
 import { modalCallbacks, openModal, closeModal, openAddTaskModal, openTaskEditModal, saveTaskEdit, createRepeatFromTask, openMemoEditModal, saveMemoEdit, openRepeatEditModal, saveRepeatEdit, renderSubtasksInModal, addSubtaskToModal, getSubtasksFromModal, addMonthlyDayChip, addYearlyDateChip, getMonthlyDaysFromChips, getYearlyDatesFromChips } from './modals.js';
 import { keyboardCallbacks, handleKeyboardShortcuts } from './keyboard.js';
+import { renderTaskPlayer } from './render/renderTaskPlayer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 	// フローティング要素のキーボード追従と滑らかスクロール対策
@@ -575,6 +576,67 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 			setFavicon(dailyTaskListApp.defaultFavicon);
 		}
+	}
+
+	// タスクプレイヤーに表示するタスクを選択
+	function getTaskPlayerTarget() {
+		const todayTasks = (state.dailyTasks[state.viewDate] || [])
+			.filter(task => !task.isDeleted);
+
+		// 全日付から実行中タスクを探す
+		const runningTasks = [];
+
+		for (const dateKey in state.dailyTasks) {
+			const tasks = state.dailyTasks[dateKey] || [];
+
+			tasks.forEach(task => {
+				if (!task.isDeleted && getTaskStatus(task) === 'running') {
+					runningTasks.push({ task, dateKey });
+				}
+			});
+		}
+
+		// activeTaskIdと一致する実行中タスクを優先
+		const activeRunning = runningTasks.find(
+			item => item.task.id === state.activeTaskId
+		);
+
+		if (activeRunning) {
+			return {
+				state: 'running',
+				task: activeRunning.task,
+				dateKey: activeRunning.dateKey
+			};
+		}
+
+		// それ以外の実行中タスク
+		if (runningTasks.length > 0) {
+			return {
+				state: 'running',
+				task: runningTasks[0].task,
+				dateKey: runningTasks[0].dateKey
+			};
+		}
+
+		// 今日の未完了タスク
+		const pendingTask = todayTasks.find(
+			task => getTaskStatus(task) !== 'completed'
+		);
+
+		if (pendingTask) {
+			return {
+				state: 'pending',
+				task: pendingTask,
+				dateKey: state.viewDate
+			};
+		}
+
+		// 今日のタスクがすべて完了
+		if (todayTasks.length > 0) {
+			return { state: 'all-complete' };
+		}
+
+		return { state: 'empty' };
 	}
 
 	function isMobile() {
@@ -1649,6 +1711,7 @@ async function checkDayChange() {
 		updateSectionDropdowns();
 		calculateAllEstimates();
 		updateTitle();
+		renderTaskPlayer(getTaskPlayerTarget());
 	}
 
 	function setupDragAndDrop(selector, list, type = 'daily') {
