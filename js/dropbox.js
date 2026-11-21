@@ -115,7 +115,7 @@ export function parseInboxContent(content) {
     return content.split(/\r?\n/)
         .filter(line => line.trim())
         .map((line, index) => {
-            const match = line.trim().match(/^-\s*\[\s*\]\s*(.*)$/);
+            const match = line.trim().match(/^(?:-\s*\[\s*\]\s*)?(.*)$/);
 
             if (!match) return null;
 
@@ -762,7 +762,7 @@ export const dailyTaskListApp = {
                 contents: remainingLines.join('\n'),
                 mode: 'overwrite'
             });
-            
+
             if (!state.dailyTasks[todayStr]) {
                 state.dailyTasks[todayStr] = [];
             }
