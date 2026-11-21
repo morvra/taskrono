@@ -756,6 +756,13 @@ export const dailyTaskListApp = {
 
             if (newTasks.length === 0) return;
 
+            // 取り込んだタスクをInboxから削除
+            await this.dbx.filesUpload({
+                path: this.inboxFilePath,
+                contents: remainingLines.join('\n'),
+                mode: 'overwrite'
+            });
+            
             if (!state.dailyTasks[todayStr]) {
                 state.dailyTasks[todayStr] = [];
             }
@@ -764,13 +771,6 @@ export const dailyTaskListApp = {
                 ...newTasks,
                 ...state.dailyTasks[todayStr]
             ];
-
-            // 取り込んだタスクをInboxから削除
-            await this.dbx.filesUpload({
-                path: this.inboxFilePath,
-                contents: remainingLines.join('\n'),
-                mode: 'overwrite'
-            });
 
             this.callbacks.showToast(
                 `${newTasks.length}件のタスクをInboxからインポートしました。`
