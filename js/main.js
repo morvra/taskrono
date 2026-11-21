@@ -1192,19 +1192,39 @@ async function checkDayChange() {
 	// スワイプ機能 END
 
 	function setupEventListeners() {
-		// タスクプレイヤーのボタン操作
+		// タスクプレイヤーの操作
 		const taskPlayer = document.getElementById('task-player');
 
 		if (taskPlayer) {
 			taskPlayer.addEventListener('click', (event) => {
-				const button = event.target.closest('[data-player-action]');
-				if (!button) return;
-
-				const action = button.dataset.playerAction;
 				const taskId = taskPlayer.dataset.taskId;
 				const dateKey = taskPlayer.dataset.dateKey;
 
 				if (!taskId || !dateKey) return;
+
+				const button = event.target.closest('[data-player-action]');
+
+				// ボタン以外の部分をタップした場合：タスクを選択してスクロール
+				if (!button) {
+					// 対象タスクの日付に表示を切り替える
+					state.viewDate = dateKey;
+
+					// 当日タブへ切り替える
+					const todayTab = document.querySelector('.tab-link[data-tab="today"]');
+					if (todayTab && !todayTab.classList.contains('active')) {
+						todayTab.click();
+					}
+
+					// タップされたタスクを選択
+					state.focusedTaskId = taskId;
+
+					// タスク一覧を再描画して対象タスクまでスクロール
+					renderTodayTasks({ scroll: true });
+					return;
+				}
+
+				// 各操作ボタン
+				const action = button.dataset.playerAction;
 
 				if (action === 'start' || action === 'complete') {
 					toggleTimerForDate(taskId, dateKey);

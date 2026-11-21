@@ -17,8 +17,8 @@ const ICONS = {
         </svg>`,
     complete: `
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor"
-                  stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <rect x="6" y="6" width="12" height="12" rx="1"
+                fill="currentColor" />
         </svg>`,
     interrupt: `
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -88,11 +88,19 @@ export function renderTaskPlayer(target = null) {
     const mode = target?.state || 'empty';
     const task = target?.task || null;
 
-    if (mode === 'all-complete' || mode === 'empty' || !task) {
-        renderEmptyState(root, mode === 'all-complete' ? 'all-complete' : 'empty');
+    if (mode === 'all-complete') {
+        root.hidden = true;
         root.dataset.taskId = '';
         root.dataset.dateKey = '';
-        root.dataset.state = mode === 'all-complete' ? 'all-complete' : 'empty';
+        root.dataset.state = 'all-complete';
+        return;
+    }
+
+    if (mode === 'empty' || !task) {
+        renderEmptyState(root, 'empty');
+        root.dataset.taskId = '';
+        root.dataset.dateKey = '';
+        root.dataset.state = 'empty';
         root.hidden = false;
         return;
     }
@@ -121,7 +129,7 @@ export function renderTaskPlayer(target = null) {
              aria-valuenow="${Math.round(initialProgress)}"
              style="--task-progress: ${initialProgress}%">
             <button type="button"
-                    class="task-player-main-button"
+                    class="task-player-main-button ${isRunning ? 'is-running' : 'is-pending'}"
                     data-player-action="${mainButtonAction}"
                     aria-label="${mainButtonLabel}"
                     title="${mainButtonLabel}">
