@@ -471,6 +471,9 @@
 </div>
 
 <div id="bottom-ui-container"> 
+    <!-- 新設：現在のタスクを表示するプレイヤー。次段階でJavaScriptから内容を描画する -->
+    <div id="task-player" aria-label="現在のタスク" hidden></div>
+    <div id="bottom-ui-row">
     <div id="bottom-nav-bar">
         <button id="bottom-nav-today-btn" class="bottom-nav-btn active">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -497,6 +500,7 @@
             </span>
         </button>
     </div>
+    </div><!-- #bottom-ui-row -->
     
     <div id="bottom-fab-add-task">
         <button id="add-task-btn-floating-mobile" oncontextmenu="return false;" class="fab bg-blue-600 hover:bg-blue-700 text-white text-3xl font-light">
