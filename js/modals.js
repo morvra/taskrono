@@ -11,6 +11,7 @@ export const modalCallbacks = {
     updateProjectDropdowns: null,
     updateSectionDropdowns: null,
     updateTaskStatus: null,
+    getTasksForDate: null,
     isMobile: null,
 };
 
@@ -452,24 +453,42 @@ export function createRepeatFromTask() {
 
 // --- Memo edit modal ---
 
-export function openMemoEditModal(id) {
-    const task = modalCallbacks.getTasksForViewDate().find(t => t.id === id);
+export function openMemoEditModal(id, dateKey = null) {
+    const targetDate = dateKey || state.viewDate;
+    const tasks = modalCallbacks.getTasksForDate
+        ? modalCallbacks.getTasksForDate(targetDate)
+        : modalCallbacks.getTasksForViewDate();
+
+    const task = tasks.find(t => t.id === id);
     if (!task) return;
 
     state.editingMemoTaskId = id;
+    state.editingMemoTaskDateKey = targetDate;
+
     const memoTextEl = document.getElementById('edit-memo-text');
     memoTextEl.value = task.memo || '';
+
     openModal('memo-edit-modal');
     memoTextEl.focus({ preventScroll: true });
 }
 
 export function saveMemoEdit() {
-    const task = modalCallbacks.getTasksForViewDate().find(t => t.id === state.editingMemoTaskId);
+    const dateKey = state.editingMemoTaskDateKey || state.viewDate;
+
+    const tasks = modalCallbacks.getTasksForDate
+        ? modalCallbacks.getTasksForDate(dateKey)
+        : modalCallbacks.getTasksForViewDate();
+
+    const task = tasks.find(t => t.id === state.editingMemoTaskId);
     if (!task) return;
 
     task.memo = document.getElementById('edit-memo-text').value.trim();
-    closeModal('memo-edit-modal');
     task.updatedAt = new Date().toISOString();
+
+    state.editingMemoTaskId = null;
+    state.editingMemoTaskDateKey = null;
+
+    closeModal('memo-edit-modal');
     modalCallbacks.saveAndRender();
 }
 

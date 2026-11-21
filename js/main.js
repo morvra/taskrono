@@ -3,7 +3,7 @@
 import { escapeHtml, formatTime, formatClockTime, calculateActualTime, getPlainTaskName, formatTaskName, getFormattedDate } from './utils.js';
 import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
 import { dailyTaskListApp } from './dropbox.js';
-import { taskCallbacks, addTask, deleteTask, postponeTask, moveTaskToToday, toggleTimer, stopActiveTimer, interruptTask } from './tasks.js';
+import { taskCallbacks, addTask, deleteTask, postponeTask, moveTaskToToday, toggleTimer, stopActiveTimer, interruptTask, toggleTimerForDate, interruptTaskForDate} from './tasks.js';
 import { projectCallbacks, addProject, editProject, deleteProject, archiveProject, unarchiveProject } from './projects.js';
 import { sectionCallbacks, addSection, editSection, deleteSection, getSectionById, getSectionDisplayInfo, getCurrentSection, updateSectionDropdowns, renderSections } from './sections.js';
 import { renderProjectsCallbacks, renderProjects } from './render/renderProjects.js';
@@ -12,7 +12,7 @@ import { repeatCallbacks, addRepeatTask, deleteRepeatTask, generateSingleRepeatT
 import { renderRepeatCallbacks, renderRepeatTasks, renderRepeatTaskTable, renderRepeatTaskCards } from './render/renderRepeat.js';
 import { modalCallbacks, openModal, closeModal, openAddTaskModal, openTaskEditModal, saveTaskEdit, createRepeatFromTask, openMemoEditModal, saveMemoEdit, openRepeatEditModal, saveRepeatEdit, renderSubtasksInModal, addSubtaskToModal, getSubtasksFromModal, addMonthlyDayChip, addYearlyDateChip, getMonthlyDaysFromChips, getYearlyDatesFromChips } from './modals.js';
 import { keyboardCallbacks, handleKeyboardShortcuts } from './keyboard.js';
-import { renderTaskPlayer } from './render/renderTaskPlayer.js';
+import { renderTaskPlayer,updateTaskPlayerProgress } from './render/renderTaskPlayer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 	// フローティング要素のキーボード追従と滑らかスクロール対策
@@ -419,6 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
       modalCallbacks.updateSectionDropdowns = updateSectionDropdowns;
       modalCallbacks.updateTaskStatus = updateTaskStatus;
       modalCallbacks.isMobile = isMobile;
+	  taskCallbacks.updateTaskPlayerProgress = updateTaskPlayerProgress;
+	  modalCallbacks.getTasksForDate = (dateKey) => {
+		return (state.dailyTasks[dateKey] || [])
+		    .filter(task => !task.isDeleted);
+	  };
       keyboardCallbacks.getTasksForViewDate = getTasksForViewDate;
       keyboardCallbacks.setTasksForViewDate = setTasksForViewDate;
       keyboardCallbacks.saveAndRender = saveAndRender;
@@ -1187,6 +1192,30 @@ async function checkDayChange() {
 	// スワイプ機能 END
 
 	function setupEventListeners() {
+		// タスクプレイヤーのボタン操作
+		const taskPlayer = document.getElementById('task-player');
+
+		if (taskPlayer) {
+			taskPlayer.addEventListener('click', (event) => {
+				const button = event.target.closest('[data-player-action]');
+				if (!button) return;
+
+				const action = button.dataset.playerAction;
+				const taskId = taskPlayer.dataset.taskId;
+				const dateKey = taskPlayer.dataset.dateKey;
+
+				if (!taskId || !dateKey) return;
+
+				if (action === 'start' || action === 'complete') {
+					toggleTimerForDate(taskId, dateKey);
+				} else if (action === 'interrupt') {
+					interruptTaskForDate(taskId, dateKey);
+				} else if (action === 'memo') {
+					openMemoEditModal(taskId, dateKey);
+				}
+			});
+		}
+
 		document.getElementById('bottom-nav-today-btn').addEventListener('click', () => {
 			document.querySelector('.tab-link[data-tab="today"]').click();
 		});

@@ -21,6 +21,7 @@ export const state = {
     editingTaskDateKey: null,
     editingRepeatId: null,
     editingMemoTaskId: null,
+    editingMemoTaskDateKey: null,
     pendingOriginRepeatId: null
 };
 

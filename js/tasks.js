@@ -9,6 +9,7 @@ export const taskCallbacks = {
     saveAndRender: null,
     showToast: null,
     updateTaskStatus: null,
+    updateTaskPlayerProgress: null,
 };
 
 export function addTask(name = null, time = null, projectId = null, sectionId = null, isInterrupt = false, options = {}) {
@@ -447,4 +448,201 @@ export function toggleTimer(id, forceStop = false) {
     }, 1000);
 
     taskCallbacks.saveAndRender({ scroll: true });
+}
+
+// タスクプレイヤー専用：日付を指定してタスクを操作する
+export function toggleTimerForDate(id, dateKey) {
+    const tasks = (state.dailyTasks[dateKey] || []).filter(t => !t.isDeleted);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    // 実行中タスクを完了する
+    if (state.activeTaskId === id) {
+        task.actualTime = calculateActualTime(task);
+        task.endTime = nowIso;
+        task.completedAt = nowIso;
+        task.status = 'completed';
+        task.updatedAt = nowIso;
+
+        stopActiveTimer();
+
+        if (state.openTaskIds.has(id)) {
+            state.openTaskIds.delete(id);
+        }
+
+        taskCallbacks.saveAndRender({ scroll: false });
+        return;
+    }
+
+    // 既に実行したことのあるタスクは、従来どおり確認してから再開
+    if (task.startTime && task.status !== 'running') {
+        if (!confirm('このタスクは既に一度開始されています。新しいタスクとして再開しますか？')) {
+            return;
+        }
+
+        const remainingMinutes = Math.max(
+            0,
+            (Number(task.estimatedTime) || 0) -
+            Math.round(calculateActualTime(task) / 60)
+        );
+
+        const newTask = {
+            ...task,
+            id: 't' + Date.now() + Math.random(),
+            estimatedTime: remainingMinutes,
+            actualTime: 0,
+            status: 'pending',
+            startTime: null,
+            endTime: null,
+            completedAt: null,
+            isDeleted: false,
+            createdDate: dateKey,
+            updatedAt: nowIso
+        };
+
+        const originalIndex = tasks.findIndex(t => t.id === id);
+        tasks.splice(originalIndex + 1, 0, newTask);
+        state.dailyTasks[dateKey] = [
+            ...tasks,
+            ...(state.dailyTasks[dateKey] || []).filter(t => t.isDeleted)
+        ];
+
+        taskCallbacks.saveAndRender({ scroll: false });
+        toggleTimerForDate(newTask.id, dateKey);
+        return;
+    }
+
+    // 他の日付を含め、別のタスクが実行中なら停止する
+    if (state.activeTaskId) {
+        for (const key of Object.keys(state.dailyTasks)) {
+            const runningTask = (state.dailyTasks[key] || [])
+                .find(t => t.id === state.activeTaskId && !t.isDeleted);
+
+            if (runningTask) {
+                runningTask.actualTime = calculateActualTime(runningTask);
+                runningTask.endTime = nowIso;
+                runningTask.status = 'completed';
+                runningTask.updatedAt = nowIso;
+                break;
+            }
+        }
+        stopActiveTimer();
+    }
+
+    // 対象タスクを開始する
+    task.startTime = task.startTime || nowIso;
+    task.endTime = null;
+    task.status = 'running';
+    task.updatedAt = nowIso;
+
+    const currentSection = getCurrentSection();
+    if (currentSection) {
+        task.sectionId = currentSection.id;
+    }
+
+    state.activeTaskId = id;
+
+    if (dateKey === state.viewDate) {
+        state.focusedTaskId = id;
+    }
+
+    state.activeTimerId = setInterval(() => {
+        const actualSeconds = calculateActualTime(task);
+        const timeString = formatTime(actualSeconds);
+
+        document.querySelectorAll(
+            `[data-task-id="${task.id}"] .time-actual`
+        ).forEach(el => el.textContent = timeString);
+
+        const floatingTimeEl = document.getElementById('floating-elapsed-time');
+        if (floatingTimeEl) floatingTimeEl.textContent = timeString;
+
+        if (taskCallbacks.updateTaskPlayerProgress) {
+            taskCallbacks.updateTaskPlayerProgress(
+                actualSeconds,
+                task.estimatedTime
+            );
+        }
+    }, 1000);
+
+    taskCallbacks.saveAndRender({ scroll: false });
+}
+
+
+// タスクプレイヤー専用：日付を指定して中断する
+export function interruptTaskForDate(id, dateKey) {
+    const tasks = (state.dailyTasks[dateKey] || []).filter(t => !t.isDeleted);
+    const task = tasks.find(t => t.id === id);
+
+    if (!task || task.status !== 'running' || state.activeTaskId !== id) {
+        return null;
+    }
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const actualSeconds = calculateActualTime(task);
+
+    const estimatedSeconds = Math.max(
+        0,
+        Number(task.estimatedTime) || 0
+    ) * 60;
+
+    const remainingMinutes = Math.max(
+        0,
+        Math.round((estimatedSeconds - actualSeconds) / 60)
+    );
+
+    // 元のタスクを完了扱いにする
+    task.endTime = nowIso;
+    task.completedAt = nowIso;
+    task.actualTime = actualSeconds;
+    task.status = 'completed';
+    task.updatedAt = nowIso;
+
+    stopActiveTimer();
+
+    // 続きのタスクを元タスクの直後に追加
+    const continuation = {
+        ...task,
+        id: 't' + Date.now() + Math.random(),
+        name: task.name.startsWith('（続）')
+            ? task.name
+            : `（続）${task.name}`,
+        estimatedTime: remainingMinutes,
+        actualTime: 0,
+        status: 'pending',
+        startTime: null,
+        endTime: null,
+        completedAt: null,
+        createdDate: dateKey,
+        updatedAt: nowIso,
+        isDeleted: false,
+        isManuallyAddedRepeat: true,
+        subtasks: (task.subtasks || []).map(st => ({
+            ...st,
+            id: 'st' + Date.now() + Math.random()
+        }))
+    };
+
+    const originalIndex = tasks.findIndex(t => t.id === id);
+    tasks.splice(originalIndex + 1, 0, continuation);
+
+    state.dailyTasks[dateKey] = [
+        ...tasks,
+        ...(state.dailyTasks[dateKey] || []).filter(t => t.isDeleted)
+    ];
+
+    if (dateKey === state.viewDate) {
+        state.focusedTaskId = continuation.id;
+    }
+
+    state.focusedSubtaskId = null;
+
+    taskCallbacks.saveAndRender({ scroll: false });
+    taskCallbacks.showToast('タスクを中断しました。');
+
+    return continuation;
 }
