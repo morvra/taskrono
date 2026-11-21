@@ -1020,6 +1020,155 @@ async function checkDayChange() {
 			`${inboxTasks.length}件`;
 	}
 
+	// Inboxの変更をDropboxへ保存する
+	let inboxSaveQueue = Promise.resolve();
+
+	function saveInboxTasks() {
+		const content = serializeInboxTasks(inboxTasks);
+
+		inboxSaveQueue = inboxSaveQueue.then(async () => {
+			const success = await dailyTaskListApp.saveInboxContent(content);
+			if (success) {
+				document.getElementById('inbox-status').textContent =
+					`${inboxTasks.length}件・保存済み`;
+			}
+			return success;
+		});
+
+		return inboxSaveQueue;
+	}
+
+	// Inboxのカード内の編集を保存
+	async function handleInboxFieldChange(event) {
+		const field = event.target.dataset.field;
+		const index = Number(event.target.dataset.index);
+
+		if (!field || !inboxTasks[index]) return;
+
+		let value = event.target.value;
+
+		if (field === 'estimatedTime') {
+			value = value === '' ? '' : Math.max(0, parseInt(value, 10) || 0);
+		}
+
+		inboxTasks[index][field] = value;
+		await saveInboxTasks();
+	}
+
+	// Inboxから今日のタスクリストへ追加
+	async function addInboxTaskToToday(index) {
+		const inboxTask = inboxTasks[index];
+		if (!inboxTask) return;
+
+		const today = getFormattedDate(new Date());
+		if (!state.dailyTasks[today]) {
+			state.dailyTasks[today] = [];
+		}
+
+		const project = state.projects.find(
+			p => p.name === inboxTask.project && !p.isArchived
+		);
+
+		const newTask = {
+			id: 't' + Date.now() + Math.random(),
+			name: inboxTask.name,
+			projectId: project ? project.id : null,
+			sectionId: null,
+			estimatedTime: inboxTask.estimatedTime === ''
+				? 5
+				: Number(inboxTask.estimatedTime),
+			actualTime: 0,
+			status: 'pending',
+			isInterrupt: false,
+			memo: '',
+			subtasks: [],
+			startTime: null,
+			endTime: null,
+			createdDate: today,
+			updatedAt: new Date().toISOString()
+		};
+
+		state.dailyTasks[today].unshift(newTask);
+
+		inboxTasks.splice(index, 1);
+		const saved = await saveInboxTasks();
+
+		saveAndRender();
+
+		if (saved) {
+			showToast('今日のタスクリストに追加しました');
+		}
+		renderInboxTasks();
+	}
+
+	// Inboxカードの操作イベント
+	function setupInboxEvents() {
+		const list = document.getElementById('inbox-task-list');
+
+		list.addEventListener('change', handleInboxFieldChange);
+
+		list.addEventListener('keydown', (event) => {
+			if (event.target.dataset.field === 'name' && event.key === 'Enter') {
+				event.preventDefault();
+				event.target.blur();
+			}
+		});
+
+		list.addEventListener('click', async (event) => {
+			const button = event.target.closest('[data-action]');
+			if (!button) return;
+
+			const index = Number(button.dataset.index);
+			const action = button.dataset.action;
+
+			if (action === 'add') {
+				await addInboxTaskToToday(index);
+			}
+
+			if (action === 'delete') {
+				if (!confirm('このタスクをInboxから削除しますか？')) return;
+
+				inboxTasks.splice(index, 1);
+				await saveInboxTasks();
+				renderInboxTasks();
+			}
+		});
+
+		// 新しいタスクを追加
+		const newTaskInput = document.getElementById('inbox-new-task');
+
+		async function addNewInboxTask() {
+			const name = newTaskInput.value.trim();
+			if (!name) return;
+
+			inboxTasks.push({
+				name,
+				project: '',
+				dueDate: '',
+				estimatedTime: ''
+			});
+
+			newTaskInput.value = '';
+			await saveInboxTasks();
+			renderInboxTasks();
+			newTaskInput.focus();
+		}
+
+		document.getElementById('inbox-add-btn').addEventListener('click', addNewInboxTask);
+
+		newTaskInput.addEventListener('keydown', (event) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				addNewInboxTask();
+			}
+		});
+
+		document.getElementById('close-inbox-btn').addEventListener('click', () => {
+			closeModal('inbox-modal');
+		});
+	}
+
+
 	// スワイプ機能 START
 	let swipeTargetCard = null;
 	let swipeBackground = null;
@@ -1531,9 +1680,9 @@ async function checkDayChange() {
 
 		document.getElementById('add-project-btn').addEventListener('click', addProject);
 		document.getElementById('add-section-btn').addEventListener('click', addSection);
-		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
 		document.getElementById('delete-all-tasks-btn').addEventListener('click', deleteAllTasksForViewDate);
 		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
+		setupInboxEvents();
 		document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
 		document.getElementById('generate-from-repeat-btn').addEventListener('click', generateTasksFromRepeatManual);
 		document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
@@ -1709,13 +1858,6 @@ async function checkDayChange() {
 
 		document.getElementById('edit-repeat-time').addEventListener('keydown', (e) => {
 			if (e.key === 'Enter') { e.preventDefault(); saveRepeatEdit(); }
-		});
-
-		document.getElementById('inbox-textarea').addEventListener('keydown', (e) => {
-			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-				e.preventDefault();
-				document.getElementById('save-inbox-btn').click();
-			}
 		});
 
     // リピートタスク追加フォーム - 毎月の日付追加
