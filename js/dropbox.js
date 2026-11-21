@@ -691,10 +691,13 @@ export const dailyTaskListApp = {
                 const dueDate = dateMatch[1];
 
                 // 日付として正しいか確認
-                const parsedDate = new Date(`${dueDate}T00:00:00`);
+                const [year, month, day] = dueDate.split('-').map(Number);
+                const parsedDate = new Date(year, month - 1, day);
+
                 if (
-                    isNaN(parsedDate.getTime()) ||
-                    getFormattedDate(parsedDate) !== dueDate
+                    parsedDate.getFullYear() !== year ||
+                    parsedDate.getMonth() !== month - 1 ||
+                    parsedDate.getDate() !== day
                 ) {
                     remainingLines.push(line);
                     continue;
