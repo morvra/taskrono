@@ -905,3 +905,93 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         font-size: 9px;
     }
 }
+
+/* Inbox modal */
+.inbox-modal-content {
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inbox-task-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 100px;
+    padding-bottom: 12px;
+}
+
+.inbox-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    background: white;
+}
+
+.inbox-card-name {
+    width: 100%;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 5px 0;
+    border: none;
+    background: transparent;
+}
+
+.inbox-card-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.inbox-field {
+    min-width: 0;
+    padding: 7px;
+    border-radius: 7px;
+    background: #f9fafb;
+}
+
+.inbox-field label {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 3px;
+}
+
+.inbox-field input,
+.inbox-field select {
+    width: 100%;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+}
+
+.inbox-card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.inbox-add-area {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 480px) {
+    .inbox-modal-content {
+        padding: 16px;
+        max-height: 90vh;
+    }
+
+    .inbox-card-fields {
+        grid-template-columns: 1fr 1fr;
+    }
+}

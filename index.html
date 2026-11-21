@@ -457,15 +457,29 @@
 </div>
 
 <div id="inbox-modal" class="modal">
-    <div class="modal-content p-6 w-full max-w-2xl">
-        <h3 class="text-lg font-bold mb-4">Dropbox Inbox</h3>
-        <p class="text-sm text-gray-600 mb-3">
-            行ごとにタスクを入力してください（例: `タスク名 YYYY-MM-DD :10`）。日付と見積は省略可。
-        </p>
-        <textarea id="inbox-textarea" class="w-full p-2 border rounded-lg h-48 font-mono text-base"></textarea>
-        <div class="flex gap-3 mt-6">
-            <button id="save-inbox-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">保存して閉じる</button>
-            <button id="cancel-inbox-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">キャンセル</button>
+    <div class="modal-content inbox-modal-content">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Inbox</h3>
+            <button id="close-inbox-btn" class="text-gray-500 text-2xl">&times;</button>
+        </div>
+
+        <div id="inbox-status" class="text-xs text-gray-500 mb-3"></div>
+
+        <div id="inbox-task-list" class="inbox-task-list">
+            <!-- JavaScriptでカードを描画 -->
+        </div>
+
+        <div class="inbox-add-area">
+            <input
+                id="inbox-new-task"
+                type="text"
+                placeholder="新しいタスクを追加..."
+                class="w-full p-2 border rounded-lg"
+            >
+            <button id="inbox-add-btn"
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg">
+                追加
+            </button>
         </div>
     </div>
 </div>

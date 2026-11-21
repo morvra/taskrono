@@ -111,6 +111,54 @@ function buildDayMarkdown(dateStr, tasks) {
     return lines.join('\n');
 }
 
+export function parseInboxContent(content) {
+    return content.split(/\r?\n/)
+        .filter(line => line.trim())
+        .map((line, index) => {
+            const match = line.trim().match(/^-\s*\[\s*\]\s*(.*)$/);
+
+            if (!match) return null;
+
+            let rest = match[1];
+
+            const projectMatch = rest.match(/(?:^|\s)@([^\s]+)/);
+            const dateMatch = rest.match(/(?:^|\s)(\d{4}-\d{2}-\d{2})(?=\s|$)/);
+            const timeMatch = rest.match(/(?:^|\s):(\d+)(?=\s|$)/);
+
+            const project = projectMatch ? projectMatch[1] : '';
+            const dueDate = dateMatch ? dateMatch[1] : '';
+            const estimatedTime = timeMatch ? parseInt(timeMatch[1], 10) : '';
+
+            if (projectMatch) rest = rest.replace(projectMatch[0], ' ');
+            if (dateMatch) rest = rest.replace(dateMatch[0], ' ');
+            if (timeMatch) rest = rest.replace(timeMatch[0], ' ');
+
+            return {
+                index,
+                name: rest.trim(),
+                project,
+                dueDate,
+                estimatedTime
+            };
+        })
+        .filter(task => task && task.name);
+}
+
+export function serializeInboxTasks(tasks) {
+    return tasks.map(task => {
+        const parts = ['- [ ]', task.name.trim()];
+
+        if (task.project) parts.push(`@${task.project}`);
+        if (task.dueDate) parts.push(task.dueDate);
+
+        if (task.estimatedTime !== '' && task.estimatedTime !== null) {
+            parts.push(`:${task.estimatedTime}`);
+        }
+
+        return parts.join(' ');
+    }).join('\n');
+}
+
 export const dailyTaskListApp = {
     dropboxFilePath: '/DailyTaskListData.json',
     inboxFilePath: '/inbox.txt',

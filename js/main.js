@@ -2,7 +2,7 @@
 
 import { escapeHtml, formatTime, formatClockTime, calculateActualTime, getPlainTaskName, formatTaskName, getFormattedDate } from './utils.js';
 import { state, loadStateFromStorage, saveStateToStorage } from './state.js';
-import { dailyTaskListApp } from './dropbox.js';
+import { dailyTaskListApp, parseInboxContent, serializeInboxTasks } from './dropbox.js';
 import { taskCallbacks, addTask, deleteTask, postponeTask, moveTaskToToday, toggleTimer, stopActiveTimer, interruptTask, toggleTimerForDate, interruptTaskForDate} from './tasks.js';
 import { projectCallbacks, addProject, editProject, deleteProject, archiveProject, unarchiveProject } from './projects.js';
 import { sectionCallbacks, addSection, editSection, deleteSection, getSectionById, getSectionDisplayInfo, getCurrentSection, updateSectionDropdowns, renderSections } from './sections.js';
@@ -13,6 +13,7 @@ import { renderRepeatCallbacks, renderRepeatTasks, renderRepeatTaskTable, render
 import { modalCallbacks, openModal, closeModal, openAddTaskModal, openTaskEditModal, saveTaskEdit, createRepeatFromTask, openMemoEditModal, saveMemoEdit, openRepeatEditModal, saveRepeatEdit, renderSubtasksInModal, addSubtaskToModal, getSubtasksFromModal, addMonthlyDayChip, addYearlyDateChip, getMonthlyDaysFromChips, getYearlyDatesFromChips } from './modals.js';
 import { keyboardCallbacks, handleKeyboardShortcuts } from './keyboard.js';
 import { renderTaskPlayer,updateTaskPlayerProgress } from './render/renderTaskPlayer.js';
+
 
 document.addEventListener('DOMContentLoaded', () => {
 	// フローティング要素のキーボード追従と滑らかスクロール対策
@@ -929,21 +930,94 @@ async function checkDayChange() {
 		}
 	}
 
+	let inboxTasks = [];
+
 	async function openInboxModal() {
 		openModal('inbox-modal');
-		const textarea = document.getElementById('inbox-textarea');
-		textarea.value = '読み込み中...';
-		textarea.disabled = true;
+
+		const list = document.getElementById('inbox-task-list');
+		const status = document.getElementById('inbox-status');
+
+		list.innerHTML = '<p class="text-gray-500">読み込み中...</p>';
 
 		const content = await dailyTaskListApp.fetchInboxContent();
 
-		if (content !== null) {
-			textarea.value = content;
-		} else {
-			textarea.value = 'エラー: Inboxの読み込みに失敗しました。';
+		if (content === null) {
+			list.innerHTML = '<p class="text-red-500">読み込みに失敗しました。</p>';
+			return;
 		}
-		textarea.disabled = false;
-		textarea.focus();
+
+		inboxTasks = parseInboxContent(content);
+		renderInboxTasks();
+	}
+	function renderInboxTasks() {
+		const list = document.getElementById('inbox-task-list');
+
+		list.innerHTML = '';
+
+		inboxTasks.forEach((task, index) => {
+			const card = document.createElement('div');
+			card.className = 'inbox-card';
+
+			const projectOptions = state.projects
+				.filter(p => !p.isArchived)
+				.map(p => `
+					<option value="${escapeHtml(p.name)}"
+						${p.name === task.project ? 'selected' : ''}>
+						${escapeHtml(p.name)}
+					</option>
+				`).join('');
+
+			card.innerHTML = `
+				<input class="inbox-card-name"
+					data-field="name"
+					data-index="${index}"
+					value="${escapeHtml(task.name)}">
+
+				<div class="inbox-card-fields">
+					<div class="inbox-field">
+						<label>プロジェクト</label>
+						<select data-field="project" data-index="${index}">
+							<option value="">未設定</option>
+							${projectOptions}
+						</select>
+					</div>
+
+					<div class="inbox-field">
+						<label>見積もり（分）</label>
+						<input type="number" min="0"
+							data-field="estimatedTime"
+							data-index="${index}"
+							value="${task.estimatedTime}">
+					</div>
+
+					<div class="inbox-field">
+						<label>期日</label>
+						<input type="date"
+							data-field="dueDate"
+							data-index="${index}"
+							value="${task.dueDate}">
+					</div>
+				</div>
+
+				<div class="inbox-card-actions">
+					<button class="bg-green-600 text-white text-sm px-3 py-2 rounded"
+						data-action="add" data-index="${index}">
+						今日に追加
+					</button>
+
+					<button class="text-red-500 text-sm px-3 py-2"
+						data-action="delete" data-index="${index}">
+						削除
+					</button>
+				</div>
+			`;
+
+			list.appendChild(card);
+		});
+
+		document.getElementById('inbox-status').textContent =
+			`${inboxTasks.length}件`;
 	}
 
 	// スワイプ機能 START
@@ -1459,17 +1533,9 @@ async function checkDayChange() {
 		document.getElementById('add-section-btn').addEventListener('click', addSection);
 		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
 		document.getElementById('delete-all-tasks-btn').addEventListener('click', deleteAllTasksForViewDate);
-		document.getElementById('save-inbox-btn').addEventListener('click', async () => {
-			const textarea = document.getElementById('inbox-textarea');
-			textarea.disabled = true; // 保存中は無効化
-			const success = await dailyTaskListApp.saveInboxContent(textarea.value);
-			if (success) {
-				showToast('Inboxを保存しました。');
-				closeModal('inbox-modal');
-			}
-			textarea.disabled = false;
-		});
-		document.getElementById('cancel-inbox-btn').addEventListener('click', () => closeModal('inbox-modal'));
+		document.getElementById('inbox-btn').addEventListener('click', openInboxModal);
+		document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
+		document.getElementById('generate-from-repeat-btn').addEventListener('click', generateTasksFromRepeatManual);
 		document.getElementById('add-repeat-task-btn').addEventListener('click', addRepeatTask);
 		document.getElementById('generate-from-repeat-btn').addEventListener('click', generateTasksFromRepeatManual);
 
