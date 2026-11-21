@@ -653,111 +653,129 @@ export const dailyTaskListApp = {
 
         try {
             let fileContent;
+
             if (prefetchedContent !== null) {
-                // 事前取得済みコンテンツを利用（ダウンロードをスキップ）
                 fileContent = prefetchedContent;
                 if (!fileContent) return;
             } else {
-                // 単独呼び出し時は従来通りダウンロード
-                const response = await this.dbx.filesDownload({ path: this.inboxFilePath });
+                const response = await this.dbx.filesDownload({
+                    path: this.inboxFilePath
+                });
                 fileContent = await response.result.fileBlob.text();
             }
 
-            const lines = fileContent.split('\n');
-            const remainingLines = [];
-            let processed = false;
-            const dateRegex = /(\d{4}-\d{1,2}-\d{1,2})/;
-            const timeRegex = /:(\d+)/;
             const todayStr = getFormattedDate(new Date());
-
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = getFormattedDate(tomorrow);
-            const tasksToAddByDate = {};
+            const lines = fileContent.split(/\r?\n/);
+            const remainingLines = [];
             const newTasks = [];
 
-            lines.forEach(line => {
+            for (const line of lines) {
                 const trimmed = line.trim();
 
-                if (!trimmed) return;
+                if (!trimmed) continue;
 
-                if (!trimmed.startsWith('- [ ]')) {
-                    remainingLines.push(line);
-                    return;
-                }
-
+                // チェックボックス付き、または通常のテキスト行をタスクとして扱う
                 let taskName = trimmed.replace(/^-\s*\[\s*\]\s*/, '');
-                let estimatedTime = 5;
-                let targetDate = todayStr;
-                let hasDate = false;
 
-                const dateMatch = taskName.match(dateRegex);
-                if (dateMatch) {
-                    const parsedDate = new Date(dateMatch[1]);
-                    if (!isNaN(parsedDate.getTime())) {
-                        targetDate = getFormattedDate(parsedDate);
-                        taskName = taskName.replace(dateRegex, '').trim();
-                        hasDate = true;
-                    }
-                }
+                // 期日を取得
+                const dateMatch = taskName.match(
+                    /(?:^|\s)(\d{4}-\d{2}-\d{2})(?=\s|$)/
+                );
 
-                if (hasDate && targetDate > tomorrowStr) {
+                // 期日がないタスクは自動取り込みしない
+                if (!dateMatch) {
                     remainingLines.push(line);
-                    return;
+                    continue;
                 }
 
-                const timeMatch = taskName.match(timeRegex);
-                if (timeMatch) {
-                    estimatedTime = parseInt(timeMatch[1], 10);
-                    taskName = taskName.replace(timeRegex, '').trim();
+                const dueDate = dateMatch[1];
+
+                // 日付として正しいか確認
+                const parsedDate = new Date(`${dueDate}T00:00:00`);
+                if (
+                    isNaN(parsedDate.getTime()) ||
+                    getFormattedDate(parsedDate) !== dueDate
+                ) {
+                    remainingLines.push(line);
+                    continue;
                 }
+
+                // 期日がまだ先ならInboxに残す
+                if (dueDate > todayStr) {
+                    remainingLines.push(line);
+                    continue;
+                }
+
+                // プロジェクトを取得
+                const projectMatch = taskName.match(
+                    /(?:^|\s)@([^\s]+)/
+                );
+                const projectName = projectMatch ? projectMatch[1] : '';
+                const project = state.projects.find(
+                    p => p.name === projectName && !p.isArchived
+                );
+
+                // 見積もり時間を取得（未指定なら5分）
+                const timeMatch = taskName.match(
+                    /(?:^|\s):(\d+)(?=\s|$)/
+                );
+                const estimatedTime = timeMatch
+                    ? parseInt(timeMatch[1], 10)
+                    : 5;
+
+                // タスク名から管理用の記法を取り除く
+                taskName = taskName
+                    .replace(dateMatch[0], ' ')
+                    .replace(projectMatch ? projectMatch[0] : '', ' ')
+                    .replace(timeMatch ? timeMatch[0] : '', ' ')
+                    .trim();
 
                 if (!taskName) {
                     remainingLines.push(line);
-                    return;
+                    continue;
                 }
 
-                const newTask = {
+                // 期日到来済みのタスクを今日のリストに追加
+                newTasks.push({
                     id: 't' + Date.now() + Math.random(),
                     name: taskName,
-                    estimatedTime: estimatedTime,
-                    projectId: null,
+                    estimatedTime,
+                    actualTime: 0,
+                    projectId: project ? project.id : null,
                     sectionId: null,
                     status: 'pending',
-                    createdDate: targetDate,
+                    isInterrupt: false,
+                    createdDate: todayStr,
                     startTime: null,
                     endTime: null,
                     memo: '',
                     subtasks: [],
                     updatedAt: new Date().toISOString()
-                };
-
-                if (!tasksToAddByDate[targetDate]) {
-                    tasksToAddByDate[targetDate] = [];
-                }
-                tasksToAddByDate[targetDate].push(newTask);
-                newTasks.push(newTask);
-                processed = true;
-            });
-
-            Object.keys(tasksToAddByDate).forEach(date => {
-                if (!state.dailyTasks[date]) {
-                    state.dailyTasks[date] = [];
-                }
-                state.dailyTasks[date] = [...tasksToAddByDate[date], ...state.dailyTasks[date]];
-            });
-
-            if (processed) {
-                const newContent = remainingLines.join('\n').trim();
-                await this.dbx.filesUpload({
-                    path: this.inboxFilePath,
-                    contents: newContent,
-                    mode: 'overwrite'
                 });
-                if (newTasks.length > 0) {
-                    this.callbacks.showToast(`${newTasks.length}件のタスクをInboxからインポートしました。`);
-                }
             }
+
+            if (newTasks.length === 0) return;
+
+            if (!state.dailyTasks[todayStr]) {
+                state.dailyTasks[todayStr] = [];
+            }
+
+            state.dailyTasks[todayStr] = [
+                ...newTasks,
+                ...state.dailyTasks[todayStr]
+            ];
+
+            // 取り込んだタスクをInboxから削除
+            await this.dbx.filesUpload({
+                path: this.inboxFilePath,
+                contents: remainingLines.join('\n'),
+                mode: 'overwrite'
+            });
+
+            this.callbacks.showToast(
+                `${newTasks.length}件のタスクをInboxからインポートしました。`
+            );
+
         } catch (error) {
             if (error.status === 409) {
                 console.log('inbox.txt not found, skipping import.');
