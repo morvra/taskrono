@@ -1145,7 +1145,7 @@ async function checkDayChange() {
 				name,
 				project: '',
 				dueDate: '',
-				estimatedTime: ''
+				estimatedTime: 20
 			});
 
 			newTaskInput.value = '';

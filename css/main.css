@@ -906,14 +906,39 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     }
 }
 
+
 /* Inbox modal */
 .inbox-modal-content {
-    width: 100%;
+    width: min(640px, 92vw);
     max-width: 640px;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding: 16px;
+}
+
+.inbox-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    margin-bottom: 12px;
+}
+
+.inbox-modal-title {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    min-width: 0;
+}
+
+.inbox-status {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
 }
 
 .inbox-task-list {
@@ -923,9 +948,11 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     gap: 10px;
     min-height: 100px;
     padding-bottom: 12px;
+    flex: 1 1 auto;
 }
 
 .inbox-card {
+    flex: 0 0 auto;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     padding: 12px;
@@ -943,7 +970,7 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
 
 .inbox-card-fields {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     margin-top: 8px;
 }
@@ -975,23 +1002,44 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     margin-top: 12px;
 }
 
 .inbox-add-area {
     display: flex;
+    align-items: stretch;
     gap: 8px;
+    flex: 0 0 auto;
     padding-top: 12px;
     border-top: 1px solid #e5e7eb;
 }
 
+#inbox-new-task {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#inbox-add-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-width: 64px;
+}
+
 @media (max-width: 480px) {
     .inbox-modal-content {
-        padding: 16px;
+        width: 94vw;
         max-height: 90vh;
+        padding: 12px;
     }
 
     .inbox-card-fields {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 360px) {
+    .inbox-card-fields {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

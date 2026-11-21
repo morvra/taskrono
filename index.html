@@ -458,12 +458,13 @@
 
 <div id="inbox-modal" class="modal">
     <div class="modal-content inbox-modal-content">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold">Inbox</h3>
+        <div class="inbox-modal-header">
+            <div class="inbox-modal-title">
+                <h3 class="text-lg font-bold">Inbox</h3>
+                <span id="inbox-status" class="inbox-status"></span>
+            </div>
             <button id="close-inbox-btn" class="text-gray-500 text-2xl">&times;</button>
         </div>
-
-        <div id="inbox-status" class="text-xs text-gray-500 mb-3"></div>
 
         <div id="inbox-task-list" class="inbox-task-list">
             <!-- JavaScriptでカードを描画 -->
