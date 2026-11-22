@@ -875,6 +875,15 @@ loadStateFromDropbox: async function(showNotification = true) {
                     }
                     if (incomingIsLocal) {
                         if (incomingStatus === 'running' && currentStatus !== 'completed') {
+                            // ローカルの実行状態は維持する。
+                            // ただしDropbox側の更新日時が新しければメモを取り込む。
+                            if ((current.updatedAt || '') > (incoming.updatedAt || '')) {
+                                return {
+                                    ...incoming,
+                                    memo: current.memo ?? incoming.memo,
+                                    updatedAt: current.updatedAt
+                                };
+                            }
                             return incoming;
                         }
                         return (incoming.updatedAt || '') > (current.updatedAt || '') ? incoming : current;
