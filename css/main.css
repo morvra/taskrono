@@ -741,11 +741,11 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         gap: 8px;
         box-sizing: border-box;
         padding: 7px 8px 9px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
         border-radius: 14px;
-        background: #1f2937;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-        color: #f9fafb;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        color: #4b5563;
         overflow: hidden;
         pointer-events: auto;
         -webkit-tap-highlight-color: transparent;
@@ -758,10 +758,10 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         width: 28px;
         height: 28px;
         padding: 0;
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(0, 0, 0, 0.06);
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.12);
-        color: #f9fafb;
+        background: rgba(255, 255, 255, 0.9);
+        color: #4b5563;
         font-size: 16px;
         line-height: 1;
         cursor: pointer;
@@ -783,17 +783,17 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     }
 
     .top-bar-date {
-        color: #f9fafb;
+        color: #374151;
         font-weight: 700;
     }
 
     .top-bar-completed {
-        color: #4ade80;
+        color: #16a34a;
         font-weight: 700;
     }
 
     .top-bar-end-time {
-        color: #60a5fa;
+        color: #2563eb;
         font-weight: 700;
     }
 
@@ -803,13 +803,13 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         bottom: 0;
         width: 100%;
         height: 2px;
-        background: rgba(255, 255, 255, 0.16);
+        background: rgba(59, 130, 246, 0.12);
     }
 
     #top-bar-progress-fill {
         height: 100%;
         width: 0%;
-        background: #60a5fa;
+        background: #3b82f6;
         transition: width 0.3s ease;
     }
 
