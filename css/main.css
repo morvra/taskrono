@@ -705,7 +705,7 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
         justify-content: flex-end;
         align-items: stretch;
         gap: 8px;
-        padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+        padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
         box-sizing: border-box;
     }
 
