@@ -1732,8 +1732,8 @@ async function checkDayChange() {
 
 		document.getElementById('prev-day-btn').addEventListener('click', () => moveViewDate(-1));
 		document.getElementById('next-day-btn').addEventListener('click', () => moveViewDate(1));
-		document.getElementById('top-bar-prev-btn')?.addEventListener('click', () => { moveViewDate(-1); calculateAllEstimates(); });
-		document.getElementById('top-bar-next-btn')?.addEventListener('click', () => { moveViewDate(1); calculateAllEstimates(); });
+		document.getElementById('top-bar-prev-btn')?.addEventListener('click', () => moveViewDate(-1));
+		document.getElementById('top-bar-next-btn')?.addEventListener('click', () => moveViewDate(1));
 
 		document.getElementById('export-data-btn').addEventListener('click', exportData);
 		document.getElementById('import-data-btn').addEventListener('click', importData);
@@ -2459,6 +2459,8 @@ async function checkDayChange() {
 			state.focusedTaskId = null;
 		}
 		renderTodayTasks({ scroll: true });
+		// ヘッダー統計と見通しバーも新しい日付で更新する
+		calculateAllEstimates();
 	}
 
 	function saveAndRender(options = {}) { updateSortOrderAndTimestamps(state.viewDate); saveState(); render(options); updateTitle(); }
