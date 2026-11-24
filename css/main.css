@@ -62,7 +62,7 @@ body { font-family: 'Noto Sans', 'Inter', sans-serif; background-color: #fafafa;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         text-align: center;
         /* 浮動する見通しバーの分の余白 */
-        padding-top: calc(48px + env(safe-area-inset-top, 0px));
+        padding-top: calc(88px + env(safe-area-inset-top, 0px));
     }
     #desktop-sidebar { display: none; }
     /* 完了タスク・終了予測は見通しバーに一本化 */
@@ -589,7 +589,7 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     right: 0;
     top: 0;
     z-index: 50;
-    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) 12px 0;
     box-sizing: border-box;
     background: transparent;
     pointer-events: none;
@@ -602,15 +602,6 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     #top-ui-container { display: none !important; }
 }
 
-/* PWA（スタンドアローン）では iOS 26 のスクロールエッジぼかしを避けるため見通しバーを下げる */
-@media (display-mode: standalone) and (max-width: 768px) {
-    #top-ui-container {
-        padding-top: calc(48px + env(safe-area-inset-top, 0px));
-    }
-    .header {
-        padding-top: calc(88px + env(safe-area-inset-top, 0px));
-    }
-}
 
 /* ============================================================
    実行中タスク・タイマー・プログレスバー
