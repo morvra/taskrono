@@ -814,6 +814,11 @@ document.addEventListener('DOMContentLoaded', () => {
 					const percentage = Math.min(100, (currentActualSeconds / (runningTask.estimatedTime * 60)) * 100);
 					progressBar.style.width = `${percentage}%`;
 				}
+				// タスクプレイヤーの進行度も更新
+				updateTaskPlayerProgress(
+					currentActualSeconds,
+					runningTask.estimatedTime
+				);
 			}, 1000);
 		}
 	}

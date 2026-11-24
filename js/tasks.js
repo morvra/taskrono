@@ -445,6 +445,13 @@ export function toggleTimer(id, forceStop = false) {
             const percentage = Math.min(100, (currentActualSeconds / (task.estimatedTime * 60)) * 100);
             progressBar.style.width = `${percentage}%`;
         }
+        // タスクプレイヤーの進行度も更新
+        if (taskCallbacks.updateTaskPlayerProgress) {
+            taskCallbacks.updateTaskPlayerProgress(
+                currentActualSeconds,
+                task.estimatedTime
+            );
+        }
     }, 1000);
 
     taskCallbacks.saveAndRender({ scroll: true });
@@ -472,6 +479,9 @@ export function toggleTimerForDate(id, dateKey) {
         if (state.openTaskIds.has(id)) {
             state.openTaskIds.delete(id);
         }
+        // 次の未完了タスクを選択
+        const nextTask = tasks.find(t => t.status !== 'completed');
+        state.focusedTaskId = nextTask ? nextTask.id : null;
 
         taskCallbacks.saveAndRender({ scroll: false });
         return;
@@ -559,6 +569,18 @@ export function toggleTimerForDate(id, dateKey) {
 
         const floatingTimeEl = document.getElementById('floating-elapsed-time');
         if (floatingTimeEl) floatingTimeEl.textContent = timeString;
+        // タスクカードの進行バーを更新
+        const progressBar = document.querySelector(
+            `[data-task-id="${task.id}"] .running-progress-bg`
+        );
+
+        if (progressBar && task.estimatedTime > 0) {
+            const percentage = Math.min(
+                100,
+                (actualSeconds / (task.estimatedTime * 60)) * 100
+            );
+            progressBar.style.width = `${percentage}%`;
+        }
 
         if (taskCallbacks.updateTaskPlayerProgress) {
             taskCallbacks.updateTaskPlayerProgress(
