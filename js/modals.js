@@ -51,6 +51,8 @@ export function openModal(modalId) {
     if (modalCallbacks.isMobile()) {
         const container = document.getElementById('bottom-ui-container');
         if (container) container.style.display = 'none';
+        const topContainer = document.getElementById('top-ui-container');
+        if (topContainer) topContainer.style.display = 'none';
     }
 }
 
@@ -64,6 +66,8 @@ export function closeModal(modalId) {
     if (modalCallbacks.isMobile()) {
         const container = document.getElementById('bottom-ui-container');
         if (container) container.style.display = 'flex';
+        const topContainer = document.getElementById('top-ui-container');
+        if (topContainer) topContainer.style.display = 'block';
     }
 
     // 他に開いているモーダルが無ければロック解除（多重オープン対策）

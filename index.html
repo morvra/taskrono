@@ -485,6 +485,19 @@
     </div>
 </div>
 
+<div id="top-ui-container">
+    <div id="top-bar" aria-label="見通し">
+        <button type="button" id="top-bar-prev-btn" class="top-bar-nav-btn" aria-label="前の日">‹</button>
+        <div class="top-bar-info">
+            <span id="top-bar-date" class="top-bar-date"></span>
+            <span>完了 <span id="top-bar-completed" class="top-bar-completed">--/--</span></span>
+            <span>終了予測 <span id="top-bar-end-time" class="top-bar-end-time">--:--</span></span>
+        </div>
+        <button type="button" id="top-bar-next-btn" class="top-bar-nav-btn" aria-label="次の日">›</button>
+        <div class="top-bar-progress"><div id="top-bar-progress-fill"></div></div>
+    </div>
+</div>
+
 <div id="bottom-ui-container"> 
     <!-- 新設：現在のタスクを表示するプレイヤー。次段階でJavaScriptから内容を描画する -->
     <div id="task-player" aria-label="現在のタスク" hidden></div>

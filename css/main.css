@@ -61,8 +61,12 @@ body { font-family: 'Noto Sans', 'Inter', sans-serif; background-color: #fafafa;
         background: white;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         text-align: center;
+        /* 浮動する見通しバーの分の余白 */
+        padding-top: calc(48px + env(safe-area-inset-top, 0px));
     }
     #desktop-sidebar { display: none; }
+    /* 完了タスク・終了予測は見通しバーに一本化 */
+    #header-stats-container-mobile { display: none; }
 }
 
 /* ============================================================
@@ -575,6 +579,30 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
 }
 
 /* ============================================================
+   上部・見通しバー（モバイルのみ。下部UIと同じく absolute＋JS で追従）
+   ============================================================ */
+
+#top-ui-container {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 50;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
+    box-sizing: border-box;
+    background: transparent;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    #top-ui-container { display: block; }
+}
+@media (min-width: 769px) {
+    #top-ui-container { display: none !important; }
+}
+
+/* ============================================================
    実行中タスク・タイマー・プログレスバー
    ============================================================ */
 
@@ -702,6 +730,88 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
 
     #bottom-fab-add-task {
         flex: 0 0 auto;
+    }
+
+    /* 見通しバー本体（案C：極薄フラット） */
+    #top-bar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-sizing: border-box;
+        padding: 7px 8px 9px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.78);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        color: #4b5563;
+        overflow: hidden;
+        pointer-events: auto;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .top-bar-nav-btn {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        color: #4b5563;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .top-bar-nav-btn:active {
+        transform: scale(0.94);
+    }
+
+    .top-bar-info {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+        font-size: 12.5px;
+        white-space: nowrap;
+    }
+
+    .top-bar-date {
+        color: #374151;
+        font-weight: 700;
+    }
+
+    .top-bar-completed {
+        color: #16a34a;
+        font-weight: 700;
+    }
+
+    .top-bar-end-time {
+        color: #2563eb;
+        font-weight: 700;
+    }
+
+    .top-bar-progress {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+        background: rgba(59, 130, 246, 0.12);
+    }
+
+    #top-bar-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: #3b82f6;
+        transition: width 0.3s ease;
     }
 
     /* プレイヤー本体 */
@@ -907,6 +1017,15 @@ div.repeat-task-row.focused { background-color: #fef9c3; }
     .task-player-meta {
         gap: 4px;
         font-size: 11px;
+    }
+
+    .top-bar-info {
+        font-size: 11.5px;
+    }
+
+    .top-bar-nav-btn {
+        width: 26px;
+        height: 26px;
     }
 }
 

@@ -33,6 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				// CSSで display: none にしているので、JSでの操作は不要
 				container.style.position = '';
 				container.style.top = '';
+				const topContainerPc = document.getElementById('top-ui-container');
+				if (topContainerPc) {
+					topContainerPc.style.position = '';
+					topContainerPc.style.top = '';
+				}
 				return;
 			}
 
@@ -65,6 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			// 親コンテナの位置設定
 			container.style.position = 'absolute';
 			container.style.top = newContainerTop + 'px';
+
+			// 見通しバーも同じ方式で画面上端に追従させる
+			const topContainer = document.getElementById('top-ui-container');
+			if (topContainer) {
+				topContainer.style.position = 'absolute';
+				topContainer.style.top = scrollY + 'px';
+			}
 		}
 
 		function requestTick() {
@@ -259,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	// DOM refs
 	const tabs = document.querySelectorAll('.tab-link');
 	const currentDateEls = document.querySelectorAll('#current-date');
-	const totalEstimatedEndTimeEls = document.querySelectorAll('#total-estimated-end-time, #total-estimated-end-time-desktop');
+	const totalEstimatedEndTimeEls = document.querySelectorAll('#total-estimated-end-time, #total-estimated-end-time-desktop, #top-bar-end-time');
 
   function updateSortOrderAndTimestamps(dateKey) {
 		const tasks = state.dailyTasks[dateKey] || [];
@@ -1720,6 +1732,8 @@ async function checkDayChange() {
 
 		document.getElementById('prev-day-btn').addEventListener('click', () => moveViewDate(-1));
 		document.getElementById('next-day-btn').addEventListener('click', () => moveViewDate(1));
+		document.getElementById('top-bar-prev-btn')?.addEventListener('click', () => { moveViewDate(-1); calculateAllEstimates(); });
+		document.getElementById('top-bar-next-btn')?.addEventListener('click', () => { moveViewDate(1); calculateAllEstimates(); });
 
 		document.getElementById('export-data-btn').addEventListener('click', exportData);
 		document.getElementById('import-data-btn').addEventListener('click', importData);
@@ -2313,7 +2327,7 @@ async function checkDayChange() {
 
 		const completedTasksCount = allTasks.length - unfinishedTasks.length;
 		const totalTasksCount = allTasks.length;
-		const completedStatsEls = document.querySelectorAll('#completed-tasks-stats, #completed-tasks-stats-desktop');
+		const completedStatsEls = document.querySelectorAll('#completed-tasks-stats, #completed-tasks-stats-desktop, #top-bar-completed');
 
 		completedStatsEls.forEach(el => {
 			if (el) {
@@ -2330,6 +2344,32 @@ async function checkDayChange() {
 		totalEstimatedEndTimeEls.forEach(el => {
 			if(el) el.textContent = endTimeText;
 		});
+
+		// 見通しバー：日付・進捗・日付移動ボタンの表示状態を更新
+		const topBarDateEl = document.getElementById('top-bar-date');
+		if (topBarDateEl) {
+			const [vy, vm, vd] = state.viewDate.split('-').map(Number);
+			const weekday = ['日', '月', '火', '水', '木', '金', '土'][new Date(vy, vm - 1, vd).getDay()];
+			topBarDateEl.textContent = `${state.viewDate.slice(5)}（${weekday}）`;
+		}
+		const topBarProgressFill = document.getElementById('top-bar-progress-fill');
+		if (topBarProgressFill) {
+			topBarProgressFill.style.width = totalTasksCount > 0
+				? `${(completedTasksCount / totalTasksCount) * 100}%`
+				: '0%';
+		}
+		const topBarPrevBtn = document.getElementById('top-bar-prev-btn');
+		const topBarNextBtn = document.getElementById('top-bar-next-btn');
+		if (topBarPrevBtn && topBarNextBtn) {
+			const limitDate = new Date();
+			limitDate.setDate(limitDate.getDate() + 2);
+			const limitDateStr = getFormattedDate(limitDate);
+			const yesterdayObj = new Date();
+			yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+			const yesterdayStr = getFormattedDate(yesterdayObj);
+			topBarPrevBtn.style.visibility = (state.viewDate <= yesterdayStr) ? 'hidden' : 'visible';
+			topBarNextBtn.style.visibility = (state.viewDate >= limitDateStr) ? 'hidden' : 'visible';
+		}
 	}
 
 	function updateFocus(newFocusedInfo = {}) {
