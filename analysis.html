@@ -291,6 +291,25 @@ document.addEventListener('DOMContentLoaded', () => {
         state.dailyTasks = JSON.parse(localStorage.getItem('dtl_dailyTasks') || '{}');
     }
 
+    // ローカルキャッシュ用に dailyTasks を絞る（本体アプリの保存ルールに合わせる）。
+    // 保持するのは直近35日分と、実行中タスクのある日だけ。
+    // 全期間分を localStorage に書くと上限に当たって保存が失敗するため。
+    function pruneDailyTasksForCache(dailyTasks) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 35);
+        const pad = (n) => String(n).padStart(2, '0');
+        const cutoffKey = `${cutoff.getFullYear()}-${pad(cutoff.getMonth() + 1)}-${pad(cutoff.getDate())}`;
+        const pruned = {};
+        Object.keys(dailyTasks || {}).forEach(dateKey => {
+            const tasks = dailyTasks[dateKey] || [];
+            const hasRunningTask = tasks.some(t => t && t.startTime && !t.endTime);
+            if (dateKey >= cutoffKey || hasRunningTask) {
+                pruned[dateKey] = tasks;
+            }
+        });
+        return pruned;
+    }
+
     // --- Dropbox データ取得 ---
     async function loadDataFromDropbox() {
         if (!dailyTaskListApp.dbx) {
@@ -321,17 +340,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const archiveData = JSON.parse(archiveFileContent);
             state.archivedTasks = archiveData.archivedTasks || {};
 
-            // 取得したデータをローカルストレージにキャッシュとして保存
-            localStorage.setItem('dtl_projects', JSON.stringify(state.projects));
-            localStorage.setItem('dtl_repeatTasks', JSON.stringify(state.repeatTasks));
-            localStorage.setItem('dtl_dailyTasks', JSON.stringify(state.dailyTasks));
-            localStorage.setItem('dtl_archivedTasks', JSON.stringify(state.archivedTasks));
-
             dailyTaskListApp.driveStatusEl.textContent = ``;
             dailyTaskListApp.driveStatusEl.classList.add('hidden');
-			
+
             // データを読み込めたので画面を描画
+            // （キャッシュ保存より先に描画する。キャッシュ保存の失敗を
+            //   読み込み失敗と誤判定してフォールバックさせないため）
             triggerRender();
+
+            // 取得したデータをローカルストレージにキャッシュとして保存
+            // dailyTasks は本体と同じく直近35日分＋実行中のある日に絞る
+            // （全期間分を書くと localStorage の上限に当たり保存が失敗する）。
+            // キャッシュ保存に失敗しても分析は続行できるよう、例外はここで閉じ込める
+            try {
+                localStorage.setItem('dtl_projects', JSON.stringify(state.projects));
+                localStorage.setItem('dtl_repeatTasks', JSON.stringify(state.repeatTasks));
+                localStorage.setItem('dtl_dailyTasks', JSON.stringify(pruneDailyTasksForCache(state.dailyTasks)));
+                localStorage.setItem('dtl_archivedTasks', JSON.stringify(state.archivedTasks));
+            } catch (cacheError) {
+                console.warn('Analysis: ローカルキャッシュの保存に失敗しました（分析は続行します）', cacheError);
+            }
 
         } catch (error) {
             console.error('Error loading data from Dropbox:', error);
