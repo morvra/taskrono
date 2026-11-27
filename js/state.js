@@ -77,18 +77,32 @@ export function loadStateFromStorage() {
 }
 
 export function saveStateToStorage() {
+    // 1つのキーの保存に失敗しても、他のキーの保存と呼び出し側の処理
+    // （描画など）を止めないよう、キーごとに例外を捕まえて集める。
+    // 失敗した場合は戻り値で返すので、呼び出し側が画面に表示できる。
+    const errors = [];
     Object.keys(state).forEach(k => {
         if (k !== 'settings' && k !== 'archiveView' && k !== 'selectedArchiveProject') {
-            if (k === 'openTaskIds') {
-                localStorage.setItem(`dtl_${k}`, JSON.stringify(Array.from(state[k])));
-            } else {
-                localStorage.setItem(`dtl_${k}`, JSON.stringify(state[k]));
+            try {
+                if (k === 'openTaskIds') {
+                    localStorage.setItem(`dtl_${k}`, JSON.stringify(Array.from(state[k])));
+                } else {
+                    localStorage.setItem(`dtl_${k}`, JSON.stringify(state[k]));
+                }
+            } catch (error) {
+                console.error(`Taskrono: ローカル保存に失敗しました (dtl_${k})`, error);
+                errors.push({ key: k, error });
             }
         }
     });
-    const savedOpenTaskIds = localStorage.getItem('dtl_openTaskIds');
-    if (savedOpenTaskIds) {
-        state.openTaskIds = new Set(JSON.parse(savedOpenTaskIds));
+    try {
+        const savedOpenTaskIds = localStorage.getItem('dtl_openTaskIds');
+        if (savedOpenTaskIds) {
+            state.openTaskIds = new Set(JSON.parse(savedOpenTaskIds));
+        }
+    } catch (error) {
+        console.error('Taskrono: openTaskIds の読み戻しに失敗しました', error);
     }
     // ※ Dropbox保存は main.js の saveState() に残す
+    return errors;
 }

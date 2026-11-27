@@ -1049,7 +1049,7 @@ loadStateFromDropbox: async function(showNotification = true) {
                 await this.saveStateToDropbox();
             } else {
                 console.error('Error loading state from Dropbox:', error);
-                this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || 'Unknown error'}`;
+                this.driveStatusEl.textContent = `読み込みエラー: ${error.error?.error_summary || error.message || error.name || 'Unknown error'}`;
                 const errorSummary = error.error?.error_summary || '';
                 if (error.status === 401 || errorSummary.includes('expired_access_token')) {
                     this.updateReauthUi(true);
@@ -1120,7 +1120,7 @@ loadStateFromDropbox: async function(showNotification = true) {
 
         } catch (error) {
             console.error('Error saving state to Dropbox:', error);
-            this.driveStatusEl.textContent = `保存エラー: ${error.error?.error_summary || 'Unknown error'}`;
+            this.driveStatusEl.textContent = `保存エラー: ${error.error?.error_summary || error.message || error.name || 'Unknown error'}`;
             if (error.status === 401) {
                 this.updateAuthUi(false);
                 this.driveStatusEl.textContent = '認証が切れました。再ログインしてください。';

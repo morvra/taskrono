@@ -778,8 +778,25 @@ document.addEventListener('DOMContentLoaded', () => {
 	    Object.values(state.dailyTasks).flat().forEach(task => updateTaskStatus(task));
 	}
 	
+  let lastSaveErrorSignature = '';
+  let lastSaveErrorNotifiedAt = 0;
+
   function saveState() {
-	    saveStateToStorage();
+	    const saveErrors = saveStateToStorage();
+	    if (saveErrors.length > 0) {
+	        // 保存に失敗しても処理は続けるが、失敗した事実と本当のエラー内容を
+	        // 画面に出す（同じ失敗の繰り返しは30秒に1回まで）。
+	        const firstError = saveErrors[0].error;
+	        const errName = (firstError && firstError.name) || 'Error';
+	        const errMessage = (firstError && firstError.message) || String(firstError);
+	        const signature = `${saveErrors[0].key}:${errName}:${errMessage}`;
+	        const nowMs = Date.now();
+	        if (signature !== lastSaveErrorSignature || nowMs - lastSaveErrorNotifiedAt > 30000) {
+	            lastSaveErrorSignature = signature;
+	            lastSaveErrorNotifiedAt = nowMs;
+	            showToast(`保存に失敗しました（${errName}: ${errMessage}）`, 5000);
+	        }
+	    }
 	    // Dropbox保存はここに残す
 	    const app = window.dailyTaskListApp;
 	    const accessToken = localStorage.getItem('dropbox_access_token');
@@ -2463,7 +2480,17 @@ async function checkDayChange() {
 		calculateAllEstimates();
 	}
 
-	function saveAndRender(options = {}) { updateSortOrderAndTimestamps(state.viewDate); saveState(); render(options); updateTitle(); }
+	function saveAndRender(options = {}) {
+		updateSortOrderAndTimestamps(state.viewDate);
+		// 保存に失敗しても描画は必ず行う（保存例外で画面が古いまま残るのを防ぐ）
+		try {
+			saveState();
+		} catch (error) {
+			console.error('Taskrono: saveState で例外が発生しました（描画は続行します）', error);
+		}
+		render(options);
+		updateTitle();
+	}
 	function updateTimeDisplays() {
 		const dateText = new Date().toLocaleString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
 		currentDateEls.forEach(el => {
