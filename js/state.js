@@ -76,6 +76,28 @@ export function loadStateFromStorage() {
     // ※ updateTaskStatus の呼び出しは main.js の loadState() に残す
 }
 
+// ローカル保存（localStorage）用に dailyTasks を絞る。
+// 保持するのは直近35日分と、実行中タスクのある日だけ。
+// メモリ上の state と Dropbox へ送る内容は全期間分のまま変えない。
+// 全期間分を端末内に書き続けると localStorage の上限に当たって
+// QuotaExceededError になり、保存自体が失敗してしまうための対策。
+const LOCAL_DAILY_TASKS_KEEP_DAYS = 35;
+
+function pruneDailyTasksForStorage(dailyTasks) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - LOCAL_DAILY_TASKS_KEEP_DAYS);
+    const cutoffKey = getFormattedDate(cutoffDate);
+    const pruned = {};
+    Object.keys(dailyTasks || {}).forEach(dateKey => {
+        const tasks = dailyTasks[dateKey] || [];
+        const hasRunningTask = tasks.some(t => t && t.startTime && !t.endTime);
+        if (dateKey >= cutoffKey || hasRunningTask) {
+            pruned[dateKey] = tasks;
+        }
+    });
+    return pruned;
+}
+
 export function saveStateToStorage() {
     // 1つのキーの保存に失敗しても、他のキーの保存と呼び出し側の処理
     // （描画など）を止めないよう、キーごとに例外を捕まえて集める。
@@ -86,6 +108,8 @@ export function saveStateToStorage() {
             try {
                 if (k === 'openTaskIds') {
                     localStorage.setItem(`dtl_${k}`, JSON.stringify(Array.from(state[k])));
+                } else if (k === 'dailyTasks') {
+                    localStorage.setItem(`dtl_${k}`, JSON.stringify(pruneDailyTasksForStorage(state[k])));
                 } else {
                     localStorage.setItem(`dtl_${k}`, JSON.stringify(state[k]));
                 }
